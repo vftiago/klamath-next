@@ -1,0 +1,2 @@
+npx tsc -p tsconfig.json
+pnpm lint-staged
