@@ -1,6 +1,6 @@
-import React, { useLayoutEffect , useRef } from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { Mesh, RawShaderMaterial } from "three";
 
 import { TIME_SPEED } from "../constants";
 
@@ -10,8 +10,8 @@ import vertexShader from "./plane.vert";
 const PLANE_DIMENSIONS = 1024;
 
 const Plane = () => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<THREE.RawShaderMaterial>(null);
+  const meshRef = useRef<Mesh>(null);
+  const materialRef = useRef<RawShaderMaterial>(null);
 
   useLayoutEffect(() => {
     if (!meshRef.current || !materialRef.current) {

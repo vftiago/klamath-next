@@ -1,6 +1,6 @@
-import React, { useCallback, useLayoutEffect, useMemo , useRef, useState } from "react";
-import * as THREE from "three";
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
+import { Mesh, RawShaderMaterial, Scene, Vector2, WebGLRenderTarget } from "three";
 
 import { TIME_SPEED } from "../constants";
 
@@ -8,14 +8,14 @@ import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
 
 const PostEffect = () => {
-  const rawShaderMaterialRef = useRef<THREE.RawShaderMaterial>(null);
-  const meshRef = useRef<THREE.Mesh>(null);
+  const rawShaderMaterialRef = useRef<RawShaderMaterial>(null);
+  const meshRef = useRef<Mesh>(null);
 
   const target = useMemo(() => {
-    return new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+    return new WebGLRenderTarget(window.innerWidth, window.innerHeight);
   }, []);
 
-  const [scene] = useState(() => new THREE.Scene());
+  const [scene] = useState(() => new Scene());
 
   const handleWindowResize = useCallback(() => {
     if (!rawShaderMaterialRef.current) {
@@ -37,7 +37,7 @@ const PostEffect = () => {
     const uniforms = rawShaderMaterialRef.current.uniforms;
 
     uniforms.resolution = {
-      value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+      value: new Vector2(window.innerWidth, window.innerHeight),
     };
 
     uniforms.texture = {

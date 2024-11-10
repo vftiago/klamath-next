@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect , useState } from "react";
-import * as THREE from "three";
+import React, { useCallback, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
+import { PerspectiveCamera } from "three";
 
 import Box from "./Box/Box";
 import Plane from "./Plane/Plane";
@@ -11,7 +11,7 @@ import ClearColor from "./ClearColor/ClearColor";
 import Barbelith from "./Barbelith/Barbelith";
 
 const ThreeScene = () => {
-  const [camera] = useState(() => new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000));
+  const [camera] = useState(() => new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000));
 
   camera.position.set(0, 0, 1024);
 
