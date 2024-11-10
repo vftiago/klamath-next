@@ -1,10 +1,11 @@
-import React, { useLayoutEffect } from "react";
+import React, { useLayoutEffect , useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import * as THREE from "three";
+
+import { TIME_SPEED } from "../constants";
+
 import fragmentShader from "./plane.frag";
 import vertexShader from "./plane.vert";
-import { TIME_SPEED } from "../constants";
-import * as THREE from "three";
 
 const PLANE_DIMENSIONS = 1024;
 

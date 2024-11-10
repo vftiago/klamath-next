@@ -1,11 +1,11 @@
-import React, { useLayoutEffect } from "react";
+import React, { useLayoutEffect , useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
 import * as THREE from "three";
+
+import { TIME_SPEED } from "../constants";
 
 import fragmentShader from "./box.frag";
 import vertexShader from "./box.vert";
-import { TIME_SPEED } from "../constants";
 
 const Box = (props: React.JSX.IntrinsicElements["mesh"]) => {
   const meshRef = useRef<THREE.Mesh>(null);

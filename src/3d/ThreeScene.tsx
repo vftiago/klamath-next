@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect , useState } from "react";
 import * as THREE from "three";
-import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
+
 import Box from "./Box/Box";
 import Plane from "./Plane/Plane";
 import PostEffect from "./PostEffect/PostEffect";

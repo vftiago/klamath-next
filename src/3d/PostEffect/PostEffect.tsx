@@ -1,10 +1,11 @@
-import React, { useCallback, useLayoutEffect, useMemo } from "react";
+import React, { useCallback, useLayoutEffect, useMemo , useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import { useRef, useState } from "react";
+
+import { TIME_SPEED } from "../constants";
+
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
-import { TIME_SPEED } from "../constants";
 
 const PostEffect = () => {
   const rawShaderMaterialRef = useRef<THREE.RawShaderMaterial>(null);
