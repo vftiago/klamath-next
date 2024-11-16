@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Roboto_Condensed } from "next/font/google";
 
 import "./globals.css";
+import Navbar from "@/components/Navbar";
+import Logo from "@/components/icons/Logo";
 import DynamicThreeScene from "@/3d/DynamicThreeScene";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const robotoCondensed = Roboto_Condensed({
+  subsets: ["latin"],
+  variable: "--font-roboto-condensed",
+  weight: ["300"],
 });
 
 export const metadata: Metadata = {
@@ -27,9 +24,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${robotoCondensed.variable} font-sans antialiased`}>
         <DynamicThreeScene />
-        {children}
+        <Navbar leftIcon={<Logo />} header="This is a website" />
+        <div className="flex h-full px-16">{children}</div>
       </body>
     </html>
   );
