@@ -28,7 +28,7 @@ const ThreeScene = () => {
   }, [handleWindowScroll]);
 
   return (
-    <div className="fixed -z-10 h-full w-full">
+    <div className="fixed -z-10 h-screen w-full">
       <Canvas
         camera={camera}
         gl={{
