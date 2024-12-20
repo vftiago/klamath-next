@@ -1,7 +1,9 @@
-export default function About() {
+const AboutPage = () => {
   return (
-    <div className="flex min-h-full w-full flex-col items-center justify-center">
-      <div className="flex">About</div>
+    <div className="flex">
+      <h1 className="text-xl">About</h1>
     </div>
   );
-}
+};
+
+export default AboutPage;

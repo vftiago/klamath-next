@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-const DynamicThreeScene = dynamic(() => import("@/3d/ThreeScene"), {
+const DynamicThreeScene = dynamic(() => import("@/app/_3d/ThreeScene"), {
   ssr: false,
 });
 

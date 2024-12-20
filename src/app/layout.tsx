@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Roboto_Condensed } from "next/font/google";
-
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Logo from "@/components/icons/Logo";
-import DynamicThreeScene from "@/3d/DynamicThreeScene";
+
+import Navbar from "./_navbar";
+
+import DynamicThreeScene from "@/app/_3d/DynamicThreeScene";
 
 const robotoCondensed = Roboto_Condensed({
   subsets: ["latin"],
@@ -17,18 +17,22 @@ export const metadata: Metadata = {
   description: "Software Engineer",
 };
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>) => {
   return (
     <html lang="en">
       <body className={`${robotoCondensed.variable} font-sans antialiased`}>
         <DynamicThreeScene />
-        <Navbar leftIcon={<Logo />} header="This is a website" />
-        <div className="flex h-full px-16">{children}</div>
+        <Navbar />
+        <div className="flex h-full md:px-16">
+          <div className="p-4">{children}</div>
+        </div>
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;

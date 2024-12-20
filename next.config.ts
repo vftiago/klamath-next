@@ -3,6 +3,7 @@ import bundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   experimental: {
+    dynamicIO: true,
     turbo: {
       rules: {
         "*.frag": {

@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Mesh, RawShaderMaterial, Scene, Vector2, WebGLRenderTarget } from "three";
 
@@ -11,28 +11,39 @@ const PostEffect = () => {
   const rawShaderMaterialRef = useRef<RawShaderMaterial>(null);
   const meshRef = useRef<Mesh>(null);
 
-  const target = useMemo(() => {
-    return new WebGLRenderTarget(window.innerWidth, window.innerHeight);
-  }, []);
+  const targetRef = useRef<WebGLRenderTarget | null>(null);
 
   const [scene] = useState(() => new Scene());
 
-  const handleWindowResize = useCallback(() => {
-    if (!rawShaderMaterialRef.current) {
-      return;
+  const [dimensions, setDimensions] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
+
+  const initRenderTarget = useCallback(() => {
+    if (targetRef.current) {
+      targetRef.current.dispose();
     }
 
-    target.setSize(window.innerWidth, window.innerHeight);
+    targetRef.current = new WebGLRenderTarget(dimensions.width, dimensions.height);
 
-    rawShaderMaterialRef.current.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
-  }, [target]);
+    if (rawShaderMaterialRef.current) {
+      rawShaderMaterialRef.current.uniforms.resolution.value.set(dimensions.width, dimensions.height);
+      rawShaderMaterialRef.current.uniforms.texture.value = targetRef.current.texture;
+    }
+  }, [dimensions]);
+
+  const handleWindowResize = useCallback(() => {
+    setDimensions({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+  }, []);
 
   useLayoutEffect(() => {
     if (!rawShaderMaterialRef.current) {
       return;
     }
-
-    window.addEventListener("resize", handleWindowResize);
 
     const uniforms = rawShaderMaterialRef.current.uniforms;
 
@@ -40,25 +51,33 @@ const PostEffect = () => {
       value: new Vector2(window.innerWidth, window.innerHeight),
     };
 
-    uniforms.texture = {
-      value: target.texture,
-    };
-
     uniforms.time = {
       value: 0,
     };
 
+    uniforms.texture = {
+      value: null,
+    };
+
+    initRenderTarget();
+
+    window.addEventListener("resize", handleWindowResize);
+
     return () => {
       window.removeEventListener("resize", handleWindowResize);
+      if (targetRef.current) {
+        targetRef.current.dispose();
+      }
     };
-  }, [handleWindowResize, target.texture]);
+  }, [dimensions, handleWindowResize, initRenderTarget]);
 
   useFrame((state, delta) => {
-    if (!rawShaderMaterialRef.current || !meshRef.current) {
+    if (!rawShaderMaterialRef.current || !meshRef.current || !targetRef.current) {
       return;
     }
 
     const uniforms = rawShaderMaterialRef.current.uniforms;
+    const target = targetRef.current;
 
     meshRef.current.position.set(0, state.camera.position.y, 0);
 

@@ -1,7 +1,13 @@
-export default function Home() {
+import Link from "next/link";
+
+const RootPage = () => {
   return (
-    <main className="flex min-h-full w-full flex-col items-center justify-center">
-      <div className="flex">Home</div>
-    </main>
+    <div className="flex flex-col gap-4 text-xl">
+      <Link href="/blog">Blog</Link>
+      <Link href="/repositories">Repositories</Link>
+      <Link href="/about">About</Link>
+    </div>
   );
-}
+};
+
+export default RootPage;

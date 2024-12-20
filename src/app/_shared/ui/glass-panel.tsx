@@ -8,7 +8,7 @@ export type GlassPanelProps = {
 
 const GlassPanel = ({ rootClassName, children }: GlassPanelProps) => {
   return (
-    <div className={clsx(["bg-neutral-100/20shadow-lg border border-neutral-500/20 backdrop-blur-sm", rootClassName])}>
+    <div className={clsx(["border border-neutral-500/20 bg-neutral-100/20 shadow-lg backdrop-blur-sm", rootClassName])}>
       {children}
     </div>
   );
