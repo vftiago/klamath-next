@@ -32,6 +32,10 @@ const Navbar = ({ topSlot, bottomSlot }: NavbarProps) => {
   const [currentHeader, setCurrentHeader] = useState<string>("Hello");
 
   useEffect(() => {
+    if (!WEIGHTED_HEADERS[pathname]) {
+      return;
+    }
+
     const pickedHeader = WEIGHTED_HEADERS[pathname].pick();
 
     setCurrentHeader(pickedHeader);

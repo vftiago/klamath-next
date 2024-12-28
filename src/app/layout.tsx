@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 
-import Navbar from "./_navbar";
-
 import DynamicThreeScene from "@/app/_3d/DynamicThreeScene";
 
 const robotoCondensed = Roboto_Condensed({
@@ -23,13 +21,10 @@ const RootLayout = ({
   children: React.ReactNode;
 }>) => {
   return (
-    <html lang="en">
-      <body className={`${robotoCondensed.variable} font-sans antialiased`}>
+    <html lang="en" className="size-full">
+      <body className={`${robotoCondensed.variable} size-full font-sans antialiased`}>
         <DynamicThreeScene />
-        <Navbar />
-        <div className="flex h-full md:px-16">
-          <div className="p-4">{children}</div>
-        </div>
+        {children}
       </body>
     </html>
   );

@@ -2,7 +2,7 @@ import { addWeight, weighted } from "@lrkit/weighted";
 import { WeightedTable } from "@lrkit/weighted/types";
 
 enum WEIGHT {
-  common = 5,
+  common = 10,
   uncommon = 2,
   rare = 1,
 }
@@ -27,8 +27,8 @@ const TODAY = WEEKDAYS[new Date().getDay()];
 
 const HEADER_DEFINITIONS: HeaderDefinitions = {
   "/": {
-    common: ["Hello World", `It is ${TODAY}`, "Welcome", "Hello", "This is a website"],
-    uncommon: ["Not a blog", "Online"],
+    common: ["Hello World", "Welcome", "Hello", "This is a website"],
+    uncommon: ["Online", `It is ${TODAY}`, "This is an uncommon header"],
     rare: [
       "Everything I ever said has been satire",
       "Windows 96",
@@ -47,7 +47,7 @@ const HEADER_DEFINITIONS: HeaderDefinitions = {
     uncommon: ["What is this?", "Who are you?", "Who is this?", "Who am I?"],
   },
   "/blog": {
-    common: ["Blog", "Not a blog", "Posts", "Articles", "Thoughts"],
+    common: ["Blog", "Not actually a blog though", "Posts", "Articles", "Thoughts"],
     uncommon: ["What's new", "Recent thoughts", "Latest posts", "Latest articles"],
   },
 } as const;
