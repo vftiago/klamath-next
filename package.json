@@ -13,6 +13,8 @@
     "@lrkit/weighted": "0.3.4",
     "@octokit/graphql": "^8.1.1",
     "@react-three/fiber": "9.0.0-rc.1",
+    "@vercel/analytics": "^1.4.1",
+    "@vercel/speed-insights": "^1.1.0",
     "clsx": "^2.1.1",
     "framer-motion": "12.0.0-alpha.2",
     "glslify-loader": "^2.0.0",

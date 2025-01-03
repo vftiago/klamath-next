@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 
 import DynamicThreeScene from "@/app/_3d/DynamicThreeScene";
-
 const robotoCondensed = Roboto_Condensed({
   subsets: ["latin"],
   variable: "--font-roboto-condensed",
@@ -25,6 +26,8 @@ const RootLayout = ({
       <body className={`${robotoCondensed.variable} size-full font-sans antialiased`}>
         <DynamicThreeScene />
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
