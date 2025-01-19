@@ -18,7 +18,7 @@ const NavbarContainer = () => {
     <Navbar
       topSlot={
         <Link href="/" className="z-10">
-          <div className="size-8">
+          <div className="size-9">
             <Logo />
           </div>
         </Link>

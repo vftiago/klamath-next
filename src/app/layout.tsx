@@ -5,6 +5,7 @@ import { Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 
 import DynamicThreeScene from "@/app/_3d/DynamicThreeScene";
+
 const robotoCondensed = Roboto_Condensed({
   subsets: ["latin"],
   variable: "--font-roboto-condensed",

@@ -46,7 +46,6 @@ const Navbar = ({ topSlot, bottomSlot }: NavbarProps) => {
       const typedCurrentPageHeader = new Typed("#header", {
         strings: [currentHeader],
         typeSpeed: 20,
-        showCursor: false,
       });
 
       return () => {
@@ -59,8 +58,10 @@ const Navbar = ({ topSlot, bottomSlot }: NavbarProps) => {
     <motion.div initial="hidden" animate="visible" variants={DIV_VARIANTS} className="fixed top-0 z-10 h-full">
       <GlassPanel rootClassName="fixed flex items-center justify-between h-full flex-col w-16">
         <div className="flex size-16 items-center justify-center">{topSlot}</div>
-        <p aria-hidden="true" id="header" className="w-[100vh] -rotate-90 text-center"></p>
-        <p className="sr-only">{currentHeader}</p>
+        <div className="flex -rotate-180 text-center text-lg [writing-mode:vertical-lr]">
+          <p aria-hidden="true" id="header"></p>
+          <p className="sr-only">{currentHeader}</p>
+        </div>
         <div className="flex size-16 items-center justify-center">{bottomSlot}</div>
       </GlassPanel>
     </motion.div>
