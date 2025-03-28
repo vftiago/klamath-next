@@ -28,7 +28,15 @@ const TODAY = WEEKDAYS[new Date().getDay()];
 const HEADER_DEFINITIONS: HeaderDefinitions = {
   "/": {
     common: ["Hello World", "Welcome", "Hello", "This is a website"],
-    uncommon: ["Online", `It is ${TODAY}`, "This is an uncommon header"],
+    uncommon: [
+      "Online",
+      `It is ${TODAY}`,
+      "This is an uncommon header",
+      "Just some text on a screen",
+      "Probably not the worst site you've visited today",
+      "Oh hi, I didn't see you there",
+      "Glad you're here",
+    ],
     rare: [
       "Everything I ever said has been satire",
       "Windows 96",
@@ -36,6 +44,14 @@ const HEADER_DEFINITIONS: HeaderDefinitions = {
       "const pipe = (...fns) => (x) => fns.reduce((v, f) => f(v), x)",
       "I'm not a robot",
       "This is a rare header",
+      "You shouldn't be here",
+      "Welcome to the simulation",
+      `Congratulations, you are my 10000th visitor!`,
+      "Don't stare",
+      "Keep staring",
+      "You found me!",
+      "Stay a while and read",
+      "</thinking>",
     ],
   },
   "/repositories": {
@@ -43,10 +59,11 @@ const HEADER_DEFINITIONS: HeaderDefinitions = {
     uncommon: ["Dashboard", "What's cooking", "Latest stuff", "Recent stuff"],
   },
   "/about": {
-    common: ["About", "A quick summary", "A little about me"],
-    uncommon: ["What is this?", "Who are you?", "Who is this?", "Who am I?"],
+    common: ["About", "Quick summary"],
+    uncommon: ["Who am I?"],
+    rare: ["What is this?", "Who are you?", "Who is this?"],
   },
-  "/blog": {
+  "/posts": {
     common: ["Blog", "Not actually a blog though", "Posts", "Articles", "Thoughts"],
     uncommon: ["What's new", "Recent thoughts", "Latest posts", "Latest articles"],
   },
