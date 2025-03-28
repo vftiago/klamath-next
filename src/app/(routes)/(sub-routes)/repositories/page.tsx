@@ -5,7 +5,7 @@ import RepositoryData from "./repository-data";
 
 const RepositoryPage = () => {
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-1 flex-col gap-10">
       <h1 className="text-2xl">
         <Link href="/">Home</Link> / Repositories
       </h1>

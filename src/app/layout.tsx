@@ -23,10 +23,10 @@ const RootLayout = ({
   children: React.ReactNode;
 }>) => {
   return (
-    <html lang="en" className="size-full">
-      <body className={`${robotoCondensed.variable} size-full font-sans antialiased`}>
+    <html lang="en">
+      <body className={`${robotoCondensed.variable} font-sans antialiased`}>
         <DynamicThreeScene />
-        {children}
+        <div className="flex min-h-[100dvh]">{children}</div>
         <Analytics />
         <SpeedInsights />
       </body>
