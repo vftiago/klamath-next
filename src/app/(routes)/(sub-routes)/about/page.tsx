@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const AboutPage = () => {
   return (
-    <div className="flex flex-col gap-20">
+    <div className="flex flex-col gap-10">
       <h1 className="text-2xl">
         <Link href="/">Home</Link> / About
       </h1>

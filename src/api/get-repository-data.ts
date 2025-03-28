@@ -33,6 +33,7 @@ export type RepositoryNode = {
         edges: {
           node: {
             message: string;
+            committedDate: string;
           };
         }[];
       };
@@ -117,6 +118,7 @@ export const getRepositoryData = async (): Promise<UserRepositories> => {
                             node {
                               ... on Commit {
                                 message
+                                committedDate
                               }
                             }
                           }

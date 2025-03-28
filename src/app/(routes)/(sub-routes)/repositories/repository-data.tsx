@@ -1,7 +1,6 @@
 "use cache";
 
-import RepositoryList from "./repository-list";
-
+import RepositoryDataContainer from "./repository-data-container";
 import { getRepositoryData } from "@/api/get-repository-data";
 
 const RepositoryData = async () => {
@@ -11,7 +10,7 @@ const RepositoryData = async () => {
     return owner.login === process.env.OWNER && name !== process.env.OWNER;
   });
 
-  return <RepositoryList repositoryList={repositoryList} />;
+  return <RepositoryDataContainer initialRepositoryList={repositoryList} />;
 };
 
 export default RepositoryData;
