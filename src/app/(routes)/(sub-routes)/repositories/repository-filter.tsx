@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { BsSortDown, BsSortUp } from "react-icons/bs";
 import { IoMdClose } from "react-icons/io";
+
 import { RepositoryNode } from "@/api/get-repository-data";
 
-interface RepositoryFilterProps {
+type RepositoryFilterProps = {
   repositoryList: RepositoryNode[];
   onFilteredListChange: (filteredList: RepositoryNode[]) => void;
-}
+};
 
 const RepositoryFilter = ({ repositoryList, onFilteredListChange }: RepositoryFilterProps) => {
   const [searchValue, setSearchValue] = useState("");

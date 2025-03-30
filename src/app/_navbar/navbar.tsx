@@ -32,13 +32,23 @@ const Navbar = ({ topSlot, bottomSlot }: NavbarProps) => {
   const [currentHeader, setCurrentHeader] = useState<string>("Hello");
 
   useEffect(() => {
+    if (!pathname) {
+      return;
+    }
+
     if (!WEIGHTED_HEADERS[pathname]) {
       return;
     }
 
-    const pickedHeader = WEIGHTED_HEADERS[pathname].pick();
+    try {
+      const pickedHeader = WEIGHTED_HEADERS[pathname].pick();
 
-    setCurrentHeader(pickedHeader);
+      if (pickedHeader && typeof pickedHeader === "string") {
+        setCurrentHeader(pickedHeader);
+      }
+    } catch (error) {
+      console.error("Error picking header:", error);
+    }
   }, [pathname]);
 
   useEffect(() => {
