@@ -4,6 +4,7 @@ const HomePage = () => {
   return (
     <div className="flex w-full flex-col justify-between text-2xl">
       <div className="flex flex-col gap-4">
+        <Link href="/projects">Projects</Link>
         <Link href="/repositories">Repositories</Link>
         <Link href="/about">About</Link>
       </div>

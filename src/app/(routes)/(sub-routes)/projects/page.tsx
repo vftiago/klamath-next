@@ -1,23 +1,23 @@
 import { Suspense } from "react";
 import Link from "next/link";
 
-import RepositoryData from "./repository-data";
+import ProjectData from "./project-data";
 
 import ErrorBoundaryWrapper from "@/app/_shared/ui/error-boundary-wrapper";
 
-const RepositoryPage = () => {
+const ProjectPage = () => {
   return (
     <div className="flex flex-1 flex-col gap-10">
       <h1 className="text-2xl">
-        <Link href="/">Home</Link> / Repositories
+        <Link href="/">Home</Link> / Projects
       </h1>
       <ErrorBoundaryWrapper>
         <Suspense fallback={<div>Loading...</div>}>
-          <RepositoryData />
+          <ProjectData />
         </Suspense>
       </ErrorBoundaryWrapper>
     </div>
   );
 };
 
-export default RepositoryPage;
+export default ProjectPage;

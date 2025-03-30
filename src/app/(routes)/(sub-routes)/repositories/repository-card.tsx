@@ -19,7 +19,13 @@ const RepositoryCard = ({ repositoryNode }: RepositoryCardProps) => {
         <h4 className="text-base font-bold">{name}</h4>
 
         {homepageUrl && (
-          <a className="text-sm text-orange-600" target="_blank" rel="noreferrer" href={homepageUrl}>
+          <a
+            aria-label={`${name}'s homepage`}
+            className="text-sm text-orange-600"
+            target="_blank"
+            rel="noreferrer"
+            href={homepageUrl}
+          >
             {homepageUrl}
           </a>
         )}
@@ -44,7 +50,13 @@ const RepositoryCard = ({ repositoryNode }: RepositoryCardProps) => {
         )}
       </div>
       <div className="flex">
-        <a className="text-sm text-neutral-500" target="_blank" rel="noreferrer" href={url}>
+        <a
+          aria-label={`${name}'s GitHub repository`}
+          className="text-sm text-neutral-500"
+          target="_blank"
+          rel="noreferrer"
+          href={url}
+        >
           {url}
         </a>
       </div>

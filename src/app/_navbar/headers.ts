@@ -27,7 +27,7 @@ const TODAY = WEEKDAYS[new Date().getDay()];
 
 const HEADER_DEFINITIONS: HeaderDefinitions = {
   "/": {
-    common: ["Hello World", "Welcome", "Hello", "This is a website"],
+    common: ["Hello World", "Welcome", "Hello", "This is a website", "This is what a website looks like"],
     uncommon: [
       "Online",
       `It is ${TODAY}`,
@@ -46,7 +46,7 @@ const HEADER_DEFINITIONS: HeaderDefinitions = {
       "This is a rare header",
       "You shouldn't be here",
       "Welcome to the simulation",
-      `Congratulations, you are my 10000th visitor!`,
+      `Congratulations, you are my 1000th visitor!`,
       "Don't stare",
       "Keep staring",
       "You found me!",
@@ -54,12 +54,23 @@ const HEADER_DEFINITIONS: HeaderDefinitions = {
       "</thinking>",
     ],
   },
+  "/projects": {
+    common: [
+      "Projects",
+      "Stuff I'm working on",
+      "My projects",
+      "Stuff I've been working on lately",
+      "Ongoing projects",
+    ],
+    uncommon: ["What's cooking"],
+  },
   "/repositories": {
-    common: ["Repositories", "Stuff I've been working on lately", "Latest work", "Recent work"],
-    uncommon: ["Dashboard", "What's cooking", "Latest stuff", "Recent stuff"],
+    common: ["Repositories", "My repositories", "My code"],
+    uncommon: ["What's cooking"],
+    rare: ["This page was once a take home exercise"],
   },
   "/about": {
-    common: ["About", "Quick summary"],
+    common: ["About", "Quick summary", "Me"],
     uncommon: ["Who am I?"],
     rare: ["What is this?", "Who are you?", "Who is this?"],
   },

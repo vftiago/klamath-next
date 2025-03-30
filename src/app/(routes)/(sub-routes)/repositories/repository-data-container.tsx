@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+
 import RepositoryFilter from "./repository-filter";
 import RepositoryList from "./repository-list";
+
 import { RepositoryNode } from "@/api/get-repository-data";
 
-interface FilteredRepositoryContainerProps {
+type FilteredRepositoryContainerProps = {
   initialRepositoryList: RepositoryNode[];
-}
+};
 
 const RepositoryDataContainer = ({ initialRepositoryList }: FilteredRepositoryContainerProps) => {
   const [filteredRepositories, setFilteredRepositories] = useState(initialRepositoryList);
