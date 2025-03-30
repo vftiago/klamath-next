@@ -9,7 +9,7 @@ import vertexShader from "./plane.vert";
 
 const PLANE_DIMENSIONS = 1024;
 
-const Plane = () => {
+const Plane = (props: React.JSX.IntrinsicElements["mesh"]) => {
   const meshRef = useRef<Mesh>(null);
   const materialRef = useRef<RawShaderMaterial>(null);
 
@@ -18,7 +18,6 @@ const Plane = () => {
       return;
     }
 
-    meshRef.current.position.set(0, -192, 128);
     meshRef.current.rotation.set((-90 * Math.PI) / 180, 0, 0);
 
     const uniforms = materialRef.current.uniforms;
@@ -39,7 +38,7 @@ const Plane = () => {
   });
 
   return (
-    <mesh ref={meshRef}>
+    <mesh {...props} ref={meshRef}>
       <planeGeometry args={[PLANE_DIMENSIONS, PLANE_DIMENSIONS, PLANE_DIMENSIONS / 32, PLANE_DIMENSIONS / 32]} />
       <rawShaderMaterial
         ref={materialRef}
