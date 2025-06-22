@@ -43,7 +43,7 @@ const ProjectList = ({ closed, projectList, title }: ProjectListProps) => {
       {title ? (
         <div className="flex items-center gap-2 px-1">
           <h2 className="text-sm">{title}</h2>
-          <div className="flex-1 border-t border-neutral-300" />
+          <div className="flex-1 border-t" />
         </div>
       ) : null}
       <motion.ul

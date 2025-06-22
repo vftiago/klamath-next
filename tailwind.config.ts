@@ -13,7 +13,9 @@ export default {
         foreground: "var(--foreground)",
       },
       fontFamily: {
-        sans: ["var(--font-roboto-condensed)"],
+        "barlow": ["var(--font-barlow-condensed)"],
+        "electrolize": ["var(--font-electrolize)"],
+        "roboto-condensed": ["var(--font-roboto-condensed)"],
       },
     },
   },

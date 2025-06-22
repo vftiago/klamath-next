@@ -31,5 +31,5 @@ void main() {
   vec3 finalColor = texColor + whiteNoise + monitor + vignette;
   finalColor = clamp(finalColor, 0.0, 1.0);
 
-  gl_FragColor = vec4(finalColor, 1.0);
+  gl_FragColor = vec4(finalColor, 0.1);
 }

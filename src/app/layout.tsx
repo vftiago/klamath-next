@@ -1,10 +1,22 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Roboto_Condensed } from "next/font/google";
+import { Barlow_Condensed, Electrolize, Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 
 import DynamicThreeScene from "@/app/_3d/DynamicThreeScene";
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  variable: "--font-barlow-condensed",
+  weight: ["400"],
+});
+
+const electrolize = Electrolize({
+  subsets: ["latin"],
+  variable: "--font-electrolize",
+  weight: ["400"],
+});
 
 const robotoCondensed = Roboto_Condensed({
   subsets: ["latin"],
@@ -24,7 +36,13 @@ const RootLayout = ({
 }>) => {
   return (
     <html lang="en">
-      <body className={`${robotoCondensed.variable} font-sans antialiased`}>
+      <head>
+        {/* remove when Chrome 139 is releasted in August 5: https://github.com/Zwyx/chrome-android-clientheight?tab=readme-ov-file */}
+        <meta name="viewport" content="interactive-widget=resizes-content" />
+      </head>
+      <body
+        className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${electrolize.variable} font-roboto-condensed antialiased`}
+      >
         <DynamicThreeScene />
         <div className="flex min-h-[100dvh]">{children}</div>
         <Analytics />

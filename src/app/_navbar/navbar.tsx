@@ -1,13 +1,10 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { ReactNode, useEffect } from "react";
 import Typed from "typed.js";
-import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 
 import GlassPanel from "../_shared/ui/glass-panel";
-
-import { WEIGHTED_HEADERS } from "./headers";
 
 const DIV_VARIANTS = {
   visible: {
@@ -23,54 +20,32 @@ const DIV_VARIANTS = {
 
 type NavbarProps = {
   topSlot?: ReactNode;
+  header?: string;
   bottomSlot?: ReactNode;
 };
 
-const Navbar = ({ topSlot, bottomSlot }: NavbarProps) => {
-  const pathname = usePathname();
-
-  const [currentHeader, setCurrentHeader] = useState<string>("Hello");
-
+const Navbar = ({ topSlot, header, bottomSlot }: NavbarProps) => {
   useEffect(() => {
-    if (!pathname) {
-      return;
-    }
-
-    if (!WEIGHTED_HEADERS[pathname]) {
-      return;
-    }
-
-    try {
-      const pickedHeader = WEIGHTED_HEADERS[pathname].pick();
-
-      if (pickedHeader && typeof pickedHeader === "string") {
-        setCurrentHeader(pickedHeader);
-      }
-    } catch (error) {
-      console.error("Error picking header:", error);
-    }
-  }, [pathname]);
-
-  useEffect(() => {
-    if (currentHeader) {
+    if (header) {
       const typedCurrentPageHeader = new Typed("#header", {
-        strings: [currentHeader],
+        strings: [header],
         typeSpeed: 20,
+        cursorChar: "_",
       });
 
       return () => {
         typedCurrentPageHeader.destroy();
       };
     }
-  }, [currentHeader]);
+  }, [header]);
 
   return (
     <motion.div initial="hidden" animate="visible" variants={DIV_VARIANTS} className="fixed top-0 z-10 h-full">
-      <GlassPanel rootClassName="fixed flex items-center justify-between h-full flex-col w-16">
-        <div className="flex size-16 items-center justify-center">{topSlot}</div>
-        <div className="flex -rotate-180 text-center text-lg [writing-mode:vertical-lr]">
+      <GlassPanel rootClassName="fixed flex items-center justify-between h-full flex-col z-10 w-16 border-r">
+        <div className="flex size-16 items-center justify-center fill-white">{topSlot}</div>
+        <div className="flex -rotate-180 text-center font-electrolize text-lg [writing-mode:vertical-lr]">
           <p aria-hidden="true" id="header"></p>
-          <p className="sr-only">{currentHeader}</p>
+          <p className="sr-only">{header}</p>
         </div>
         <div className="flex size-16 items-center justify-center">{bottomSlot}</div>
       </GlassPanel>

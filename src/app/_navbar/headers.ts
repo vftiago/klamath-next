@@ -1,43 +1,41 @@
 import { addWeight, weighted } from "@lrkit/weighted";
 import { WeightedTable } from "@lrkit/weighted/types";
 
-enum WEIGHT {
-  common = 10,
-  uncommon = 2,
-  rare = 1,
+export enum RARITY {
+  Common = "COMMON",
+  Uncommon = "UNCOMMON",
+  Rare = "RARE",
 }
 
-type Rarity = keyof typeof WEIGHT;
-
-type PathHeaders = {
-  [K in Rarity]?: string[];
+const WEIGHT: Record<RARITY, number> = {
+  [RARITY.Common]: 10,
+  [RARITY.Uncommon]: 5,
+  [RARITY.Rare]: 1,
 };
 
-type HeaderDefinitions = {
-  [path: string]: PathHeaders;
-};
-
-type WeightedHeaders = {
-  [key: string]: WeightedTable<string>;
+type Headers = {
+  [path: string]: {
+    [rarity in RARITY]: string[];
+  };
 };
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const TODAY = WEEKDAYS[new Date().getDay()];
 
-const HEADER_DEFINITIONS: HeaderDefinitions = {
+export const HEADERS: Headers = {
   "/": {
-    common: ["Hello World", "Welcome", "Hello", "This is a website", "This is what a website looks like"],
-    uncommon: [
+    [RARITY.Common]: ["Hello World", "Welcome", "Hello", "Landing page", "Take a seat"],
+    [RARITY.Uncommon]: [
       "Online",
       `It is ${TODAY}`,
       "This is an uncommon header",
       "Just some text on a screen",
-      "Probably not the worst site you've visited today",
-      "Oh hi, I didn't see you there",
+      "Probably not the worst website you'll visit today",
+      "Oh, I didn't see you there",
       "Glad you're here",
     ],
-    rare: [
+    [RARITY.Rare]: [
       "Everything I ever said has been satire",
       "Windows 96",
       "Hypnotic isn't it?",
@@ -52,41 +50,38 @@ const HEADER_DEFINITIONS: HeaderDefinitions = {
       "You found me!",
       "Stay a while and read",
       "</thinking>",
+      "I don't know what the sphere represents yet",
+      "Perfect gem activated",
     ],
   },
   "/projects": {
-    common: [
+    [RARITY.Common]: [
       "Projects",
       "Stuff I'm working on",
       "My projects",
       "Stuff I've been working on lately",
       "Ongoing projects",
     ],
-    uncommon: ["What's cooking"],
+    [RARITY.Uncommon]: ["What's cooking"],
+    [RARITY.Rare]: ["This page was once a take home exercise"],
   },
   "/repositories": {
-    common: ["Repositories", "My repositories", "My code"],
-    uncommon: ["What's cooking"],
-    rare: ["This page was once a take home exercise"],
+    [RARITY.Common]: ["Repositories", "My repositories", "My code"],
+    [RARITY.Uncommon]: ["What's cooking"],
+    [RARITY.Rare]: ["This page was once a take home exercise"],
   },
   "/about": {
-    common: ["About", "Quick summary", "Me"],
-    uncommon: ["Who am I?"],
-    rare: ["What is this?", "Who are you?", "Who is this?"],
+    [RARITY.Common]: ["About", "Quick summary", "Me"],
+    [RARITY.Uncommon]: ["Who am I?"],
+    [RARITY.Rare]: ["What is this?", "Who are you?", "Who is this?"],
   },
   "/posts": {
-    common: ["Blog", "Not actually a blog though", "Posts", "Articles", "Thoughts"],
-    uncommon: ["What's new", "Recent thoughts", "Latest posts", "Latest articles"],
+    [RARITY.Common]: ["Blog", "Not actually a blog though", "Posts", "Articles", "Thoughts"],
+    [RARITY.Uncommon]: ["What's new", "Recent thoughts", "Latest posts", "Latest articles"],
+    [RARITY.Rare]: ["This is a rare header"],
   },
 } as const;
 
-export const WEIGHTED_HEADERS: WeightedHeaders = Object.fromEntries(
-  Object.entries(HEADER_DEFINITIONS).map(([path, categories]) => [
-    path,
-    weighted(
-      Object.entries(categories).flatMap(([category, headers]) =>
-        addWeight(headers, WEIGHT[category as Rarity] ?? WEIGHT.common),
-      ),
-    ),
-  ]),
+export const WEIGHTED_RARITY: WeightedTable<RARITY> = weighted(
+  Object.entries(RARITY).flatMap(([, rarity]) => addWeight([rarity], WEIGHT[rarity])),
 );

@@ -59,13 +59,13 @@ const RepositoryFilter = ({ repositoryList, onFilteredListChange }: RepositoryFi
       <div className="relative flex-1">
         <input
           placeholder="Search repositories..."
-          className="h-12 w-full border border-neutral-500/20 bg-neutral-100/20 p-4 text-lg outline-none backdrop-blur-sm"
+          className="h-12 w-full border bg-gray-500/10 p-4 text-lg placeholder-white outline-none"
           value={searchValue}
           onChange={handleSearchChange}
         />
         {searchValue && (
           <button
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-800"
+            className="absolute right-4 top-1/2 -translate-y-1/2"
             aria-label="Clear search"
             onClick={handleClearSearch}
           >
@@ -75,7 +75,7 @@ const RepositoryFilter = ({ repositoryList, onFilteredListChange }: RepositoryFi
       </div>
 
       <button
-        className="flex h-12 w-12 items-center justify-center border border-neutral-500/20 bg-neutral-100/20 text-lg outline-none backdrop-blur-sm"
+        className="flex h-12 w-12 items-center justify-center border bg-gray-500/10 text-lg outline-none"
         onClick={handleSortToggle}
         aria-label={sortAscending ? "Sort newest first" : "Sort oldest first"}
       >

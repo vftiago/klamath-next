@@ -28,7 +28,8 @@ const ThreeScene = () => {
   }, [handleWindowScroll]);
 
   return (
-    <div className="fixed -z-10 h-screen w-full">
+    <div className="abstract-bg fixed -z-10 h-screen w-full">
+      <div className="dot-grid" />
       <Canvas
         camera={camera}
         gl={{
@@ -36,7 +37,7 @@ const ThreeScene = () => {
         }}
       >
         <ClearColor />
-        <Barbelith position={[150, 350, -200]} />
+        <Barbelith position={[250, 350, -500]} />
         <Plane position={[0, -192, 128]} />
         <Box position={[400, -500, 200]}></Box>
         <Box position={[-350, -600, -5]}></Box>

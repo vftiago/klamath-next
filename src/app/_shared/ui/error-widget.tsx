@@ -12,7 +12,7 @@ const ErrorWidget = ({ message, retry }: ErrorWidgetProps) => {
       {retry && (
         <button
           onClick={retry}
-          className="flex items-center justify-center border border-neutral-500/20 bg-neutral-100/20 px-4 py-1 text-lg outline-none backdrop-blur-sm"
+          className="g-gray-500/10 flex items-center justify-center border px-4 py-1 text-lg outline-none"
         >
           Try Again
         </button>

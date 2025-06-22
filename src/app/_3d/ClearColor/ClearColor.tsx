@@ -5,7 +5,7 @@ const ClearColor = () => {
   const { gl } = useThree();
 
   useEffect(() => {
-    gl.setClearColor(0xeeeeee, 1.1);
+    gl.setClearColor(0x000, 1.0);
   }, [gl]);
 
   return null;

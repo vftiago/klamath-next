@@ -11,19 +11,19 @@ type IssueSectionProps = {
 
 const IssueSection = ({ title, issues }: IssueSectionProps) => (
   <div className="flex flex-col gap-1">
-    <div className="flex items-center gap-1">
-      <h3 className="text-xs font-bold">{title}</h3>
+    <div className="flex items-center">
+      <h3 className="text-xs">{title}</h3>
     </div>
 
     {issues.length > 0 ? (
-      <ul className="flex max-h-32 list-disc flex-col overflow-y-auto p-0 text-sm">
+      <ul className="flex list-disc flex-col overflow-y-auto p-0">
         {issues.slice(0, 3).map((item) => (
           <li key={item.content.id}>— {item.content.title}.</li>
         ))}
-        {issues.length > 3 && <li className="text-xs text-neutral-500">+{issues.length - 3} more</li>}
+        {issues.length > 3 && <li className="text-xs">+{issues.length - 3} more</li>}
       </ul>
     ) : (
-      <p className="text-sm">Nothing.</p>
+      <p>— Nothing.</p>
     )}
   </div>
 );
@@ -52,19 +52,22 @@ const ProjectCard = ({ projectNode }: ProjectCardProps) => {
 
   return (
     <GlassPanel
-      rootClassName={clsx("flex flex-col gap-2 p-3 flex-1 ease-in-out duration-500", {
-        "opacity-50 hover:opacity-100": closed,
-        "min-h-64": !closed,
-      })}
+      rootClassName={clsx(
+        "flex flex-col gap-2 p-3 flex-1 drop-shadow border ease-in-out duration-500 font-roboto-condensed",
+        {
+          "opacity-50 hover:opacity-100": closed,
+          "min-h-80": !closed,
+        },
+      )}
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col font-barlow">
         <div className="flex justify-between">
-          <h2 className="font-bold">{title}</h2>
+          <h2 className="text-lg">{title}</h2>
           {homepageUrl && (
             <a
               aria-label={`${title}'s homepage`}
               href={homepageUrl}
-              className="text-sm text-orange-600"
+              className="underline"
               target="_blank"
               rel="noreferrer"
             >
@@ -72,22 +75,22 @@ const ProjectCard = ({ projectNode }: ProjectCardProps) => {
             </a>
           )}
         </div>
-        {shortDescription && <div className="text-sm text-neutral-700">{shortDescription}</div>}
+        {shortDescription && <div className="text-sm">{shortDescription}</div>}
       </div>
       <div className="flex h-[1px] bg-neutral-300" />
       <div className="flex flex-1 flex-col justify-between gap-2">
         {closed ? null : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             <IssueSection title="Currently In Progress" issues={inProgressIssues} />
             <IssueSection title="Next Up" issues={todoIssues} />
           </div>
         )}
         {repositoryUrl && (
-          <div className="flex text-sm">
+          <div className="flex">
             <a
               aria-label={`${title}'s GitHub repository`}
               href={repositoryUrl}
-              className="text-neutral-500"
+              className="font-barlow underline"
               target="_blank"
               rel="noreferrer"
             >

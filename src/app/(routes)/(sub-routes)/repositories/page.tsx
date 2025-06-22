@@ -8,7 +8,7 @@ import ErrorBoundaryWrapper from "@/app/_shared/ui/error-boundary-wrapper";
 const RepositoryPage = () => {
   return (
     <div className="flex flex-1 flex-col gap-10">
-      <h1 className="text-2xl">
+      <h1 className="text-3xl">
         <Link href="/">Home</Link> / Repositories
       </h1>
       <ErrorBoundaryWrapper>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <style>
+      .cls-1,.cls-2{fill-rule:evenodd}.cls-1{fill:none;stroke:#fff;stroke-width:100px}.cls-2{fill:#fff}
+    </style>
+  </defs>
+  <path d="M54.021 53.911h915.958v916.194H54.021V53.911Z" class="cls-1"/>
+  <path d="M462.068 81.851h100v653.435h-100V81.851Z" class="cls-2"/>
+  <path id="Triangle_1" d="M511.925 816.721 88.842 52.026l846.307.074Z" class="cls-1" data-name="Triangle 1"/>
+  <path d="M511.993 299.99H747v100H511.993v-100Z" class="cls-2"/>
+</svg>
