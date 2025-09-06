@@ -4,7 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Barlow_Condensed, Electrolize, Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 
-import DynamicThreeScene from "@/app/_3d/DynamicThreeScene";
+import ThreeScene from "./_3d/ThreeScene";
 
 const barlowCondensed = Barlow_Condensed({
   subsets: ["latin"],
@@ -43,7 +43,7 @@ const RootLayout = ({
       <body
         className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${electrolize.variable} font-roboto-condensed antialiased`}
       >
-        <DynamicThreeScene />
+        <ThreeScene />
         <div className="flex min-h-[100dvh]">{children}</div>
         <Analytics />
         <SpeedInsights />
