@@ -14,7 +14,7 @@ const RepositoryCard = ({ repositoryNode }: RepositoryCardProps) => {
   const commitHistory = defaultBranchRef ? defaultBranchRef.target.history.edges : [];
 
   return (
-    <GlassPanel rootClassName="border drop-shadow flex flex-col justify-between gap-4 p-3 flex-1 min-h-64">
+    <GlassPanel rootClassName="drop-shadow flex flex-col justify-between gap-4 p-4 flex-1 min-h-64">
       <div className="flex items-center justify-between border-b pb-2 font-barlow">
         <h4 className="text-lg">{name}</h4>
 

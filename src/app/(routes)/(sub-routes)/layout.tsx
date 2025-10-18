@@ -3,11 +3,7 @@ const PageLayout = ({
 }: Readonly<{
   children: React.ReactNode;
 }>) => {
-  return (
-    <div className="flex max-w-screen-2xl flex-grow">
-      <div className="flex w-full p-4 md:pl-20">{children}</div>
-    </div>
-  );
+  return <div className="flex max-w-screen-2xl">{children}</div>;
 };
 
 export default PageLayout;

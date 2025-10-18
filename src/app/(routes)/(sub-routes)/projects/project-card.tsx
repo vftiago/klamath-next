@@ -52,13 +52,10 @@ const ProjectCard = ({ projectNode }: ProjectCardProps) => {
 
   return (
     <GlassPanel
-      rootClassName={clsx(
-        "flex flex-col gap-2 p-3 flex-1 drop-shadow border ease-in-out duration-500 font-roboto-condensed",
-        {
-          "opacity-50 hover:opacity-100": closed,
-          "min-h-80": !closed,
-        },
-      )}
+      rootClassName={clsx("flex flex-col gap-2 p-4 flex-1 drop-shadow ease-in-out duration-500 font-roboto-condensed", {
+        "opacity-50 hover:opacity-100": closed,
+        "min-h-80": !closed,
+      })}
     >
       <div className="flex flex-col font-barlow">
         <div className="flex justify-between">

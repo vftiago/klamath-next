@@ -43,7 +43,7 @@ const ProjectFilter = ({ projectList, onFilteredListChange }: ProjectFilterProps
       <div className="relative flex-1">
         <input
           placeholder="Search projects..."
-          className="h-12 w-full border bg-gray-500/10 p-4 text-lg placeholder-white outline-none"
+          className="h-12 w-full rounded-lg border border-white/20 bg-gray-500/10 p-4 text-lg placeholder-white outline-none"
           value={searchValue}
           onChange={handleSearchChange}
         />
