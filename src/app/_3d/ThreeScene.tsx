@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
@@ -52,4 +52,4 @@ const ThreeScene = () => {
   );
 };
 
-export default React.memo(ThreeScene);
+export default ThreeScene;
