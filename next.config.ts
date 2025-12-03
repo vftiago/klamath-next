@@ -2,18 +2,15 @@ import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    dynamicIO: true,
-    turbo: {
-      rules: {
-        "*.frag": {
-          loaders: ["raw-loader", "glslify-loader"],
-          as: "*.js",
-        },
-        "*.vert": {
-          loaders: ["raw-loader", "glslify-loader"],
-          as: "*.js",
-        },
+  turbopack: {
+    rules: {
+      "*.frag": {
+        loaders: ["raw-loader", "glslify-loader"],
+        as: "*.js",
+      },
+      "*.vert": {
+        loaders: ["raw-loader", "glslify-loader"],
+        as: "*.js",
       },
     },
   },

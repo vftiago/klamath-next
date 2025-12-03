@@ -1,5 +1,3 @@
-"use cache";
-
 import RepositoryDataContainer from "./repository-data-container";
 
 import { getRepositoryData } from "@/api/get-repository-data";
