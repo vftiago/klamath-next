@@ -7,7 +7,6 @@ import { PerspectiveCamera } from "three";
 import Box from "./Box/Box";
 import Plane from "./Plane/Plane";
 import PostEffect from "./PostEffect/PostEffect";
-import ClearColor from "./ClearColor/ClearColor";
 import Barbelith from "./Barbelith/Barbelith";
 
 const ThreeScene = () => {
@@ -36,7 +35,6 @@ const ThreeScene = () => {
           antialias: true,
         }}
       >
-        <ClearColor />
         <Barbelith position={[250, 350, -500]} />
         <Plane position={[0, -192, 128]} />
         <Box position={[400, -500, 200]}></Box>

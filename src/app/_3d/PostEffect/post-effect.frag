@@ -6,7 +6,7 @@ uniform sampler2D texture;
 
 varying vec2 vUv;
 
-const float duration = 1.0;
+const float duration = 2.0;
 const float delay = 1.0;
 
 float random(vec2 c) {
@@ -15,6 +15,8 @@ float random(vec2 c) {
 
 void main() {
   float now = clamp((time - delay) / duration, 0.0, 1.0);
+
+  float opacity = 0.1 * now;
 
   float whiteNoise = random(vUv.xy * time) * 0.1 - 0.1;
 
@@ -29,7 +31,10 @@ void main() {
   vec3 texColor = texture2D(texture, vUv).rgb;
 
   vec3 finalColor = texColor + whiteNoise + monitor + vignette;
+
   finalColor = clamp(finalColor, 0.0, 1.0);
 
-  gl_FragColor = vec4(finalColor, 0.1);
+  finalColor *= now;
+
+  gl_FragColor = vec4(finalColor, opacity);
 }

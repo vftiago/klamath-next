@@ -39,7 +39,7 @@ const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
 
   return (
     <mesh {...props} ref={meshRef}>
-      <sphereGeometry args={[200, 32, 32]} />
+      <sphereGeometry args={[192, 32, 32]} />
       <rawShaderMaterial
         ref={materialRef}
         vertexShader={vertexShader}

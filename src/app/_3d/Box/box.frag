@@ -3,7 +3,7 @@ precision highp float;
 uniform float time;
 
 const float duration = 2.0;
-const float delay = 2.0;
+const float delay = 1.0;
 
 const vec3 color = vec3(1.0);
 
