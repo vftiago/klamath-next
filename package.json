@@ -20,7 +20,7 @@
     "framer-motion": "12.0.0-alpha.2",
     "glslify-loader": "^2.0.0",
     "motion": "^11.14.4",
-    "next": "15.5.7",
+    "next": "15.5.9",
     "raw-loader": "^4.0.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
