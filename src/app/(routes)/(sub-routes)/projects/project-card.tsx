@@ -1,8 +1,7 @@
-import React from "react";
 import clsx from "clsx";
 
 import { ProjectItemNode, ProjectNode } from "@/api/get-project-data";
-import GlassPanel from "@/app/_shared/ui/glass-panel";
+import CardBase from "@/app/_shared/ui/card-base";
 
 type IssueSectionProps = {
   title: string;
@@ -11,10 +10,7 @@ type IssueSectionProps = {
 
 const IssueSection = ({ title, issues }: IssueSectionProps) => (
   <div className="flex flex-col gap-1">
-    <div className="flex items-center">
-      <h3 className="text-xs">{title}</h3>
-    </div>
-
+    <h3 className="text-xs">{title}</h3>
     {issues.length > 0 ? (
       <ul className="flex list-disc flex-col overflow-y-auto p-0">
         {issues.slice(0, 3).map((item) => (
@@ -36,66 +32,29 @@ const ProjectCard = ({ projectNode }: ProjectCardProps) => {
   const { title, repositories, shortDescription, items, closed } = projectNode;
 
   const homepageUrl = repositories.nodes[0]?.homepageUrl;
-
   const repositoryUrl = repositories.nodes[0]?.url;
 
-  const inProgressIssues = items.nodes.filter((item) => {
-    const status = item.fieldValueByName?.name;
-    return status === "In Progress";
-  });
-
-  const todoIssues = items.nodes.filter((item) => {
-    const status = item.fieldValueByName?.name;
-    return status === "Todo";
-  });
+  const inProgressIssues = items.nodes.filter((item) => item.fieldValueByName?.name === "In Progress");
+  const todoIssues = items.nodes.filter((item) => item.fieldValueByName?.name === "Todo");
 
   return (
-    <GlassPanel
-      rootClassName={clsx("flex flex-col gap-2 p-4 flex-1 drop-shadow ease-in-out duration-500 font-roboto-condensed", {
+    <CardBase
+      title={title}
+      homepageUrl={homepageUrl}
+      githubUrl={repositoryUrl}
+      description={shortDescription}
+      className={clsx("font-roboto-condensed transition-opacity duration-500 ease-in-out", {
         "opacity-50 hover:opacity-100": closed,
         "min-h-80": !closed,
       })}
     >
-      <div className="flex flex-col font-barlow">
-        <div className="flex justify-between">
-          <h2 className="text-lg">{title}</h2>
-          {homepageUrl && (
-            <a
-              aria-label={`${title}'s homepage`}
-              href={homepageUrl}
-              className="underline"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {homepageUrl}
-            </a>
-          )}
+      {!closed && (
+        <div className="flex flex-col gap-2">
+          <IssueSection title="Currently In Progress" issues={inProgressIssues} />
+          <IssueSection title="Next Up" issues={todoIssues} />
         </div>
-        {shortDescription && <div className="text-sm">{shortDescription}</div>}
-      </div>
-      <div className="flex h-[1px] bg-neutral-300" />
-      <div className="flex flex-1 flex-col justify-between gap-2">
-        {closed ? null : (
-          <div className="flex flex-col gap-2">
-            <IssueSection title="Currently In Progress" issues={inProgressIssues} />
-            <IssueSection title="Next Up" issues={todoIssues} />
-          </div>
-        )}
-        {repositoryUrl && (
-          <div className="flex">
-            <a
-              aria-label={`${title}'s GitHub repository`}
-              href={repositoryUrl}
-              className="font-barlow underline"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {repositoryUrl}
-            </a>
-          </div>
-        )}
-      </div>
-    </GlassPanel>
+      )}
+    </CardBase>
   );
 };
 

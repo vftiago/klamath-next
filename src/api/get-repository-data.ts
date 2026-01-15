@@ -52,7 +52,9 @@ type UserRepositories = {
   };
 };
 
-export const getRepositoryData = async (): Promise<UserRepositories> => {
+export const getRepositoryData = async (): Promise<RepositoryNode[]> => {
+  const owner = process.env.OWNER;
+
   try {
     const repositoryData = await graphqlWithAuth<UserRepositories>({
       query: /* GraphQL */ `
@@ -135,7 +137,7 @@ export const getRepositoryData = async (): Promise<UserRepositories> => {
       ...graphqlOptions,
     });
 
-    return repositoryData;
+    return repositoryData.user.repositories.nodes.filter((repo) => repo.owner.login === owner && repo.name !== owner);
   } catch (error) {
     console.error("Error fetching repository data", error);
 
