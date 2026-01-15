@@ -1,42 +1,55 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useAnimation } from "framer-motion";
 
 import RepositoryCard from "./repository-card";
 
 import { RepositoryNode } from "@/api/get-repository-data";
-
-const UL_VARIANTS = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const LI_VARIANTS = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.8,
-      ease: "backInOut",
-    },
-  },
-};
+import { LI_VARIANTS, UL_VARIANTS } from "@/app/_shared/motion/list-variants";
 
 const RepositoryList = ({ repositoryList }: { repositoryList: RepositoryNode[] }) => {
+  const [shouldAnimate, setShouldAnimate] = useState(true);
+  const controls = useAnimation();
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      controls.start("visible").then(() => {
+        setShouldAnimate(false);
+      });
+    } else {
+      controls.set("visible");
+    }
+  }, [controls, shouldAnimate]);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (shouldAnimate) {
+      controls.stop();
+      controls.set("visible");
+      setShouldAnimate(false);
+    }
+  }, [repositoryList, shouldAnimate, controls]);
+
   return (
     <motion.ul
-      initial="hidden"
-      animate="visible"
+      initial={shouldAnimate ? "hidden" : false}
+      animate={controls}
       variants={UL_VARIANTS}
       className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
     >
       {repositoryList.map((repositoryNode) => (
-        <motion.li key={repositoryNode.name} className="flex" variants={LI_VARIANTS}>
+        <motion.li
+          key={repositoryNode.name}
+          className="flex"
+          variants={LI_VARIANTS}
+          initial={shouldAnimate ? undefined : false}
+        >
           <RepositoryCard repositoryNode={repositoryNode} />
         </motion.li>
       ))}

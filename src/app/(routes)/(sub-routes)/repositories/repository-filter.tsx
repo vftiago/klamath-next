@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { BsSortDown, BsSortUp } from "react-icons/bs";
-import { IoMdClose } from "react-icons/io";
 
 import { RepositoryNode } from "@/api/get-repository-data";
+import SearchInput from "@/app/_shared/ui/search-input";
 
 type RepositoryFilterProps = {
   repositoryList: RepositoryNode[];
@@ -56,23 +56,12 @@ const RepositoryFilter = ({ repositoryList, onFilteredListChange }: RepositoryFi
 
   return (
     <div className="flex h-12 w-full gap-2">
-      <div className="relative flex-1">
-        <input
-          placeholder="Search repositories..."
-          className="h-12 w-full rounded-lg border border-white/20 bg-gray-500/10 p-4 text-lg placeholder-white outline-none"
-          value={searchValue}
-          onChange={handleSearchChange}
-        />
-        {searchValue && (
-          <button
-            className="absolute right-4 top-1/2 -translate-y-1/2"
-            aria-label="Clear search"
-            onClick={handleClearSearch}
-          >
-            <IoMdClose size="1.2rem" />
-          </button>
-        )}
-      </div>
+      <SearchInput
+        placeholder="Search repositories..."
+        value={searchValue}
+        onChange={handleSearchChange}
+        onClear={handleClearSearch}
+      />
 
       <button
         className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/20 bg-gray-500/10 text-lg outline-none"

@@ -1,31 +1,12 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useAnimation } from "framer-motion";
 
 import ProjectCard from "./project-card";
 
 import { ProjectNode } from "@/api/get-project-data";
-
-const UL_VARIANTS = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const LI_VARIANTS = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.8,
-      ease: "backInOut",
-    },
-  },
-};
+import { LI_VARIANTS, UL_VARIANTS } from "@/app/_shared/motion/list-variants";
 
 type ProjectListProps = {
   projectList: ProjectNode[];
@@ -33,6 +14,35 @@ type ProjectListProps = {
 };
 
 const ProjectList = ({ projectList, title }: ProjectListProps) => {
+  const [shouldAnimate, setShouldAnimate] = useState(true);
+  const controls = useAnimation();
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (projectList.length > 0) {
+      if (shouldAnimate) {
+        controls.start("visible").then(() => {
+          setShouldAnimate(false);
+        });
+      } else {
+        controls.set("visible");
+      }
+    }
+  }, [controls, shouldAnimate, projectList.length]);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (shouldAnimate) {
+      controls.stop();
+      controls.set("visible");
+      setShouldAnimate(false);
+    }
+  }, [projectList, shouldAnimate, controls]);
+
   if (!projectList || projectList.length === 0) {
     return null;
   }
@@ -46,13 +56,18 @@ const ProjectList = ({ projectList, title }: ProjectListProps) => {
         </div>
       ) : null}
       <motion.ul
-        initial="hidden"
-        animate="visible"
+        initial={shouldAnimate ? "hidden" : false}
+        animate={controls}
         variants={UL_VARIANTS}
         className="grid grid-cols-1 gap-4 lg:grid-cols-2"
       >
         {projectList.map((projectNode) => (
-          <motion.li key={projectNode.id} className="flex" variants={LI_VARIANTS}>
+          <motion.li
+            key={projectNode.id}
+            className="flex"
+            variants={LI_VARIANTS}
+            initial={shouldAnimate ? undefined : false}
+          >
             <ProjectCard projectNode={projectNode} />
           </motion.li>
         ))}
