@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "prepare": "husky",
     "format": "prettier --write ."
   },
@@ -31,7 +31,6 @@
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.2",
-    "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.14.0",
     "@next/bundle-analyzer": "^15.0.3",
     "@types/node": "^20",
