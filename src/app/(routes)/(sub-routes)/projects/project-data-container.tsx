@@ -6,6 +6,7 @@ import ProjectFilter from "./project-filter";
 import ProjectList from "./project-list";
 
 import { ProjectNode } from "@/api/get-project-data";
+import EmptyState from "@/app/_shared/ui/empty-state";
 
 type ProjectDataContainerProps = {
   initialProjectList: ProjectNode[];
@@ -26,10 +27,7 @@ const ProjectDataContainer = ({ initialProjectList }: ProjectDataContainerProps)
     <div className="flex flex-col gap-10">
       <ProjectFilter projectList={initialProjectList} onFilteredListChange={setFilteredProjects} />
       {!openProjects.length && !closedProjects.length ? (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-2xl">No projects found</h2>
-          <p>Try another search term</p>
-        </div>
+        <EmptyState title="No projects found" />
       ) : null}
       <ProjectList projectList={openProjects} title="Open Projects" />
       <ProjectList projectList={closedProjects} title="Closed Projects" />

@@ -6,6 +6,7 @@ import RepositoryFilter from "./repository-filter";
 import RepositoryList from "./repository-list";
 
 import { RepositoryNode } from "@/api/get-repository-data";
+import EmptyState from "@/app/_shared/ui/empty-state";
 
 type FilteredRepositoryContainerProps = {
   initialRepositoryList: RepositoryNode[];
@@ -17,12 +18,7 @@ const RepositoryDataContainer = ({ initialRepositoryList }: FilteredRepositoryCo
   return (
     <div className="flex flex-col gap-10">
       <RepositoryFilter repositoryList={initialRepositoryList} onFilteredListChange={setFilteredRepositories} />
-      {!filteredRepositories.length ? (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-2xl">No repositories found</h2>
-          <p>Try another search term</p>
-        </div>
-      ) : null}
+      {!filteredRepositories.length ? <EmptyState title="No repositories found" /> : null}
       <RepositoryList repositoryList={filteredRepositories} />
     </div>
   );
