@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useState } from "react";
 
 import { ProjectNode } from "@/api/get-project-data";
 import SearchInput from "@/app/_shared/ui/search-input";
@@ -12,31 +12,36 @@ type ProjectFilterProps = {
 
 const ProjectFilter = ({ projectList, onFilteredListChange }: ProjectFilterProps) => {
   const [searchValue, setSearchValue] = useState("");
+  const deferredSearch = useDeferredValue(searchValue);
 
-  const applyFilters = (search: string) => {
-    let filteredList = [...projectList];
+  const applyFilters = useCallback(
+    (search: string) => {
+      let filteredList = [...projectList];
 
-    if (search) {
-      filteredList = filteredList.filter(
-        (project) =>
-          project.title.toLowerCase().includes(search.toLowerCase()) ||
-          project.shortDescription?.toLowerCase().includes(search.toLowerCase()),
-      );
-    }
+      if (search) {
+        filteredList = filteredList.filter(
+          (project) =>
+            project.title.toLowerCase().includes(search.toLowerCase()) ||
+            project.shortDescription?.toLowerCase().includes(search.toLowerCase()),
+        );
+      }
 
-    onFilteredListChange(filteredList);
-  };
+      onFilteredListChange(filteredList);
+    },
+    [projectList, onFilteredListChange],
+  );
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setSearchValue(newValue);
-    applyFilters(newValue);
-  };
+  useEffect(() => {
+    applyFilters(deferredSearch);
+  }, [deferredSearch, applyFilters]);
 
-  const handleClearSearch = () => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
     setSearchValue("");
-    applyFilters("");
-  };
+  }, []);
 
   return (
     <div className="flex h-12 w-full gap-2">

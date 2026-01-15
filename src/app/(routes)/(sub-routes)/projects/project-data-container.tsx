@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import ProjectFilter from "./project-filter";
 import ProjectList from "./project-list";
@@ -15,13 +15,15 @@ type ProjectDataContainerProps = {
 const ProjectDataContainer = ({ initialProjectList }: ProjectDataContainerProps) => {
   const [filteredProjects, setFilteredProjects] = useState(initialProjectList);
 
-  const openProjects = filteredProjects.filter((project) => {
-    return !project.closed;
-  });
+  const openProjects = useMemo(
+    () => filteredProjects.filter((project) => !project.closed),
+    [filteredProjects],
+  );
 
-  const closedProjects = filteredProjects.filter((project) => {
-    return project.closed;
-  });
+  const closedProjects = useMemo(
+    () => filteredProjects.filter((project) => project.closed),
+    [filteredProjects],
+  );
 
   return (
     <div className="flex flex-col gap-10">

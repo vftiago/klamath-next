@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { BsSortDown, BsSortUp } from "react-icons/bs";
 
 import { RepositoryNode } from "@/api/get-repository-data";
@@ -14,45 +14,48 @@ type RepositoryFilterProps = {
 const RepositoryFilter = ({ repositoryList, onFilteredListChange }: RepositoryFilterProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [sortAscending, setSortAscending] = useState(false);
+  const deferredSearch = useDeferredValue(searchValue);
 
-  const applyFilters = (search: string, ascending: boolean) => {
-    let filteredList = [...repositoryList];
+  const applyFilters = useCallback(
+    (search: string, ascending: boolean) => {
+      let filteredList = [...repositoryList];
 
-    if (search) {
-      filteredList = filteredList.filter((repo) => repo.name.toLowerCase().includes(search.toLowerCase()));
-    }
+      if (search) {
+        filteredList = filteredList.filter((repo) => repo.name.toLowerCase().includes(search.toLowerCase()));
+      }
 
-    filteredList.sort((a, b) => {
-      const aLatestCommit = a.defaultBranchRef?.target.history.edges[0]?.node;
-      const bLatestCommit = b.defaultBranchRef?.target.history.edges[0]?.node;
+      filteredList.sort((a, b) => {
+        const aLatestCommit = a.defaultBranchRef?.target.history.edges[0]?.node;
+        const bLatestCommit = b.defaultBranchRef?.target.history.edges[0]?.node;
 
-      if (!aLatestCommit || !bLatestCommit) return 0;
+        if (!aLatestCommit || !bLatestCommit) return 0;
 
-      const aDate = new Date(aLatestCommit.committedDate);
-      const bDate = new Date(bLatestCommit.committedDate);
+        const aDate = new Date(aLatestCommit.committedDate);
+        const bDate = new Date(bLatestCommit.committedDate);
 
-      return ascending ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime();
-    });
+        return ascending ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime();
+      });
 
-    onFilteredListChange(filteredList);
-  };
+      onFilteredListChange(filteredList);
+    },
+    [repositoryList, onFilteredListChange],
+  );
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setSearchValue(newValue);
-    applyFilters(newValue, sortAscending);
-  };
+  useEffect(() => {
+    applyFilters(deferredSearch, sortAscending);
+  }, [deferredSearch, sortAscending, applyFilters]);
 
-  const handleClearSearch = () => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
     setSearchValue("");
-    applyFilters("", sortAscending);
-  };
+  }, []);
 
-  const handleSortToggle = () => {
-    const newSortOrder = !sortAscending;
-    setSortAscending(newSortOrder);
-    applyFilters(searchValue, newSortOrder);
-  };
+  const handleSortToggle = useCallback(() => {
+    setSortAscending((prev) => !prev);
+  }, []);
 
   return (
     <div className="flex h-12 w-full gap-2">
