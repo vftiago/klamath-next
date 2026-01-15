@@ -28,12 +28,11 @@ const LI_VARIANTS = {
 };
 
 type ProjectListProps = {
-  closed?: boolean;
   projectList: ProjectNode[];
   title?: string;
 };
 
-const ProjectList = ({ closed, projectList, title }: ProjectListProps) => {
+const ProjectList = ({ projectList, title }: ProjectListProps) => {
   if (!projectList || projectList.length === 0) {
     return null;
   }
@@ -54,7 +53,7 @@ const ProjectList = ({ closed, projectList, title }: ProjectListProps) => {
       >
         {projectList.map((projectNode) => (
           <motion.li key={projectNode.id} className="flex" variants={LI_VARIANTS}>
-            <ProjectCard closed={closed} projectNode={projectNode} />
+            <ProjectCard projectNode={projectNode} />
           </motion.li>
         ))}
       </motion.ul>

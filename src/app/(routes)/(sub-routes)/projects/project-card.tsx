@@ -30,7 +30,6 @@ const IssueSection = ({ title, issues }: IssueSectionProps) => (
 
 type ProjectCardProps = {
   projectNode: ProjectNode;
-  closed?: boolean;
 };
 
 const ProjectCard = ({ projectNode }: ProjectCardProps) => {

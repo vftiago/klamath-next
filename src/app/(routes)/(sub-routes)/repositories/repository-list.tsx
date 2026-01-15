@@ -35,13 +35,11 @@ const RepositoryList = ({ repositoryList }: { repositoryList: RepositoryNode[] }
       variants={UL_VARIANTS}
       className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
     >
-      {repositoryList.map((repositoryNode, index) => {
-        return (
-          <motion.li key={index} className="flex" variants={LI_VARIANTS}>
-            <RepositoryCard repositoryNode={repositoryNode}></RepositoryCard>
-          </motion.li>
-        );
-      })}
+      {repositoryList.map((repositoryNode) => (
+        <motion.li key={repositoryNode.name} className="flex" variants={LI_VARIANTS}>
+          <RepositoryCard repositoryNode={repositoryNode} />
+        </motion.li>
+      ))}
     </motion.ul>
   );
 };

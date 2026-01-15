@@ -1,6 +1,6 @@
 import { graphqlOptions, graphqlWithAuth } from "./octokit-api";
 
-type ProjectItemNode = {
+type RepositoryProjectItemNode = {
   content: {
     title: string;
     body: string;
@@ -15,7 +15,7 @@ type IssueNode = {
   bodyHTML: string;
   state: "OPEN" | "CLOSED";
   projectItems: {
-    nodes: ProjectItemNode[];
+    nodes: RepositoryProjectItemNode[];
   };
 };
 
@@ -38,7 +38,7 @@ export type RepositoryNode = {
         }[];
       };
     };
-  };
+  } | null;
   issues: {
     nodes: IssueNode[];
   };

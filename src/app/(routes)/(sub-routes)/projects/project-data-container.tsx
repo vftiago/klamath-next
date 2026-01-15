@@ -32,7 +32,7 @@ const ProjectDataContainer = ({ initialProjectList }: ProjectDataContainerProps)
         </div>
       ) : null}
       <ProjectList projectList={openProjects} title="Open Projects" />
-      <ProjectList closed projectList={closedProjects} title="Closed Projects" />
+      <ProjectList projectList={closedProjects} title="Closed Projects" />
     </div>
   );
 };
