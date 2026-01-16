@@ -1,8 +1,8 @@
 import { useFrame } from "@react-three/fiber";
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
-import type { Mesh, RawShaderMaterial} from "three";
+import type { Mesh, RawShaderMaterial } from "three";
 import { Scene, Vector2, WebGLRenderTarget } from "three";
-import { TIME_SPEED } from "../constants";
+import { SCENE_START_TIME, TIME_SPEED } from "../constants";
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
 
@@ -11,6 +11,7 @@ const PostEffect = () => {
   const meshRef = useRef<Mesh>(null);
 
   const targetRef = useRef<null | WebGLRenderTarget>(null);
+  const uniformsInitializedRef = useRef(false);
 
   const [scene] = useState(() => new Scene());
 
@@ -47,17 +48,21 @@ const PostEffect = () => {
 
     const uniforms = rawShaderMaterialRef.current.uniforms;
 
-    uniforms.resolution = {
-      value: new Vector2(window.innerWidth, window.innerHeight),
-    };
+    if (!uniformsInitializedRef.current) {
+      uniforms.resolution = {
+        value: new Vector2(window.innerWidth, window.innerHeight),
+      };
 
-    uniforms.time = {
-      value: 0,
-    };
+      uniforms.time = {
+        value: 0,
+      };
 
-    uniforms.texture = {
-      value: null,
-    };
+      uniforms.texture = {
+        value: null,
+      };
+
+      uniformsInitializedRef.current = true;
+    }
 
     initRenderTarget();
 
@@ -71,7 +76,7 @@ const PostEffect = () => {
     };
   }, [dimensions, handleWindowResize, initRenderTarget]);
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (!rawShaderMaterialRef.current || !meshRef.current || !targetRef.current) {
       return;
     }
@@ -81,7 +86,7 @@ const PostEffect = () => {
 
     meshRef.current.position.set(0, state.camera.position.y, 0);
 
-    uniforms.time.value += delta * TIME_SPEED;
+    uniforms.time.value = ((performance.now() - SCENE_START_TIME) / 1000) * TIME_SPEED;
 
     rawShaderMaterialRef.current.visible = false;
     state.gl.setRenderTarget(target);

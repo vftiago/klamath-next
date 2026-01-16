@@ -2,7 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import type React from "react";
 import { useLayoutEffect, useRef } from "react";
 import type { Mesh, RawShaderMaterial } from "three";
-import { TIME_SPEED } from "../constants";
+import { SCENE_START_TIME, TIME_SPEED } from "../constants";
 import fragmentShader from "./barbelith.frag";
 import vertexShader from "./barbelith.vert";
 
@@ -26,14 +26,14 @@ const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
     };
   }, []);
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     if (!materialRef.current) {
       return;
     }
 
     const uniforms = materialRef.current.uniforms;
 
-    uniforms.time.value += delta * TIME_SPEED;
+    uniforms.time.value = ((performance.now() - SCENE_START_TIME) / 1000) * TIME_SPEED;
   });
 
   return (
