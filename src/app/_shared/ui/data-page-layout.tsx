@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode} from "react";
+import type { ReactNode } from "react";
 import { Suspense } from "react";
 import ErrorBoundaryWrapper from "./error-boundary-wrapper";
 
@@ -10,7 +10,7 @@ type DataPageLayoutProps = {
 
 const DataPageLayout = ({ children, title }: DataPageLayoutProps) => {
   return (
-    <div className="flex flex-1 flex-col gap-10">
+    <div className="flex flex-1 flex-col gap-10 p-2">
       <h1 className="text-2xl">
         <Link href="/">Home</Link> / {title}
       </h1>

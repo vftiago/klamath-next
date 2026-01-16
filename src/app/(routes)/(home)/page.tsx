@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const HomePage = () => {
   return (
-    <div className="flex flex-1 flex-col justify-between text-2xl">
+    <div className="flex flex-1 flex-col justify-between p-2 text-2xl">
       <div className="flex flex-col gap-4">
         <Link className="self-start" href="/projects">
           Projects
