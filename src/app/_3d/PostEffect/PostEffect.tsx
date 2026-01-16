@@ -2,7 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Mesh, RawShaderMaterial } from "three";
 import { Scene, Vector2, WebGLRenderTarget } from "three";
-import { SCENE_START_TIME, TIME_SPEED } from "../constants";
+import { getSceneTime } from "../utils";
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
 
@@ -86,7 +86,7 @@ const PostEffect = () => {
 
     meshRef.current.position.set(0, state.camera.position.y, 0);
 
-    uniforms.time.value = ((performance.now() - SCENE_START_TIME) / 1000) * TIME_SPEED;
+    uniforms.time.value = getSceneTime();
 
     rawShaderMaterialRef.current.visible = false;
     state.gl.setRenderTarget(target);

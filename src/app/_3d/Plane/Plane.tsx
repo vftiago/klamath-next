@@ -2,7 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import type React from "react";
 import { useLayoutEffect, useRef } from "react";
 import type { Mesh, RawShaderMaterial } from "three";
-import { SCENE_START_TIME, TIME_SPEED } from "../constants";
+import { getSceneTime } from "../utils";
 import fragmentShader from "./plane.frag";
 import vertexShader from "./plane.vert";
 
@@ -33,7 +33,7 @@ const Plane = (props: React.JSX.IntrinsicElements["mesh"]) => {
 
     const uniforms = materialRef.current.uniforms;
 
-    uniforms.time.value = ((performance.now() - SCENE_START_TIME) / 1000) * TIME_SPEED;
+    uniforms.time.value = getSceneTime();
   });
 
   return (
