@@ -48,9 +48,13 @@ const NavbarContainer = () => {
     <Navbar
       bottomSlot={
         <div
-          className={clsx("size-3 cursor-pointer rounded-full border", {
-            "bg-gray-400": header.rarity === RARITY.Uncommon,
-            "bg-yellow-400": header.rarity === RARITY.Rare,
+          className={clsx("size-3 cursor-pointer rounded-full", {
+            "bg-gray-300 shadow-[0_0_4px_1px_rgba(209,213,219,0.8),0_0_12px_3px_rgba(209,213,219,0.5),0_0_24px_6px_rgba(209,213,219,0.3)]":
+              header.rarity === RARITY.Uncommon,
+            "bg-yellow-300 shadow-[0_0_4px_1px_rgba(253,224,71,0.9),0_0_12px_3px_rgba(253,224,71,0.6),0_0_24px_6px_rgba(253,224,71,0.3),0_0_40px_10px_rgba(253,224,71,0.15)]":
+              header.rarity === RARITY.Rare,
+            "border border-white/20 bg-gray-700/50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]":
+              header.rarity === RARITY.Common,
           })}
           onClick={onClick}
         />
