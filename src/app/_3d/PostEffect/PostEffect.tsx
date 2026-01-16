@@ -1,19 +1,41 @@
-import { useFrame } from "@react-three/fiber";
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
-import type { Mesh, RawShaderMaterial } from "three";
-import { Scene, Vector2, WebGLRenderTarget } from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+  Mesh,
+  OrthographicCamera,
+  PlaneGeometry,
+  RawShaderMaterial,
+  Scene,
+  Vector2,
+  WebGLRenderTarget,
+} from "three";
 import { getSceneTime } from "../utils";
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
 
 const PostEffect = () => {
-  const rawShaderMaterialRef = useRef<RawShaderMaterial>(null);
-  const meshRef = useRef<Mesh>(null);
+  const { gl } = useThree();
 
   const targetRef = useRef<null | WebGLRenderTarget>(null);
-  const uniformsInitializedRef = useRef(false);
 
-  const [scene] = useState(() => new Scene());
+  const [postScene] = useState(() => {
+    const s = new Scene();
+    const geometry = new PlaneGeometry(2, 2);
+    const material = new RawShaderMaterial({
+      fragmentShader,
+      uniforms: {
+        resolution: { value: new Vector2(window.innerWidth, window.innerHeight) },
+        texture: { value: null },
+        time: { value: 0 },
+      },
+      vertexShader,
+    });
+    const mesh = new Mesh(geometry, material);
+    s.add(mesh);
+    return { material, scene: s };
+  });
+
+  const [orthoCamera] = useState(() => new OrthographicCamera(-1, 1, 1, -1, 0, 1));
 
   const [dimensions, setDimensions] = useState(() => ({
     height: window.innerHeight,
@@ -27,12 +49,11 @@ const PostEffect = () => {
 
     targetRef.current = new WebGLRenderTarget(dimensions.width, dimensions.height);
 
-    if (rawShaderMaterialRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Three.js uniforms are loosely typed
-      rawShaderMaterialRef.current.uniforms.resolution.value.set(dimensions.width, dimensions.height);
-      rawShaderMaterialRef.current.uniforms.texture.value = targetRef.current.texture;
-    }
-  }, [dimensions]);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Three.js uniforms are loosely typed
+    postScene.material.uniforms.resolution.value.set(dimensions.width, dimensions.height);
+    // eslint-disable-next-line react-hooks/immutability -- Three.js uniforms are intended to be mutated
+    postScene.material.uniforms.texture.value = targetRef.current.texture;
+  }, [dimensions, postScene.material]);
 
   const handleWindowResize = useCallback(() => {
     setDimensions({
@@ -42,28 +63,6 @@ const PostEffect = () => {
   }, []);
 
   useLayoutEffect(() => {
-    if (!rawShaderMaterialRef.current) {
-      return;
-    }
-
-    const uniforms = rawShaderMaterialRef.current.uniforms;
-
-    if (!uniformsInitializedRef.current) {
-      uniforms.resolution = {
-        value: new Vector2(window.innerWidth, window.innerHeight),
-      };
-
-      uniforms.time = {
-        value: 0,
-      };
-
-      uniforms.texture = {
-        value: null,
-      };
-
-      uniformsInitializedRef.current = true;
-    }
-
     initRenderTarget();
 
     window.addEventListener("resize", handleWindowResize);
@@ -77,32 +76,25 @@ const PostEffect = () => {
   }, [dimensions, handleWindowResize, initRenderTarget]);
 
   useFrame((state) => {
-    if (!rawShaderMaterialRef.current || !meshRef.current || !targetRef.current) {
+    if (!targetRef.current) {
       return;
     }
 
-    const uniforms = rawShaderMaterialRef.current.uniforms;
     const target = targetRef.current;
 
-    meshRef.current.position.set(0, state.camera.position.y, 0);
+    // eslint-disable-next-line react-hooks/immutability -- Three.js uniforms are intended to be mutated
+    postScene.material.uniforms.time.value = getSceneTime();
 
-    uniforms.time.value = getSceneTime();
+    // Render the main scene to the texture
+    gl.setRenderTarget(target);
+    gl.render(state.scene, state.camera);
 
-    rawShaderMaterialRef.current.visible = false;
-    state.gl.setRenderTarget(target);
-    state.gl.render(state.scene, state.camera);
+    // Render the post-effect fullscreen quad with a fixed orthographic camera
+    gl.setRenderTarget(null);
+    gl.render(postScene.scene, orthoCamera);
+  }, 1);
 
-    rawShaderMaterialRef.current.visible = true;
-    state.gl.setRenderTarget(null);
-    state.gl.render(scene, state.camera);
-  });
-
-  return (
-    <mesh ref={meshRef}>
-      <planeGeometry args={[2, 2]} />
-      <rawShaderMaterial fragmentShader={fragmentShader} ref={rawShaderMaterialRef} vertexShader={vertexShader} />
-    </mesh>
-  );
+  return null;
 };
 
 export default PostEffect;
