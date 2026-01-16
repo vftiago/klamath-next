@@ -1,9 +1,8 @@
-import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import type { Metadata } from "next";
 import { Barlow_Condensed, Electrolize, Roboto_Condensed } from "next/font/google";
 import DynamicThreeScene from "./_3d/DynamicThreeScene";
-
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -25,8 +24,8 @@ const robotoCondensed = Roboto_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "Tiago Fernandes",
   description: "Software Engineer",
+  title: "Tiago Fernandes",
 };
 
 const RootLayout = ({
@@ -38,7 +37,7 @@ const RootLayout = ({
     <html lang="en">
       <head>
         {/* remove when Chrome 139 is releasted in August 5: https://github.com/Zwyx/chrome-android-clientheight?tab=readme-ov-file */}
-        <meta name="viewport" content="interactive-widget=resizes-content" />
+        <meta content="interactive-widget=resizes-content" name="viewport" />
       </head>
       <body
         className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${electrolize.variable} font-roboto-condensed antialiased`}

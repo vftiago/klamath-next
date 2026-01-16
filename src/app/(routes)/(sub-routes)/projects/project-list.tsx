@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, useAnimation } from "framer-motion";
-
+import type { ProjectNode } from "@/api/get-project-data";
 import ProjectCard from "./project-card";
-
-import { ProjectNode } from "@/api/get-project-data";
-import { LI_VARIANTS, UL_VARIANTS } from "@/app/_shared/motion/list-variants";
 
 type ProjectListProps = {
   projectList: ProjectNode[];
@@ -14,35 +9,6 @@ type ProjectListProps = {
 };
 
 const ProjectList = ({ projectList, title }: ProjectListProps) => {
-  const [shouldAnimate, setShouldAnimate] = useState(true);
-  const controls = useAnimation();
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    if (projectList.length > 0) {
-      if (shouldAnimate) {
-        controls.start("visible").then(() => {
-          setShouldAnimate(false);
-        });
-      } else {
-        controls.set("visible");
-      }
-    }
-  }, [controls, shouldAnimate, projectList.length]);
-
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-
-    if (shouldAnimate) {
-      controls.stop();
-      controls.set("visible");
-      setShouldAnimate(false);
-    }
-  }, [projectList, shouldAnimate, controls]);
-
   if (!projectList || projectList.length === 0) {
     return null;
   }
@@ -55,23 +21,17 @@ const ProjectList = ({ projectList, title }: ProjectListProps) => {
           <div className="flex-1 border-t" />
         </div>
       ) : null}
-      <motion.ul
-        initial={shouldAnimate ? "hidden" : false}
-        animate={controls}
-        variants={UL_VARIANTS}
-        className="grid grid-cols-1 gap-4 lg:grid-cols-2"
-      >
-        {projectList.map((projectNode) => (
-          <motion.li
+      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {projectList.map((projectNode, index) => (
+          <li
+            className="flex animate-fade-in opacity-0"
             key={projectNode.id}
-            className="flex"
-            variants={LI_VARIANTS}
-            initial={shouldAnimate ? undefined : false}
+            style={{ animationDelay: `${index * 30}ms` }}
           >
             <ProjectCard projectNode={projectNode} />
-          </motion.li>
+          </li>
         ))}
-      </motion.ul>
+      </ul>
     </div>
   );
 };

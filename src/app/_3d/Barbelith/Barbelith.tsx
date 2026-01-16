@@ -1,9 +1,8 @@
-import React, { useLayoutEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Mesh, RawShaderMaterial } from "three";
-
+import type React from "react";
+import { useLayoutEffect, useRef } from "react";
+import type { Mesh, RawShaderMaterial } from "three";
 import { TIME_SPEED } from "../constants";
-
 import fragmentShader from "./barbelith.frag";
 import vertexShader from "./barbelith.vert";
 
@@ -41,10 +40,10 @@ const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
     <mesh {...props} ref={meshRef}>
       <sphereGeometry args={[192, 32, 32]} />
       <rawShaderMaterial
-        ref={materialRef}
-        vertexShader={vertexShader}
         fragmentShader={fragmentShader}
+        ref={materialRef}
         transparent={true}
+        vertexShader={vertexShader}
         wireframe={true}
       />
     </mesh>

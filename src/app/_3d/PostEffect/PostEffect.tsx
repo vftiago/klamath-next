@@ -1,9 +1,8 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Mesh, RawShaderMaterial, Scene, Vector2, WebGLRenderTarget } from "three";
-
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import type { Mesh, RawShaderMaterial} from "three";
+import { Scene, Vector2, WebGLRenderTarget } from "three";
 import { TIME_SPEED } from "../constants";
-
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
 
@@ -11,13 +10,13 @@ const PostEffect = () => {
   const rawShaderMaterialRef = useRef<RawShaderMaterial>(null);
   const meshRef = useRef<Mesh>(null);
 
-  const targetRef = useRef<WebGLRenderTarget | null>(null);
+  const targetRef = useRef<null | WebGLRenderTarget>(null);
 
   const [scene] = useState(() => new Scene());
 
   const [dimensions, setDimensions] = useState(() => ({
-    width: window.innerWidth,
     height: window.innerHeight,
+    width: window.innerWidth,
   }));
 
   const initRenderTarget = useCallback(() => {
@@ -28,6 +27,7 @@ const PostEffect = () => {
     targetRef.current = new WebGLRenderTarget(dimensions.width, dimensions.height);
 
     if (rawShaderMaterialRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Three.js uniforms are loosely typed
       rawShaderMaterialRef.current.uniforms.resolution.value.set(dimensions.width, dimensions.height);
       rawShaderMaterialRef.current.uniforms.texture.value = targetRef.current.texture;
     }
@@ -35,8 +35,8 @@ const PostEffect = () => {
 
   const handleWindowResize = useCallback(() => {
     setDimensions({
-      width: window.innerWidth,
       height: window.innerHeight,
+      width: window.innerWidth,
     });
   }, []);
 
@@ -95,7 +95,7 @@ const PostEffect = () => {
   return (
     <mesh ref={meshRef}>
       <planeGeometry args={[2, 2]} />
-      <rawShaderMaterial ref={rawShaderMaterialRef} vertexShader={vertexShader} fragmentShader={fragmentShader} />
+      <rawShaderMaterial fragmentShader={fragmentShader} ref={rawShaderMaterialRef} vertexShader={vertexShader} />
     </mesh>
   );
 };

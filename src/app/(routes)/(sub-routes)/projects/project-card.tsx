@@ -1,14 +1,13 @@
 import clsx from "clsx";
-
-import { ProjectItemNode, ProjectNode } from "@/api/get-project-data";
+import type { ProjectItemNode, ProjectNode } from "@/api/get-project-data";
 import CardBase from "@/app/_shared/ui/card-base";
 
 type IssueSectionProps = {
-  title: string;
   issues: ProjectItemNode[];
+  title: string;
 };
 
-const IssueSection = ({ title, issues }: IssueSectionProps) => (
+const IssueSection = ({ issues, title }: IssueSectionProps) => (
   <div className="flex flex-col gap-1">
     <h3 className="text-xs">{title}</h3>
     {issues.length > 0 ? (
@@ -29,7 +28,7 @@ type ProjectCardProps = {
 };
 
 const ProjectCard = ({ projectNode }: ProjectCardProps) => {
-  const { title, repositories, shortDescription, items, closed } = projectNode;
+  const { closed, items, repositories, shortDescription, title } = projectNode;
 
   const homepageUrl = repositories.nodes[0]?.homepageUrl;
   const repositoryUrl = repositories.nodes[0]?.url;
@@ -39,19 +38,19 @@ const ProjectCard = ({ projectNode }: ProjectCardProps) => {
 
   return (
     <CardBase
-      title={title}
-      homepageUrl={homepageUrl}
-      githubUrl={repositoryUrl}
-      description={shortDescription}
       className={clsx("font-roboto-condensed transition-opacity duration-500 ease-in-out", {
-        "opacity-50 hover:opacity-100": closed,
         "min-h-80": !closed,
+        "opacity-50 hover:opacity-100": closed,
       })}
+      description={shortDescription}
+      githubUrl={repositoryUrl}
+      homepageUrl={homepageUrl}
+      title={title}
     >
       {!closed && (
         <div className="flex flex-col gap-2">
-          <IssueSection title="Currently In Progress" issues={inProgressIssues} />
-          <IssueSection title="Next Up" issues={todoIssues} />
+          <IssueSection issues={inProgressIssues} title="Currently In Progress" />
+          <IssueSection issues={todoIssues} title="Next Up" />
         </div>
       )}
     </CardBase>

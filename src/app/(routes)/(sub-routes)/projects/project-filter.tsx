@@ -1,16 +1,15 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
-
-import { ProjectNode } from "@/api/get-project-data";
+import type { ProjectNode } from "@/api/get-project-data";
 import SearchInput from "@/app/_shared/ui/search-input";
 
 type ProjectFilterProps = {
-  projectList: ProjectNode[];
   onFilteredListChange: (filteredList: ProjectNode[]) => void;
+  projectList: ProjectNode[];
 };
 
-const ProjectFilter = ({ projectList, onFilteredListChange }: ProjectFilterProps) => {
+const ProjectFilter = ({ onFilteredListChange, projectList }: ProjectFilterProps) => {
   const [searchValue, setSearchValue] = useState("");
   const deferredSearch = useDeferredValue(searchValue);
 

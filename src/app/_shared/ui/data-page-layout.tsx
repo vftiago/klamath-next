@@ -1,14 +1,14 @@
-import { ReactNode, Suspense } from "react";
 import Link from "next/link";
-
+import type { ReactNode} from "react";
+import { Suspense } from "react";
 import ErrorBoundaryWrapper from "./error-boundary-wrapper";
 
 type DataPageLayoutProps = {
-  title: string;
   children: ReactNode;
+  title: string;
 };
 
-const DataPageLayout = ({ title, children }: DataPageLayoutProps) => {
+const DataPageLayout = ({ children, title }: DataPageLayoutProps) => {
   return (
     <div className="flex flex-1 flex-col gap-10">
       <h1 className="text-2xl">

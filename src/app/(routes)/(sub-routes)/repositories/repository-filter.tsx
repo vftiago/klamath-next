@@ -2,16 +2,15 @@
 
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { BsSortDown, BsSortUp } from "react-icons/bs";
-
-import { RepositoryNode } from "@/api/get-repository-data";
+import type { RepositoryNode } from "@/api/get-repository-data";
 import SearchInput from "@/app/_shared/ui/search-input";
 
 type RepositoryFilterProps = {
-  repositoryList: RepositoryNode[];
   onFilteredListChange: (filteredList: RepositoryNode[]) => void;
+  repositoryList: RepositoryNode[];
 };
 
-const RepositoryFilter = ({ repositoryList, onFilteredListChange }: RepositoryFilterProps) => {
+const RepositoryFilter = ({ onFilteredListChange, repositoryList }: RepositoryFilterProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [sortAscending, setSortAscending] = useState(false);
   const deferredSearch = useDeferredValue(searchValue);
@@ -67,9 +66,9 @@ const RepositoryFilter = ({ repositoryList, onFilteredListChange }: RepositoryFi
       />
 
       <button
+        aria-label={sortAscending ? "Sort newest first" : "Sort oldest first"}
         className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/20 bg-gray-500/10 text-lg outline-none"
         onClick={handleSortToggle}
-        aria-label={sortAscending ? "Sort newest first" : "Sort oldest first"}
       >
         {sortAscending ? <BsSortUp size="1.5rem" /> : <BsSortDown size="1.5rem" />}
       </button>

@@ -1,24 +1,23 @@
-import { ReactNode } from "react";
 import clsx from "clsx";
-
+import type { ReactNode } from "react";
 import GlassPanel from "./glass-panel";
 
 type CardBaseProps = {
-  title: string;
-  homepageUrl?: string | null;
-  githubUrl?: string | null;
-  description?: string | null;
   children: ReactNode;
   className?: string;
+  description?: null | string;
+  githubUrl?: null | string;
+  homepageUrl?: null | string;
+  title: string;
 };
 
 const CardBase = ({
-  title,
-  homepageUrl,
-  githubUrl,
-  description,
   children,
   className,
+  description,
+  githubUrl,
+  homepageUrl,
+  title,
 }: CardBaseProps) => {
   return (
     <GlassPanel rootClassName={clsx("flex flex-1 flex-col gap-4 p-4 drop-shadow", className)}>
@@ -29,9 +28,9 @@ const CardBase = ({
             <a
               aria-label={`${title}'s homepage`}
               className="underline"
-              target="_blank"
-              rel="noreferrer"
               href={homepageUrl}
+              rel="noreferrer"
+              target="_blank"
             >
               {homepageUrl}
             </a>
@@ -45,9 +44,9 @@ const CardBase = ({
           <a
             aria-label={`${title}'s GitHub repository`}
             className="font-barlow underline"
-            target="_blank"
-            rel="noreferrer"
             href={githubUrl}
+            rel="noreferrer"
+            target="_blank"
           >
             {githubUrl}
           </a>

@@ -1,9 +1,8 @@
-import React, { useLayoutEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Mesh, RawShaderMaterial } from "three";
-
+import type React from "react";
+import { useLayoutEffect, useRef } from "react";
+import type { Mesh, RawShaderMaterial } from "three";
 import { TIME_SPEED } from "../constants";
-
 import fragmentShader from "./plane.frag";
 import vertexShader from "./plane.vert";
 
@@ -41,12 +40,12 @@ const Plane = (props: React.JSX.IntrinsicElements["mesh"]) => {
     <mesh {...props} ref={meshRef}>
       <planeGeometry args={[PLANE_DIMENSIONS, PLANE_DIMENSIONS, PLANE_DIMENSIONS / 32, PLANE_DIMENSIONS / 32]} />
       <rawShaderMaterial
-        ref={materialRef}
-        vertexShader={vertexShader}
         fragmentShader={fragmentShader}
-        transparent={true}
-        wireframe={true}
         lights={false}
+        ref={materialRef}
+        transparent={true}
+        vertexShader={vertexShader}
+        wireframe={true}
       />
     </mesh>
   );

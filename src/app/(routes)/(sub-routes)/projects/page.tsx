@@ -1,6 +1,5 @@
-import ProjectData from "./project-data";
-
 import DataPageLayout from "@/app/_shared/ui/data-page-layout";
+import ProjectData from "./project-data";
 
 const ProjectPage = () => {
   return (

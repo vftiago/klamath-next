@@ -15,13 +15,13 @@ const HomePage = () => {
         </Link>
       </div>
       <div className="flex flex-col gap-4 self-end text-right">
-        <a target="_blank" href="https://dev.to/vftiago">
+        <a href="https://dev.to/vftiago" rel="noreferrer" target="_blank">
           Dev.to ↗
         </a>
-        <a target="_blank" href="https://www.linkedin.com/in/vftiago/">
+        <a href="https://www.linkedin.com/in/vftiago/" rel="noreferrer" target="_blank">
           LinkedIn ↗
         </a>
-        <a target="_blank" href="https://github.com/vftiago">
+        <a href="https://github.com/vftiago" rel="noreferrer" target="_blank">
           GitHub ↗
         </a>
       </div>

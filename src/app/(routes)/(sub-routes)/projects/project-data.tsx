@@ -1,6 +1,5 @@
-import ProjectDataContainer from "./project-data-container";
-
 import { getProjectData } from "@/api/get-project-data";
+import ProjectDataContainer from "./project-data-container";
 
 const ProjectData = async () => {
   const projectData = await getProjectData();

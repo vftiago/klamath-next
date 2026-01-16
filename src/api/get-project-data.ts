@@ -1,35 +1,35 @@
 import { graphqlOptions, graphqlWithAuth } from "./octokit-api";
 
-type ProjectContentItem = {
-  id: string;
-  title: string;
-  body: string;
-  bodyHTML: string;
-};
-
 export type ProjectItemNode = {
-  fieldValueByName: {
-    name?: string;
-  } | null;
   content: ProjectContentItem;
+  fieldValueByName: null | {
+    name?: string;
+  };
 };
 
 export type ProjectNode = {
-  id: string;
-  title: string;
-  url: string;
-  shortDescription: string | null;
-  readme: string | null;
   closed: boolean;
-  repositories: {
-    nodes: {
-      homepageUrl: string | null;
-      url: string | null;
-    }[];
-  };
+  id: string;
   items: {
     nodes: ProjectItemNode[];
   };
+  readme: null | string;
+  repositories: {
+    nodes: {
+      homepageUrl: null | string;
+      url: null | string;
+    }[];
+  };
+  shortDescription: null | string;
+  title: string;
+  url: string;
+};
+
+type ProjectContentItem = {
+  body: string;
+  bodyHTML: string;
+  id: string;
+  title: string;
 };
 
 type UserProjects = {

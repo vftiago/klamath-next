@@ -1,12 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
+import type { ProjectNode } from "@/api/get-project-data";
+import EmptyState from "@/app/_shared/ui/empty-state";
 import ProjectFilter from "./project-filter";
 import ProjectList from "./project-list";
-
-import { ProjectNode } from "@/api/get-project-data";
-import EmptyState from "@/app/_shared/ui/empty-state";
 
 type ProjectDataContainerProps = {
   initialProjectList: ProjectNode[];

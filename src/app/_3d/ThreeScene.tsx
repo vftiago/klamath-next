@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
+import { useCallback, useEffect, useState } from "react";
 import { PerspectiveCamera } from "three";
-
+import Barbelith from "./Barbelith/Barbelith";
 import Box from "./Box/Box";
 import Plane from "./Plane/Plane";
 import PostEffect from "./PostEffect/PostEffect";
-import Barbelith from "./Barbelith/Barbelith";
 
 const ThreeScene = () => {
   const [camera] = useState(() => new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000));
@@ -15,6 +14,7 @@ const ThreeScene = () => {
   camera.position.set(0, 0, 1024);
 
   const handleWindowScroll = useCallback(() => {
+    // eslint-disable-next-line react-hooks/immutability -- Three.js camera objects are intended to be mutated
     camera.position.y = -window.scrollY / 4;
   }, [camera]);
 

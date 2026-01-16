@@ -1,41 +1,40 @@
-import { useEffect, useState, useCallback } from "react";
+import { useSyncExternalStore } from "react";
 
 export const BREAKPOINTS = {
-  md: 768,
   lg: 1024,
+  md: 768,
 } as const;
 
 type BreakpointState = {
-  isMdScreen: boolean;
   isLgScreen: boolean;
+  isMdScreen: boolean;
 };
 
-const INITIAL_BREAKPOINT_STATE: BreakpointState = {
-  isMdScreen: false,
+const SERVER_SNAPSHOT: BreakpointState = {
   isLgScreen: false,
+  isMdScreen: false,
+};
+
+let cachedSnapshot: BreakpointState = SERVER_SNAPSHOT;
+
+const getSnapshot = (): BreakpointState => {
+  const isLgScreen = window.innerWidth >= BREAKPOINTS.lg;
+  const isMdScreen = window.innerWidth >= BREAKPOINTS.md;
+
+  if (cachedSnapshot.isLgScreen !== isLgScreen || cachedSnapshot.isMdScreen !== isMdScreen) {
+    cachedSnapshot = { isLgScreen, isMdScreen };
+  }
+
+  return cachedSnapshot;
+};
+
+const getServerSnapshot = (): BreakpointState => SERVER_SNAPSHOT;
+
+const subscribe = (callback: () => void) => {
+  window.addEventListener("resize", callback);
+  return () => window.removeEventListener("resize", callback);
 };
 
 export const useBreakpoints = () => {
-  const [screenState, setScreenState] = useState<BreakpointState>(INITIAL_BREAKPOINT_STATE);
-
-  const calculateScreenState = useCallback(
-    (): BreakpointState => ({
-      isMdScreen: window.innerWidth >= BREAKPOINTS.md,
-      isLgScreen: window.innerWidth >= BREAKPOINTS.lg,
-    }),
-    [],
-  );
-
-  const handleResize = useCallback(() => {
-    setScreenState(calculateScreenState());
-  }, [calculateScreenState]);
-
-  useEffect(() => {
-    setScreenState(calculateScreenState());
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [handleResize, calculateScreenState]);
-
-  return screenState;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 };

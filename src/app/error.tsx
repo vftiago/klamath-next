@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-
 import ErrorWidget from "./_shared/ui/error-widget";
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {

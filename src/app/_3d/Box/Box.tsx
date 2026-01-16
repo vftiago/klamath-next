@@ -1,9 +1,8 @@
-import React, { useLayoutEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Mesh, RawShaderMaterial } from "three";
-
+import type React from "react";
+import { useLayoutEffect, useRef } from "react";
+import type { Mesh, RawShaderMaterial } from "three";
 import { TIME_SPEED } from "../constants";
-
 import fragmentShader from "./box.frag";
 import vertexShader from "./box.vert";
 
@@ -41,10 +40,10 @@ const Box = (props: React.JSX.IntrinsicElements["mesh"]) => {
     <mesh {...props} ref={meshRef}>
       <boxGeometry args={[100, 100, 100]} />
       <rawShaderMaterial
-        ref={materialRef}
-        vertexShader={vertexShader}
         fragmentShader={fragmentShader}
+        ref={materialRef}
         transparent={true}
+        vertexShader={vertexShader}
         wireframe={true}
       />
     </mesh>

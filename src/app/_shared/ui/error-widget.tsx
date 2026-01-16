@@ -1,5 +1,3 @@
-import React from "react";
-
 type ErrorWidgetProps = {
   message: string;
   retry?: () => void;
@@ -11,8 +9,8 @@ const ErrorWidget = ({ message, retry }: ErrorWidgetProps) => {
       <h1 className="text-2xl">{message}</h1>
       {retry && (
         <button
-          onClick={retry}
           className="g-gray-500/10 flex items-center justify-center border px-4 py-1 text-lg outline-none"
+          onClick={retry}
         >
           Try Again
         </button>

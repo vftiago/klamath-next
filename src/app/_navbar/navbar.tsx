@@ -1,23 +1,23 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import type { ReactNode} from "react";
+import { useEffect } from "react";
 import Typed from "typed.js";
-
 import GlassPanel from "../_shared/ui/glass-panel";
 
 type NavbarProps = {
-  topSlot?: ReactNode;
-  header?: string;
   bottomSlot?: ReactNode;
+  header?: string;
+  topSlot?: ReactNode;
 };
 
-const Navbar = ({ topSlot, header, bottomSlot }: NavbarProps) => {
+const Navbar = ({ bottomSlot, header, topSlot }: NavbarProps) => {
   useEffect(() => {
     if (header) {
       const typedCurrentPageHeader = new Typed("#header", {
+        cursorChar: "_",
         strings: [header],
         typeSpeed: 20,
-        cursorChar: "_",
       });
 
       return () => {

@@ -1,6 +1,5 @@
 import { VscGitCommit } from "react-icons/vsc";
-
-import { RepositoryNode } from "@/api/get-repository-data";
+import type { RepositoryNode } from "@/api/get-repository-data";
 import CardBase from "@/app/_shared/ui/card-base";
 
 type RepositoryCardProps = {
@@ -8,12 +7,12 @@ type RepositoryCardProps = {
 };
 
 const RepositoryCard = ({ repositoryNode }: RepositoryCardProps) => {
-  const { name, homepageUrl, url, defaultBranchRef } = repositoryNode;
+  const { defaultBranchRef, homepageUrl, name, url } = repositoryNode;
 
   const commitHistory = defaultBranchRef ? defaultBranchRef.target.history.edges : [];
 
   return (
-    <CardBase title={name} homepageUrl={homepageUrl} githubUrl={url} className="min-h-64">
+    <CardBase className="min-h-64" githubUrl={url} homepageUrl={homepageUrl} title={name}>
       {commitHistory.length ? (
         <ul className="flex flex-col gap-1 p-0">
           {commitHistory.map((commit, index) => (

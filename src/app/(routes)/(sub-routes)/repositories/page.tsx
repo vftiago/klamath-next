@@ -1,6 +1,5 @@
-import RepositoryData from "./repository-data";
-
 import DataPageLayout from "@/app/_shared/ui/data-page-layout";
+import RepositoryData from "./repository-data";
 
 const RepositoryPage = () => {
   return (

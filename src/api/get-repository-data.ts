@@ -1,46 +1,46 @@
 import { graphqlOptions, graphqlWithAuth } from "./octokit-api";
 
-type RepositoryProjectItemNode = {
-  content: {
-    title: string;
-    body: string;
-    state: "OPEN" | "CLOSED";
-  };
-};
-
-type IssueNode = {
-  title: string;
-  titleHTML: string;
-  body: string;
-  bodyHTML: string;
-  state: "OPEN" | "CLOSED";
-  projectItems: {
-    nodes: RepositoryProjectItemNode[];
-  };
-};
-
 export type RepositoryNode = {
-  name: string;
-  description: string | null;
-  homepageUrl: string | null;
-  url: string;
-  owner: {
-    login: string;
-  };
-  defaultBranchRef: {
+  defaultBranchRef: null | {
     target: {
       history: {
         edges: {
           node: {
-            message: string;
             committedDate: string;
+            message: string;
           };
         }[];
       };
     };
-  } | null;
+  };
+  description: null | string;
+  homepageUrl: null | string;
   issues: {
     nodes: IssueNode[];
+  };
+  name: string;
+  owner: {
+    login: string;
+  };
+  url: string;
+};
+
+type IssueNode = {
+  body: string;
+  bodyHTML: string;
+  projectItems: {
+    nodes: RepositoryProjectItemNode[];
+  };
+  state: "CLOSED" | "OPEN";
+  title: string;
+  titleHTML: string;
+};
+
+type RepositoryProjectItemNode = {
+  content: {
+    body: string;
+    state: "CLOSED" | "OPEN";
+    title: string;
   };
 };
 

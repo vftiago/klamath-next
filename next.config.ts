@@ -1,20 +1,27 @@
-import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
+import type { NextConfig } from "next";
+
+type WebpackConfig = {
+  module: {
+    rules: unknown[];
+  };
+};
 
 const nextConfig: NextConfig = {
   turbopack: {
     rules: {
       "*.frag": {
-        loaders: ["raw-loader", "glslify-loader"],
         as: "*.js",
+        loaders: ["raw-loader", "glslify-loader"],
       },
       "*.vert": {
-        loaders: ["raw-loader", "glslify-loader"],
         as: "*.js",
+        loaders: ["raw-loader", "glslify-loader"],
       },
     },
   },
-  webpack: (config) => {
+
+  webpack: (config: WebpackConfig) => {
     config.module.rules.push({
       test: /\.(vert|frag)$/,
       use: ["raw-loader", "glslify-loader"],
