@@ -1,6 +1,5 @@
 LICENSE
 /build
-package.json
 pnpm-lock.yaml
 *.frag
 *.vert
