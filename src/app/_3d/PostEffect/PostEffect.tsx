@@ -1,14 +1,6 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import {
-  Mesh,
-  OrthographicCamera,
-  PlaneGeometry,
-  RawShaderMaterial,
-  Scene,
-  Vector2,
-  WebGLRenderTarget,
-} from "three";
+import { Mesh, OrthographicCamera, PlaneGeometry, RawShaderMaterial, Scene, Vector2, WebGLRenderTarget } from "three";
 import { getSceneTime } from "../utils";
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";

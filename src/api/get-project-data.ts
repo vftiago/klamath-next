@@ -101,6 +101,6 @@ export const getProjectData = async (): Promise<UserProjects> => {
   } catch (error) {
     console.error("Error fetching project data", error);
 
-    throw new Error("Project data fetch failed");
+    throw new Error("Project data fetch failed", { cause: error });
   }
 };

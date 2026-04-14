@@ -12,51 +12,55 @@
   },
   "dependencies": {
     "@lrkit/weighted": "0.3.4",
-    "@octokit/graphql": "^8.1.1",
-    "@react-three/fiber": "9.1.0",
-    "@vercel/analytics": "^1.4.1",
-    "@vercel/speed-insights": "^1.2.0",
+    "@octokit/graphql": "^9.0.3",
+    "@react-three/fiber": "9.6.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
     "glslify-loader": "^2.0.0",
-    "next": "15.5.9",
+    "next": "16.2.3",
     "raw-loader": "^4.0.2",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-error-boundary": "^5.0.0",
-    "react-icons": "^5.3.0",
-    "three": "^0.170.0",
-    "typed.js": "^2.1.0"
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "react-error-boundary": "^6.1.1",
+    "react-icons": "^5.6.0",
+    "three": "^0.183.2",
+    "typed.js": "^3.0.0"
   },
   "devDependencies": {
-    "@eslint/compat": "^1.2.2",
-    "@eslint/js": "^9.39.2",
-    "@next/bundle-analyzer": "^15.0.3",
-    "@types/node": "^20",
-    "@types/react": "19.0.12",
-    "@types/react-dom": "19.0.4",
-    "@types/three": "^0.169.0",
-    "@typescript-eslint/eslint-plugin": "^8.53.0",
-    "@typescript-eslint/parser": "^8.53.0",
-    "eslint": "^9.39.2",
-    "eslint-plugin-perfectionist": "^5.3.1",
+    "@eslint/compat": "^2.0.5",
+    "@eslint/js": "^10.0.1",
+    "@next/bundle-analyzer": "^16.2.3",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^25.6.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/three": "^0.183.1",
+    "eslint": "^10.2.0",
+    "eslint-plugin-perfectionist": "^5.8.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.26",
-    "globals": "^17.0.0",
-    "husky": "^9.1.6",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "husky": "^9.1.7",
     "jiti": "^2.6.1",
-    "lint-staged": "^15.2.10",
-    "postcss": "^8",
-    "prettier": "^3.4.2",
-    "prettier-plugin-tailwindcss": "^0.6.8",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.0"
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.2",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.2"
   },
   "postcss": {
     "plugins": {
-      "tailwindcss": {}
+      "@tailwindcss/postcss": {}
     }
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   },
   "engines": {
     "node": "24.x",

@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fixupPluginRules } from "@eslint/compat";
 import js from "@eslint/js";
+import type { ESLint } from "eslint";
 import perfectionist from "eslint-plugin-perfectionist";
 import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
@@ -36,7 +37,7 @@ export default tseslint.config(
     },
     plugins: {
       perfectionist,
-      "react": fixupPluginRules(reactPlugin),
+      "react": fixupPluginRules(reactPlugin as unknown as ESLint.Plugin) as ESLint.Plugin,
       "react-refresh": reactRefresh,
     },
     rules: {

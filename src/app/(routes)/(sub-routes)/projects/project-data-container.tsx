@@ -13,22 +13,14 @@ type ProjectDataContainerProps = {
 const ProjectDataContainer = ({ initialProjectList }: ProjectDataContainerProps) => {
   const [filteredProjects, setFilteredProjects] = useState(initialProjectList);
 
-  const openProjects = useMemo(
-    () => filteredProjects.filter((project) => !project.closed),
-    [filteredProjects],
-  );
+  const openProjects = useMemo(() => filteredProjects.filter((project) => !project.closed), [filteredProjects]);
 
-  const closedProjects = useMemo(
-    () => filteredProjects.filter((project) => project.closed),
-    [filteredProjects],
-  );
+  const closedProjects = useMemo(() => filteredProjects.filter((project) => project.closed), [filteredProjects]);
 
   return (
     <div className="flex flex-col gap-10">
       <ProjectFilter projectList={initialProjectList} onFilteredListChange={setFilteredProjects} />
-      {!openProjects.length && !closedProjects.length ? (
-        <EmptyState title="No projects found" />
-      ) : null}
+      {!openProjects.length && !closedProjects.length ? <EmptyState title="No projects found" /> : null}
       <ProjectList projectList={openProjects} title="Open Projects" />
       <ProjectList projectList={closedProjects} title="Closed Projects" />
     </div>

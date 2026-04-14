@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode} from "react";
+import type { ReactNode } from "react";
 import { useEffect } from "react";
 import Typed from "typed.js";
 import GlassPanel from "../_shared/ui/glass-panel";
@@ -29,7 +29,7 @@ const Navbar = ({ bottomSlot, header, topSlot }: NavbarProps) => {
   return (
     <GlassPanel rootClassName="flex h-full items-center justify-between flex-col z-10 w-16">
       <div className="flex size-16 items-center justify-center fill-white">{topSlot}</div>
-      <div className="flex -rotate-180 text-center font-electrolize text-lg [writing-mode:vertical-lr]">
+      <div className="font-electrolize flex -rotate-180 text-center text-lg [writing-mode:vertical-lr]">
         <p aria-hidden="true" id="header"></p>
         <p className="sr-only">{header}</p>
       </div>

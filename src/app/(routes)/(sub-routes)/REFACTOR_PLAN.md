@@ -37,6 +37,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~2.1 Duplicate type name with different shapes~~ FIXED
 
 **Files:**
+
 - `src/api/get-project-data.ts:10` - `ProjectItemNode` (has `fieldValueByName`, `content`)
 - `src/api/get-repository-data.ts:3` - ~~`ProjectItemNode`~~ `RepositoryProjectItemNode`
 
@@ -49,6 +50,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~3.1 Animation variants duplicated verbatim~~ FIXED
 
 **Files:**
+
 - `projects/project-list.tsx`
 - `repositories/repository-list.tsx`
 
@@ -57,6 +59,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~3.2 Search input with clear button duplicated~~ FIXED
 
 **Files:**
+
 - `projects/project-filter.tsx`
 - `repositories/repository-filter.tsx`
 
@@ -65,6 +68,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~3.3 Empty state UI duplicated~~ FIXED
 
 **Files:**
+
 - `projects/project-data-container.tsx`
 - `repositories/repository-data-container.tsx`
 
@@ -73,6 +77,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~3.4 Page structure duplicated~~ FIXED
 
 **Files:**
+
 - `projects/page.tsx`
 - `repositories/page.tsx`
 
@@ -85,6 +90,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~4.1 No debounce on search input~~ FIXED
 
 **Files:**
+
 - `projects/project-filter.tsx`
 - `repositories/repository-filter.tsx`
 
@@ -99,6 +105,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~4.3 Filter callbacks not memoized~~ FIXED
 
 **Files:**
+
 - `projects/project-filter.tsx`
 - `repositories/repository-filter.tsx`
 
@@ -117,6 +124,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~5.2 Inconsistent grid breakpoints~~ DOCUMENTED
 
 **Files:**
+
 - `projects/project-list.tsx` - `grid-cols-1 lg:grid-cols-2`
 - `repositories/repository-list.tsx` - `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`
 
@@ -125,6 +133,7 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 ### ~~5.3 Card components share common patterns~~ FIXED
 
 **Files:**
+
 - `projects/project-card.tsx`
 - `repositories/repository-card.tsx`
 
@@ -157,25 +166,25 @@ Analysis of `/projects` and `/repositories` folders identifying bugs, inefficien
 
 ## Summary Table
 
-| Priority | Issue | Files Affected | Status |
-|----------|-------|----------------|--------|
-| Critical | Index as React key | repository-list.tsx | DONE |
-| Critical | Unused/shadowed prop | project-card.tsx | DONE |
-| Critical | Missing nullable type | get-repository-data.ts | DONE |
-| High | Duplicate type name | both API files | DONE |
-| Medium | Animation variants duplicate | both list files | DONE |
-| Medium | Search input duplicate | both filter files | DONE |
-| Medium | Empty state duplicate | both container files | DONE |
-| Medium | Page structure duplicate | both page files | DONE |
-| Medium | No search debounce | both filter files | DONE |
-| Medium | Missing useMemo | project-data-container.tsx | DONE |
-| Medium | Missing useCallback | both filter files | DONE |
-| Low | Wrong layer for filtering | repository-data.tsx | DONE |
-| Low | Inconsistent grid breakpoints | both list files | DONE |
-| Low | Card pattern duplication | both card files | DONE |
-| Minor | Inconsistent type naming | container files | DONE |
-| Minor | Unnecessary React import | both card files | DONE |
-| Minor | Self-closing tag | repository-list.tsx | DONE |
+| Priority | Issue                         | Files Affected             | Status |
+| -------- | ----------------------------- | -------------------------- | ------ |
+| Critical | Index as React key            | repository-list.tsx        | DONE   |
+| Critical | Unused/shadowed prop          | project-card.tsx           | DONE   |
+| Critical | Missing nullable type         | get-repository-data.ts     | DONE   |
+| High     | Duplicate type name           | both API files             | DONE   |
+| Medium   | Animation variants duplicate  | both list files            | DONE   |
+| Medium   | Search input duplicate        | both filter files          | DONE   |
+| Medium   | Empty state duplicate         | both container files       | DONE   |
+| Medium   | Page structure duplicate      | both page files            | DONE   |
+| Medium   | No search debounce            | both filter files          | DONE   |
+| Medium   | Missing useMemo               | project-data-container.tsx | DONE   |
+| Medium   | Missing useCallback           | both filter files          | DONE   |
+| Low      | Wrong layer for filtering     | repository-data.tsx        | DONE   |
+| Low      | Inconsistent grid breakpoints | both list files            | DONE   |
+| Low      | Card pattern duplication      | both card files            | DONE   |
+| Minor    | Inconsistent type naming      | container files            | DONE   |
+| Minor    | Unnecessary React import      | both card files            | DONE   |
+| Minor    | Self-closing tag              | repository-list.tsx        | DONE   |
 
 ---
 

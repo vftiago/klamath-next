@@ -11,17 +11,10 @@ type CardBaseProps = {
   title: string;
 };
 
-const CardBase = ({
-  children,
-  className,
-  description,
-  githubUrl,
-  homepageUrl,
-  title,
-}: CardBaseProps) => {
+const CardBase = ({ children, className, description, githubUrl, homepageUrl, title }: CardBaseProps) => {
   return (
     <GlassPanel rootClassName={clsx("flex flex-1 flex-col gap-4 p-4 drop-shadow", className)}>
-      <div className="flex flex-col gap-1 border-b pb-2 font-barlow">
+      <div className="font-barlow flex flex-col gap-1 border-b border-white/20 pb-2">
         <div className="flex items-center justify-between">
           <h2 className="text-lg">{title}</h2>
           {homepageUrl && (

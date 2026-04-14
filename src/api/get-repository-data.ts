@@ -141,6 +141,6 @@ export const getRepositoryData = async (): Promise<RepositoryNode[]> => {
   } catch (error) {
     console.error("Error fetching repository data", error);
 
-    throw new Error("Repository data fetch failed");
+    throw new Error("Repository data fetch failed", { cause: error });
   }
 };

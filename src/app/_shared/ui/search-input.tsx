@@ -19,11 +19,7 @@ const SearchInput = ({ onChange, onClear, placeholder, value }: SearchInputProps
         onChange={onChange}
       />
       {value && (
-        <button
-          aria-label="Clear search"
-          className="absolute right-4 top-1/2 -translate-y-1/2"
-          onClick={onClear}
-        >
+        <button aria-label="Clear search" className="absolute top-1/2 right-4 -translate-y-1/2" onClick={onClear}>
           <IoMdClose size="1.2rem" />
         </button>
       )}

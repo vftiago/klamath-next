@@ -1,1 +1,1 @@
-npx tsx lint-staged
+lint-staged

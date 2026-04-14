@@ -18,13 +18,13 @@ const ProjectList = ({ projectList, title }: ProjectListProps) => {
       {title ? (
         <div className="flex items-center gap-2 px-1">
           <h2 className="text-sm">{title}</h2>
-          <div className="flex-1 border-t" />
+          <div className="flex-1 border-t border-white/20" />
         </div>
       ) : null}
       <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {projectList.map((projectNode, index) => (
           <li
-            className="flex animate-fade-in opacity-0"
+            className="animate-fade-in flex opacity-0"
             key={projectNode.id}
             style={{ animationDelay: `${index * 30}ms` }}
           >

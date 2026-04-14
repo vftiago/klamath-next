@@ -5,6 +5,7 @@ Pull published posts from the `posts` GitHub repository and render them at `/pos
 ## Prerequisites
 
 The klamath-next codebase already has:
+
 - GitHub GraphQL API setup via Octokit (`src/api/octokit-api.ts`)
 - Navbar headers for `/posts` defined
 - Reusable layout components (`DataPageLayout`, `GlassPanel`, etc.)
@@ -92,7 +93,7 @@ export async function getPostsList(): Promise<PostSummary[]> {
           tags: frontMatter.tags || [],
           published_at: frontMatter.published_at,
         };
-      })
+      }),
   );
 
   // Sort by published_at descending (newest first)
@@ -135,9 +136,7 @@ export async function getPostSlugs(): Promise<string[]> {
     return [];
   }
 
-  return data
-    .filter((file) => file.name.endsWith(".md"))
-    .map((file) => file.name.replace(/\.md$/, ""));
+  return data.filter((file) => file.name.endsWith(".md")).map((file) => file.name.replace(/\.md$/, ""));
 }
 
 async function fetchFileContent(path: string): Promise<string> {
@@ -285,7 +284,7 @@ export const getPostsList = unstable_cache(
     // ...existing implementation
   },
   ["posts-list"],
-  { revalidate: 3600 }
+  { revalidate: 3600 },
 );
 ```
 

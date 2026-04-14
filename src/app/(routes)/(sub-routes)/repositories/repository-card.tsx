@@ -16,14 +16,9 @@ const RepositoryCard = ({ repositoryNode }: RepositoryCardProps) => {
       {commitHistory.length ? (
         <ul className="flex flex-col gap-1 p-0">
           {commitHistory.map((commit, index) => (
-            <li
-              className="grid h-4 list-none grid-flow-col items-center justify-start gap-1 p-0"
-              key={index}
-            >
+            <li className="grid h-4 list-none grid-flow-col items-center justify-start gap-1 p-0" key={index}>
               <VscGitCommit size="18px" />
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                {commit.node.message}
-              </span>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap">{commit.node.message}</span>
             </li>
           ))}
         </ul>
