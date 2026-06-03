@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { MathUtils, Vector3 } from "three";
@@ -40,7 +40,6 @@ const DEFAULT_CAMERA_STATE = CAMERA_STATES["/"];
 const LERP_SPEED = 5;
 
 const CameraController = () => {
-  const { camera } = useThree();
   const pathname = usePathname();
 
   const targetPosition = useRef(DEFAULT_CAMERA_STATE.position.clone());
@@ -63,10 +62,10 @@ const CameraController = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
+    const camera = state.camera;
     const lerpFactor = MathUtils.clamp(delta * LERP_SPEED, 0, 1);
 
-    // eslint-disable-next-line react-hooks/immutability -- Three.js camera objects are intended to be mutated
     camera.position.x = MathUtils.lerp(camera.position.x, targetPosition.current.x, lerpFactor);
     camera.position.y = MathUtils.lerp(camera.position.y, targetPosition.current.y + scrollOffset.current, lerpFactor);
     camera.position.z = MathUtils.lerp(camera.position.z, targetPosition.current.z, lerpFactor);
