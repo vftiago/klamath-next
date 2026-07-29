@@ -4,6 +4,8 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { MathUtils, Vector3 } from "three";
+import { useBreakpoints } from "@/app/_shared/utils/use-breakpoints";
+import { usePrefersReducedMotion } from "@/app/_shared/utils/use-prefers-reduced-motion";
 import Barbelith from "./Barbelith/Barbelith";
 import Box from "./Box/Box";
 import Plane from "./Plane/Plane";
@@ -85,6 +87,18 @@ const CameraController = () => {
 };
 
 const ThreeScene = () => {
+  const { isMdScreen } = useBreakpoints();
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  // the scene is continuously animated decoration — honor reduced motion by not rendering it at all
+  if (prefersReducedMotion) {
+    return (
+      <div className="abstract-bg fixed -z-10 h-screen w-full">
+        <div className="dot-grid" />
+      </div>
+    );
+  }
+
   return (
     <div className="abstract-bg fixed -z-10 h-screen w-full">
       <div className="dot-grid" />
@@ -95,6 +109,7 @@ const ThreeScene = () => {
           near: 1,
           position: [0, 0, 1024],
         }}
+        dpr={isMdScreen ? [1, 2] : 1}
         gl={{
           antialias: true,
         }}

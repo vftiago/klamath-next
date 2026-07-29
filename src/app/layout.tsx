@@ -25,7 +25,10 @@ const robotoCondensed = Roboto_Condensed({
 
 export const metadata: Metadata = {
   description: "Software Engineer",
-  title: "Tiago Fernandes",
+  title: {
+    default: "Tiago Fernandes",
+    template: "%s | Tiago Fernandes",
+  },
 };
 
 const RootLayout = ({

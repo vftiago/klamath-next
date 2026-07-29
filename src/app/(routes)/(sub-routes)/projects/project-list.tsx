@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { ProjectNode } from "@/api/get-project-data";
 import ProjectCard from "./project-card";
 
@@ -8,7 +9,8 @@ type ProjectListProps = {
   title?: string;
 };
 
-const ProjectList = ({ projectList, title }: ProjectListProps) => {
+// memoized so typing in the search input can defer re-rendering the grid
+const ProjectList = memo(function ProjectList({ projectList, title }: ProjectListProps) {
   if (!projectList || projectList.length === 0) {
     return null;
   }
@@ -34,6 +36,6 @@ const ProjectList = ({ projectList, title }: ProjectListProps) => {
       </ul>
     </div>
   );
-};
+});
 
 export default ProjectList;

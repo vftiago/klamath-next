@@ -3,10 +3,10 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Logo from "@/app/_icons/logo";
 import { useBreakpoints } from "@/app/_shared/utils/use-breakpoints";
-import { HEADERS, RARITY, WEIGHTED_RARITY } from "./headers";
+import { HEADERS, RARITY, resolveHeader, WEIGHTED_RARITY } from "./headers";
 import Navbar from "./navbar";
 import { pick } from "./utils";
 
@@ -21,30 +21,17 @@ const pickHeader = (pathname: string): Header => {
 
   return {
     rarity,
-    text: typeof text === "string" ? text : "Hello",
+    text: typeof text === "string" ? resolveHeader(text) : "Hello",
   };
 };
 
-const NavbarContainer = () => {
-  const { isMdScreen } = useBreakpoints();
-  const pathname = usePathname();
-
-  const derivedHeader = useMemo(() => (pathname && HEADERS[pathname] ? pickHeader(pathname) : null), [pathname]);
-
-  const [override, setOverride] = useState<{ header: Header; nonce: number; pathname: string } | null>(null);
-
-  const activeOverride = override?.pathname === pathname ? override : null;
-  const header = activeOverride?.header ?? derivedHeader;
+const NavbarHeader = ({ pathname }: { pathname: string }) => {
+  const [picked, setPicked] = useState(() => ({ header: pickHeader(pathname), nonce: 0 }));
 
   const onClick = () => {
-    if (!pathname || !HEADERS[pathname]) return;
     // the nonce forces the typing effect to restart even when the same header is re-picked
-    setOverride((prev) => ({ header: pickHeader(pathname), nonce: (prev?.nonce ?? 0) + 1, pathname }));
+    setPicked((prev) => ({ header: pickHeader(pathname), nonce: prev.nonce + 1 }));
   };
-
-  if (!isMdScreen || !header) {
-    return null;
-  }
 
   return (
     <Navbar
@@ -52,17 +39,17 @@ const NavbarContainer = () => {
         <div
           className={clsx("size-3 cursor-pointer rounded-full", {
             "bg-gray-300 shadow-[0_0_4px_1px_rgba(209,213,219,0.8),0_0_12px_3px_rgba(209,213,219,0.5),0_0_24px_6px_rgba(209,213,219,0.3)]":
-              header.rarity === RARITY.Uncommon,
+              picked.header.rarity === RARITY.Uncommon,
             "bg-yellow-300 shadow-[0_0_4px_1px_rgba(253,224,71,0.9),0_0_12px_3px_rgba(253,224,71,0.6),0_0_24px_6px_rgba(253,224,71,0.3),0_0_40px_10px_rgba(253,224,71,0.15)]":
-              header.rarity === RARITY.Rare,
+              picked.header.rarity === RARITY.Rare,
             "border border-white/20 bg-gray-700/50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]":
-              header.rarity === RARITY.Common,
+              picked.header.rarity === RARITY.Common,
           })}
           onClick={onClick}
         />
       }
-      header={header.text}
-      headerNonce={activeOverride?.nonce ?? 0}
+      header={picked.header.text}
+      headerNonce={picked.nonce}
       topSlot={
         <Link className="z-10" href="/">
           <div className="size-8">
@@ -72,6 +59,18 @@ const NavbarContainer = () => {
       }
     />
   );
+};
+
+const NavbarContainer = () => {
+  const { isMdScreen } = useBreakpoints();
+  const pathname = usePathname();
+
+  if (!isMdScreen || !HEADERS[pathname]) {
+    return null;
+  }
+
+  // keying by pathname remounts the header so each route gets a fresh pick without effects
+  return <NavbarHeader key={pathname} pathname={pathname} />;
 };
 
 export default NavbarContainer;

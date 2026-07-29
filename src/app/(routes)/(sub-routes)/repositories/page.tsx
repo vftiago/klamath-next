@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import DataPageLayout from "@/app/_shared/ui/data-page-layout";
 import RepositoryData from "./repository-data";
+
+export const metadata: Metadata = {
+  title: "Repositories",
+};
 
 export const revalidate = 3600;
 

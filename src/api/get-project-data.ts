@@ -21,7 +21,6 @@ export type ProjectNode = {
   };
   shortDescription: null | string;
   title: string;
-  url: string;
 };
 
 type ProjectContentItem = {
@@ -47,7 +46,6 @@ export const getProjectData = async (): Promise<ProjectNode[]> => {
               nodes {
                 id
                 title
-                url
                 shortDescription
                 closed
                 repositories(first: 1) {

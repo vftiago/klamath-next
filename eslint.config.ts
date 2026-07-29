@@ -2,10 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fixupPluginRules } from "@eslint/compat";
 import js from "@eslint/js";
+import nextPlugin from "@next/eslint-plugin-next";
 import perfectionist from "eslint-plugin-perfectionist";
 import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -19,6 +19,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   reactHooksPlugin.configs.flat.recommended,
+  nextPlugin.configs["core-web-vitals"],
   {
     languageOptions: {
       ecmaVersion: "latest",
@@ -36,8 +37,7 @@ export default tseslint.config(
     },
     plugins: {
       perfectionist,
-      "react": fixupPluginRules(reactPlugin),
-      "react-refresh": reactRefresh,
+      react: fixupPluginRules(reactPlugin),
     },
     rules: {
       ...reactPlugin.configs.recommended.rules,
@@ -86,13 +86,6 @@ export default tseslint.config(
           ignoreCase: true,
           order: "asc",
           type: "alphabetical",
-        },
-      ],
-      "react-refresh/only-export-components": [
-        "warn",
-        {
-          allowConstantExport: true,
-          allowExportNames: ["metadata", "generateMetadata", "generateStaticParams", "viewport"],
         },
       ],
     },

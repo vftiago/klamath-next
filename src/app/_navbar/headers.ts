@@ -21,7 +21,8 @@ type Headers = {
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-const TODAY = WEEKDAYS[new Date().getDay()];
+// resolved at pick time so a long-lived tab never shows a stale day
+export const resolveHeader = (text: string): string => text.replace("{{weekday}}", WEEKDAYS[new Date().getDay()]);
 
 export const HEADERS: Headers = {
   "/": {
@@ -46,7 +47,7 @@ export const HEADERS: Headers = {
     ],
     [RARITY.Uncommon]: [
       "Online",
-      `It is ${TODAY}`,
+      "It is {{weekday}}",
       "This is an uncommon header",
       "Just some text on a screen",
       "Probably not the worst website you'll visit today",
@@ -58,11 +59,6 @@ export const HEADERS: Headers = {
     [RARITY.Common]: ["About", "Quick summary", "Me"],
     [RARITY.Rare]: ["What is this?", "Who are you?", "Who is this?"],
     [RARITY.Uncommon]: ["Who am I?"],
-  },
-  "/posts": {
-    [RARITY.Common]: ["Blog", "Not actually a blog though", "Posts", "Articles", "Thoughts"],
-    [RARITY.Rare]: ["This is a rare header"],
-    [RARITY.Uncommon]: ["What's new", "Recent thoughts", "Latest posts", "Latest articles"],
   },
   "/projects": {
     [RARITY.Common]: [

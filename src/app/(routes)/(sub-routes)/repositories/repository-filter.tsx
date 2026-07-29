@@ -1,69 +1,29 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { BsSortDown, BsSortUp } from "react-icons/bs";
-import { getLatestCommitTime, type RepositoryNode } from "@/api/get-repository-data";
 import SearchInput from "@/app/_shared/ui/search-input";
 
 type RepositoryFilterProps = {
-  onFilteredListChange: (filteredList: RepositoryNode[]) => void;
-  repositoryList: RepositoryNode[];
+  onSearchChange: (value: string) => void;
+  onSortToggle: () => void;
+  searchValue: string;
+  sortAscending: boolean;
 };
 
-const RepositoryFilter = ({ onFilteredListChange, repositoryList }: RepositoryFilterProps) => {
-  const [searchValue, setSearchValue] = useState("");
-  const [sortAscending, setSortAscending] = useState(false);
-  const deferredSearch = useDeferredValue(searchValue);
-
-  const applyFilters = useCallback(
-    (search: string, ascending: boolean) => {
-      let filteredList = [...repositoryList];
-
-      if (search) {
-        filteredList = filteredList.filter((repo) => repo.name.toLowerCase().includes(search.toLowerCase()));
-      }
-
-      filteredList.sort((a, b) => {
-        const aTime = getLatestCommitTime(a);
-        const bTime = getLatestCommitTime(b);
-
-        return ascending ? aTime - bTime : bTime - aTime;
-      });
-
-      onFilteredListChange(filteredList);
-    },
-    [repositoryList, onFilteredListChange],
-  );
-
-  useEffect(() => {
-    applyFilters(deferredSearch, sortAscending);
-  }, [deferredSearch, sortAscending, applyFilters]);
-
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value);
-  }, []);
-
-  const handleClearSearch = useCallback(() => {
-    setSearchValue("");
-  }, []);
-
-  const handleSortToggle = useCallback(() => {
-    setSortAscending((prev) => !prev);
-  }, []);
-
+const RepositoryFilter = ({ onSearchChange, onSortToggle, searchValue, sortAscending }: RepositoryFilterProps) => {
   return (
     <div className="flex h-12 w-full gap-2">
       <SearchInput
         placeholder="Search repositories..."
         value={searchValue}
-        onChange={handleSearchChange}
-        onClear={handleClearSearch}
+        onChange={(e) => onSearchChange(e.target.value)}
+        onClear={() => onSearchChange("")}
       />
 
       <button
         aria-label={sortAscending ? "Sort newest first" : "Sort oldest first"}
         className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/20 bg-gray-500/10 text-lg outline-none"
-        onClick={handleSortToggle}
+        onClick={onSortToggle}
       >
         {sortAscending ? <BsSortUp size="1.5rem" /> : <BsSortDown size="1.5rem" />}
       </button>

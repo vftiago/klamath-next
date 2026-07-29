@@ -7,5 +7,5 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Setting Up Environment Variables
 
-To see your GitHub projects and repositories under their respective routes, you need to first create a `.env` file in the root of the project and set the `GITHUB_AUTH_TOKEN` and `OWNER` environment variables.
+To see your GitHub projects and repositories under their respective routes, you need to first create a `.env.local` file in the root of the project and set the `GITHUB_AUTH_TOKEN` and `OWNER` environment variables.
 `OWNER` is your GitHub username or organization name, and `GITHUB_AUTH_TOKEN` is a personal access token with `repo` scope. You can create a personal access token in your GitHub account settings.

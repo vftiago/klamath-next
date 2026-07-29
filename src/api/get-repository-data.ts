@@ -1,4 +1,5 @@
 import { graphqlOptions, graphqlWithAuth } from "./octokit-api";
+import { getLatestCommitTime } from "./repository-utils";
 
 export type RepositoryNode = {
   defaultBranchRef: null | {
@@ -18,13 +19,6 @@ export type RepositoryNode = {
   url: string;
 };
 
-// repos without commits rank as 0 so they always sink to the end of the default (descending) order
-export const getLatestCommitTime = (repo: RepositoryNode): number => {
-  const committedDate = repo.defaultBranchRef?.target.history.edges[0]?.node.committedDate;
-
-  return committedDate ? new Date(committedDate).getTime() : 0;
-};
-
 type UserRepositories = {
   user: {
     repositories: {
@@ -34,8 +28,6 @@ type UserRepositories = {
 };
 
 export const getRepositoryData = async (): Promise<RepositoryNode[]> => {
-  const owner = process.env.OWNER;
-
   try {
     const repositoryData = await graphqlWithAuth<UserRepositories>({
       query: /* GraphQL */ `
@@ -78,7 +70,7 @@ export const getRepositoryData = async (): Promise<RepositoryNode[]> => {
     });
 
     return repositoryData.user.repositories.nodes
-      .filter((repo) => repo.name !== owner)
+      .filter((repo) => repo.name !== graphqlOptions.owner)
       .sort((a, b) => getLatestCommitTime(b) - getLatestCommitTime(a));
   } catch (error) {
     console.error("Error fetching repository data", error);
