@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import type React from "react";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import type { Mesh, RawShaderMaterial } from "three";
 import { getSceneTime } from "../utils";
 import fragmentShader from "./box.frag";
@@ -10,30 +10,31 @@ const Box = (props: React.JSX.IntrinsicElements["mesh"]) => {
   const meshRef = useRef<Mesh>(null);
   const materialRef = useRef<RawShaderMaterial>(null);
 
+  const uniforms = useMemo(
+    () => ({
+      rotate: { value: 0 },
+      time: { value: 0 },
+    }),
+    [],
+  );
+
   useLayoutEffect(() => {
-    if (!meshRef.current || !materialRef.current) {
-      return;
-    }
-
-    meshRef.current.rotation.set((90 * Math.PI) / 180, 1, 1);
-
-    const uniforms = materialRef.current.uniforms;
-
-    uniforms.rotate = { value: Math.random() * 10 };
-
-    uniforms.time = {
-      value: 0,
-    };
+    meshRef.current?.rotation.set((90 * Math.PI) / 180, 1, 1);
   }, []);
 
   useFrame(() => {
-    if (!materialRef.current) {
+    const materialUniforms = materialRef.current?.uniforms;
+
+    if (!materialUniforms) {
       return;
     }
 
-    const uniforms = materialRef.current.uniforms;
+    // rotate starts at the 0 sentinel; randomize it on the first frame, where impure code is allowed
+    if (materialUniforms.rotate.value === 0) {
+      materialUniforms.rotate.value = Math.random() * 10;
+    }
 
-    uniforms.time.value = getSceneTime();
+    materialUniforms.time.value = getSceneTime();
   });
 
   return (
@@ -43,6 +44,7 @@ const Box = (props: React.JSX.IntrinsicElements["mesh"]) => {
         fragmentShader={fragmentShader}
         ref={materialRef}
         transparent={true}
+        uniforms={uniforms}
         vertexShader={vertexShader}
         wireframe={true}
       />

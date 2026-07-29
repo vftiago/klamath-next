@@ -35,10 +35,6 @@ const RootLayout = ({
 }>) => {
   return (
     <html lang="en">
-      <head>
-        {/* remove when Chrome 139 is releasted in August 5: https://github.com/Zwyx/chrome-android-clientheight?tab=readme-ov-file */}
-        <meta content="interactive-widget=resizes-content" name="viewport" />
-      </head>
       <body
         className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${electrolize.variable} font-roboto-condensed antialiased`}
       >

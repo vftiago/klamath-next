@@ -18,6 +18,13 @@ export type RepositoryNode = {
   url: string;
 };
 
+// repos without commits rank as 0 so they always sink to the end of the default (descending) order
+export const getLatestCommitTime = (repo: RepositoryNode): number => {
+  const committedDate = repo.defaultBranchRef?.target.history.edges[0]?.node.committedDate;
+
+  return committedDate ? new Date(committedDate).getTime() : 0;
+};
+
 type UserRepositories = {
   user: {
     repositories: {
@@ -70,7 +77,9 @@ export const getRepositoryData = async (): Promise<RepositoryNode[]> => {
       ...graphqlOptions,
     });
 
-    return repositoryData.user.repositories.nodes.filter((repo) => repo.name !== owner);
+    return repositoryData.user.repositories.nodes
+      .filter((repo) => repo.name !== owner)
+      .sort((a, b) => getLatestCommitTime(b) - getLatestCommitTime(a));
   } catch (error) {
     console.error("Error fetching repository data", error);
 

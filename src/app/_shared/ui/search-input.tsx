@@ -13,6 +13,7 @@ const SearchInput = ({ onChange, onClear, placeholder, value }: SearchInputProps
   return (
     <div className="relative flex-1">
       <input
+        aria-label={placeholder}
         className="h-12 w-full rounded-lg border border-white/20 bg-gray-500/10 p-4 text-lg placeholder-white outline-none"
         placeholder={placeholder}
         value={value}

@@ -8,10 +8,11 @@ import GlassPanel from "../_shared/ui/glass-panel";
 type NavbarProps = {
   bottomSlot?: ReactNode;
   header?: string;
+  headerNonce?: number;
   topSlot?: ReactNode;
 };
 
-const Navbar = ({ bottomSlot, header, topSlot }: NavbarProps) => {
+const Navbar = ({ bottomSlot, header, headerNonce = 0, topSlot }: NavbarProps) => {
   useEffect(() => {
     if (header) {
       const typedCurrentPageHeader = new Typed("#header", {
@@ -24,7 +25,7 @@ const Navbar = ({ bottomSlot, header, topSlot }: NavbarProps) => {
         typedCurrentPageHeader.destroy();
       };
     }
-  }, [header]);
+  }, [header, headerNonce]);
 
   return (
     <GlassPanel rootClassName="flex h-full items-center justify-between flex-col z-10 w-16">

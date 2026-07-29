@@ -1,11 +1,12 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { Mesh, OrthographicCamera, PlaneGeometry, RawShaderMaterial, Scene, Vector2, WebGLRenderTarget } from "three";
 import { getSceneTime } from "../utils";
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
 
 type PostScene = {
+  geometry: PlaneGeometry;
   material: RawShaderMaterial;
   scene: Scene;
 };
@@ -16,30 +17,26 @@ const createPostScene = (): PostScene => {
   const material = new RawShaderMaterial({
     fragmentShader,
     uniforms: {
-      resolution: { value: new Vector2(window.innerWidth, window.innerHeight) },
+      resolution: { value: new Vector2(1, 1) },
       texture: { value: null },
       time: { value: 0 },
     },
     vertexShader,
   });
-  const mesh = new Mesh(geometry, material);
 
-  scene.add(mesh);
+  scene.add(new Mesh(geometry, material));
 
-  return { material, scene };
+  return { geometry, material, scene };
 };
 
 const PostEffect = () => {
-  const { gl } = useThree();
+  const gl = useThree((state) => state.gl);
+  const size = useThree((state) => state.size);
+  const viewport = useThree((state) => state.viewport);
 
   const orthoCameraRef = useRef<null | OrthographicCamera>(null);
   const postSceneRef = useRef<null | PostScene>(null);
   const targetRef = useRef<null | WebGLRenderTarget>(null);
-
-  const [dimensions, setDimensions] = useState(() => ({
-    height: window.innerHeight,
-    width: window.innerWidth,
-  }));
 
   if (postSceneRef.current == null) {
     postSceneRef.current = createPostScene();
@@ -49,43 +46,33 @@ const PostEffect = () => {
     orthoCameraRef.current = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
   }
 
-  const initRenderTarget = useCallback(() => {
+  useLayoutEffect(() => {
     const postScene = postSceneRef.current;
 
     if (!postScene) {
       return;
     }
 
-    if (targetRef.current) {
-      targetRef.current.dispose();
-    }
+    // match the canvas drawing buffer (CSS size * dpr), or the scene renders soft on HiDPI screens
+    const width = Math.round(size.width * viewport.dpr);
+    const height = Math.round(size.height * viewport.dpr);
 
-    targetRef.current = new WebGLRenderTarget(dimensions.width, dimensions.height);
+    targetRef.current?.dispose();
+    targetRef.current = new WebGLRenderTarget(width, height, { samples: 4 });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Three.js uniforms are loosely typed
-    postScene.material.uniforms.resolution.value.set(dimensions.width, dimensions.height);
+    postScene.material.uniforms.resolution.value.set(width, height);
     postScene.material.uniforms.texture.value = targetRef.current.texture;
-  }, [dimensions]);
-
-  const handleWindowResize = useCallback(() => {
-    setDimensions({
-      height: window.innerHeight,
-      width: window.innerWidth,
-    });
-  }, []);
+  }, [size, viewport.dpr]);
 
   useLayoutEffect(() => {
-    initRenderTarget();
-
-    window.addEventListener("resize", handleWindowResize);
-
     return () => {
-      window.removeEventListener("resize", handleWindowResize);
-      if (targetRef.current) {
-        targetRef.current.dispose();
-      }
+      // dispose only — three re-initializes disposed resources on next use, which keeps StrictMode's remount working
+      targetRef.current?.dispose();
+      postSceneRef.current?.geometry.dispose();
+      postSceneRef.current?.material.dispose();
     };
-  }, [dimensions, handleWindowResize, initRenderTarget]);
+  }, []);
 
   useFrame((state) => {
     const orthoCamera = orthoCameraRef.current;

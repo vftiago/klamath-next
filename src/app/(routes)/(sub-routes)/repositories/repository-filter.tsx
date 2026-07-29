@@ -2,7 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useState } from "react";
 import { BsSortDown, BsSortUp } from "react-icons/bs";
-import type { RepositoryNode } from "@/api/get-repository-data";
+import { getLatestCommitTime, type RepositoryNode } from "@/api/get-repository-data";
 import SearchInput from "@/app/_shared/ui/search-input";
 
 type RepositoryFilterProps = {
@@ -24,15 +24,10 @@ const RepositoryFilter = ({ onFilteredListChange, repositoryList }: RepositoryFi
       }
 
       filteredList.sort((a, b) => {
-        const aLatestCommit = a.defaultBranchRef?.target.history.edges[0]?.node;
-        const bLatestCommit = b.defaultBranchRef?.target.history.edges[0]?.node;
+        const aTime = getLatestCommitTime(a);
+        const bTime = getLatestCommitTime(b);
 
-        if (!aLatestCommit || !bLatestCommit) return 0;
-
-        const aDate = new Date(aLatestCommit.committedDate);
-        const bDate = new Date(bLatestCommit.committedDate);
-
-        return ascending ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime();
+        return ascending ? aTime - bTime : bTime - aTime;
       });
 
       onFilteredListChange(filteredList);

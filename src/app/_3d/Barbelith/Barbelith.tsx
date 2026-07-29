@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import type React from "react";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import type { Mesh, RawShaderMaterial } from "three";
 import { getSceneTime } from "../utils";
 import fragmentShader from "./barbelith.frag";
@@ -10,30 +10,24 @@ const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
   const meshRef = useRef<Mesh>(null);
   const materialRef = useRef<RawShaderMaterial>(null);
 
+  const uniforms = useMemo(
+    () => ({
+      rotate: { value: 4 },
+      time: { value: 0 },
+    }),
+    [],
+  );
+
   useLayoutEffect(() => {
-    if (!meshRef.current || !materialRef.current) {
-      return;
-    }
-
-    meshRef.current.rotation.set((90 * Math.PI) / 180, 1, 1);
-
-    const uniforms = materialRef.current.uniforms;
-
-    uniforms.rotate = { value: 4 };
-
-    uniforms.time = {
-      value: 0,
-    };
+    meshRef.current?.rotation.set((90 * Math.PI) / 180, 1, 1);
   }, []);
 
   useFrame(() => {
-    if (!materialRef.current) {
-      return;
+    const materialUniforms = materialRef.current?.uniforms;
+
+    if (materialUniforms) {
+      materialUniforms.time.value = getSceneTime();
     }
-
-    const uniforms = materialRef.current.uniforms;
-
-    uniforms.time.value = getSceneTime();
   });
 
   return (
@@ -43,6 +37,7 @@ const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
         fragmentShader={fragmentShader}
         ref={materialRef}
         transparent={true}
+        uniforms={uniforms}
         vertexShader={vertexShader}
         wireframe={true}
       />

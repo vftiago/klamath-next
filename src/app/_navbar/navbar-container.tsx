@@ -31,13 +31,15 @@ const NavbarContainer = () => {
 
   const derivedHeader = useMemo(() => (pathname && HEADERS[pathname] ? pickHeader(pathname) : null), [pathname]);
 
-  const [override, setOverride] = useState<{ pathname: string; header: Header } | null>(null);
+  const [override, setOverride] = useState<{ header: Header; nonce: number; pathname: string } | null>(null);
 
-  const header = override?.pathname === pathname ? override.header : derivedHeader;
+  const activeOverride = override?.pathname === pathname ? override : null;
+  const header = activeOverride?.header ?? derivedHeader;
 
   const onClick = () => {
     if (!pathname || !HEADERS[pathname]) return;
-    setOverride({ header: pickHeader(pathname), pathname });
+    // the nonce forces the typing effect to restart even when the same header is re-picked
+    setOverride((prev) => ({ header: pickHeader(pathname), nonce: (prev?.nonce ?? 0) + 1, pathname }));
   };
 
   if (!isMdScreen || !header) {
@@ -60,6 +62,7 @@ const NavbarContainer = () => {
         />
       }
       header={header.text}
+      headerNonce={activeOverride?.nonce ?? 0}
       topSlot={
         <Link className="z-10" href="/">
           <div className="size-8">
