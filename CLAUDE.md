@@ -117,15 +117,12 @@ src/
 ### GitHub Data (src/api/)
 
 ```typescript
-// get-repository-data.ts
+// get-repository-data.ts — public, owned, non-fork, non-archived repos (filtered server-side)
 type RepositoryNode = {
   name: string;
-  description: string | null;
   homepageUrl: string | null;
   url: string;
-  owner: { login: string };
-  defaultBranchRef: { target: { history: { edges: CommitNode[] } } };
-  issues: { nodes: IssueNode[] };
+  defaultBranchRef: { target: { history: { edges: CommitNode[] } } } | null;
 };
 
 // get-project-data.ts
@@ -134,7 +131,6 @@ type ProjectNode = {
   title: string;
   url: string;
   shortDescription: string | null;
-  readme: string | null;
   closed: boolean;
   repositories: { nodes: { homepageUrl; url }[] };
   items: { nodes: ProjectItemNode[] };

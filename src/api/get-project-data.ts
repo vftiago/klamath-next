@@ -13,7 +13,6 @@ export type ProjectNode = {
   items: {
     nodes: ProjectItemNode[];
   };
-  readme: null | string;
   repositories: {
     nodes: {
       homepageUrl: null | string;
@@ -26,8 +25,6 @@ export type ProjectNode = {
 };
 
 type ProjectContentItem = {
-  body: string;
-  bodyHTML: string;
   id: string;
   title: string;
 };
@@ -40,7 +37,7 @@ type UserProjects = {
   };
 };
 
-export const getProjectData = async (): Promise<UserProjects> => {
+export const getProjectData = async (): Promise<ProjectNode[]> => {
   try {
     const projectData = await graphqlWithAuth<UserProjects>({
       query: /* GraphQL */ `
@@ -52,7 +49,6 @@ export const getProjectData = async (): Promise<UserProjects> => {
                 title
                 url
                 shortDescription
-                readme
                 closed
                 repositories(first: 1) {
                   nodes {
@@ -71,20 +67,14 @@ export const getProjectData = async (): Promise<UserProjects> => {
                       ... on DraftIssue {
                         id
                         title
-                        body
-                        bodyHTML
                       }
                       ... on Issue {
                         id
                         title
-                        body
-                        bodyHTML
                       }
                       ... on PullRequest {
                         id
                         title
-                        body
-                        bodyHTML
                       }
                     }
                   }
@@ -97,7 +87,7 @@ export const getProjectData = async (): Promise<UserProjects> => {
       ...graphqlOptions,
     });
 
-    return projectData;
+    return projectData.user.projectsV2.nodes;
   } catch (error) {
     console.error("Error fetching project data", error);
 
