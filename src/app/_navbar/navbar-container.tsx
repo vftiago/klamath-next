@@ -52,7 +52,7 @@ const NavbarHeader = ({ pathname }: { pathname: string }) => {
       headerNonce={picked.nonce}
       topSlot={
         <Link className="z-10" href="/">
-          <div className="size-8">
+          <div className="size-9">
             <Logo />
           </div>
         </Link>
