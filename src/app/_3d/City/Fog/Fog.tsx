@@ -10,6 +10,8 @@ import vertexShader from "./fog.vert";
 
 type FogProps = {
   layout: CityLayout;
+  /** How many fog planes to draw, nearest layers first. */
+  planes?: number;
 };
 
 type FogPlaneProps = {
@@ -71,7 +73,7 @@ const FogPlane = ({ groundY, layer, nextZ, texture }: FogPlaneProps) => {
 };
 
 /** Drifting purple fog between the layers, one scrolling textured plane per layer that has fog. */
-const Fog = ({ layout }: FogProps) => {
+const Fog = ({ layout, planes = Infinity }: FogProps) => {
   // DOM work (a canvas) belongs in a state initializer, not render
   const [texture] = useState(() => createFogTexture());
 
@@ -79,10 +81,14 @@ const Fog = ({ layout }: FogProps) => {
     return () => texture.dispose();
   }, [texture]);
 
+  // the nearest fog layers matter most, so a reduced count drops the far ones
+  const foggy = layout.layers.filter((layer) => layer.config.fog > 0);
+  const shown = new Set(foggy.slice(Math.max(0, foggy.length - planes)).map((layer) => layer.index));
+
   return (
     <group>
       {layout.layers.map((layer, i) =>
-        layer.config.fog > 0 ? (
+        shown.has(layer.index) ? (
           <FogPlane
             groundY={layout.groundY}
             key={layer.index}

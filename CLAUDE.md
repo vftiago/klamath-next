@@ -59,7 +59,7 @@ src/
 │   │   │   ├── River/               # Water plane; mirrored-camera reflection pass (priority 0.5) into a half-res target
 │   │   │   └── Sky/                 # Night sky gradient plane; `.abstract-bg` in globals.css mirrors it as the fallback
 │   │   ├── Rain/                    # Rain overlay: shader-driven drops, ripple pool, persisted on/off preference
-│   │   ├── quality/tiers.ts         # Quality tier knobs (full / reduced / static / off)
+│   │   ├── quality/                 # Tiers (full / reduced / static / off), frame-time probe, context, ?debug=1 overlay
 │   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
 │   │   └── PostEffect/              # Screen post-processing
 │   ├── _navbar/                     # Sidebar navigation
@@ -119,7 +119,7 @@ src/
 - Custom GLSL shaders in `.vert` / `.frag` files
 - `raw-loader` + `glslify-loader` for shader imports
 - Scroll-linked camera movement
-- Skipped entirely for `prefers-reduced-motion`; DPR capped to 1 below `md`
+- Skipped entirely for `prefers-reduced-motion`; quality tier starts at `reduced` below `md` (DPR 1) and `full` above (DPR ≤ 2), then a frame-time probe steps down while the 75th-percentile frame exceeds the tier's budget; `?quality=<tier>` forces one, `?debug=1` shows frame ms and draw calls
 - Shader uniforms are declared via a memoized `uniforms` prop and mutated through `materialRef` in `useFrame`
 - City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; the whole city group is remounted by key when the quantized viewport aspect changes
 - City shaders are GLSL ES 3.0 (`glslVersion={GLSL3}`, `in`/`out`, `flat` per-instance varyings) and box-filter procedural detail against `fwidth` so thin patterns don't alias
@@ -248,6 +248,7 @@ RootLayout (fonts, 3D background, analytics)
 
 - **Rarity system** in navbar headers (Common/Uncommon/Rare with weighted random); header picking happens in state initializers / click handlers, keyed by pathname
 - **Post-processing** shader with CRT-style scanlines, noise, vignette; render target sized to CSS size × DPR
+- **Quality tiers**: `useQuality()` exposes the knobs (`animate`, `signFlicker`, `smoke`, `fogPlanes`, `reflectionScale`, `rainDrops`, `renderOnDemand`); `static` renders on demand (`frameloop="demand"`, invalidated by camera moves, scroll and the fade-in); the verified tier is kept in `sessionStorage` (`klamath:quality`)
 - **Rain toggle**: `useRainPreference` (localStorage `klamath:rain` + a window event) defaults to on unless `prefers-reduced-motion`; `City` mounts `Rain` and `Ripples` only while enabled
 - **Error boundaries** wrap data-fetching components; retry uses `router.refresh()`; `global-error.tsx` covers the root layout
 - **Catch-all route** for custom 404

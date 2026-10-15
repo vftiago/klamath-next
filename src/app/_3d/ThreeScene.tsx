@@ -2,14 +2,18 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { usePathname } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MathUtils, PerspectiveCamera, Vector3 } from "three";
 import { useBreakpoints } from "@/app/_shared/utils/use-breakpoints";
 import { usePrefersReducedMotion } from "@/app/_shared/utils/use-prefers-reduced-motion";
 import City from "./City/City";
 import { CAMERA, GROUND_Y } from "./City/config";
 import PostEffect from "./PostEffect/PostEffect";
+import { createStats, DebugOverlay, StatsProbe } from "./quality/DebugOverlay";
+import { qualityFor, QualityProvider } from "./quality/QualityContext";
+import { readForcedTier, useQualityTier } from "./quality/use-quality-tier";
 import { useRainPreference } from "./Rain/use-rain-preference";
+import { getSceneTime } from "./utils";
 
 // The eye sits just above the water. The current route views keep the camera level (look-at height equals
 // eye height, look-at x equals eye x) and push the horizon down with a vertical lens shift (see `LensShift`),
@@ -51,8 +55,12 @@ const LERP_SPEED = 5;
 const SCROLL_FACTOR = 1 / 6;
 const SCROLL_MIN_OFFSET = -70;
 
+/** How close (world units) the camera must be to its target before on-demand rendering may idle. */
+const SETTLED_DISTANCE = 0.5;
+
 const CameraController = () => {
   const pathname = usePathname();
+  const invalidate = useThree((state) => state.invalidate);
 
   const targetPosition = useRef(DEFAULT_CAMERA_STATE.position.clone());
   const targetLookAt = useRef(DEFAULT_CAMERA_STATE.lookAt.clone());
@@ -68,11 +76,12 @@ const CameraController = () => {
   useEffect(() => {
     const handleScroll = () => {
       scrollOffset.current = Math.max(SCROLL_MIN_OFFSET, -window.scrollY * SCROLL_FACTOR);
+      invalidate();
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [invalidate]);
 
   useFrame((state, delta) => {
     const camera = state.camera;
@@ -91,6 +100,28 @@ const CameraController = () => {
     currentLookAt.current.z = MathUtils.lerp(currentLookAt.current.z, targetLookAt.current.z, lerpFactor);
 
     camera.lookAt(currentLookAt.current);
+
+    // under on-demand rendering, keep rendering until the move settles
+    const targetY = targetPosition.current.y + scrollOffset.current;
+    const remaining =
+      Math.abs(camera.position.x - targetPosition.current.x) +
+      Math.abs(camera.position.y - targetY) +
+      Math.abs(camera.position.z - targetPosition.current.z) +
+      currentLookAt.current.distanceTo(targetLookAt.current);
+    if (remaining > SETTLED_DISTANCE) {
+      state.invalidate();
+    }
+  });
+
+  return null;
+};
+
+/** Under on-demand rendering, keeps frames coming while the post-effect fades the scene in. */
+const FadeInKeepAlive = () => {
+  useFrame((state) => {
+    if (getSceneTime() < 4) {
+      state.invalidate();
+    }
   });
 
   return null;
@@ -121,6 +152,14 @@ const ThreeScene = () => {
   const { isMdScreen } = useBreakpoints();
   const prefersReducedMotion = usePrefersReducedMotion();
   const rain = useRainPreference();
+  // URL flags, read once: the scene only runs in the browser (dynamic import, ssr: false)
+  const [flags] = useState(() => ({
+    debug: new URLSearchParams(window.location.search).has("debug"),
+    forced: readForcedTier(),
+  }));
+  const statsRef = useRef(createStats());
+  const tier = useQualityTier({ forced: flags.forced, initial: isMdScreen ? "full" : "reduced" });
+  const quality = useMemo(() => qualityFor(tier), [tier]);
 
   // the scene is continuously animated decoration — honor reduced motion by not rendering it at all
   if (prefersReducedMotion) {
@@ -128,25 +167,31 @@ const ThreeScene = () => {
   }
 
   return (
-    <div className="abstract-bg fixed -z-10 h-screen w-full">
-      <Canvas
-        camera={{
-          far: CAMERA.far,
-          fov: CAMERA.fov,
-          near: CAMERA.near,
-          position: [0, EYE_Y + 60, 1100],
-        }}
-        dpr={isMdScreen ? [1, 2] : 1}
-        gl={{
-          antialias: true,
-        }}
-      >
-        <CameraController />
-        <LensShift />
-        <City rain={rain} />
-        <PostEffect />
-      </Canvas>
-    </div>
+    <QualityProvider value={quality}>
+      <div className="abstract-bg fixed -z-10 h-screen w-full">
+        <Canvas
+          camera={{
+            far: CAMERA.far,
+            fov: CAMERA.fov,
+            near: CAMERA.near,
+            position: [0, EYE_Y + 60, 1100],
+          }}
+          dpr={[1, quality.dprMax]}
+          frameloop={quality.renderOnDemand ? "demand" : "always"}
+          gl={{
+            antialias: true,
+          }}
+        >
+          <CameraController />
+          <LensShift />
+          <FadeInKeepAlive />
+          <City rain={rain} />
+          <PostEffect />
+          {flags.debug ? <StatsProbe statsRef={statsRef} /> : null}
+        </Canvas>
+      </div>
+      {flags.debug ? <DebugOverlay statsRef={statsRef} /> : null}
+    </QualityProvider>
   );
 };
 
