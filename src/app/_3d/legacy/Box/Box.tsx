@@ -2,17 +2,21 @@ import { useFrame } from "@react-three/fiber";
 import type React from "react";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import type { Mesh, RawShaderMaterial } from "three";
-import { getSceneTime } from "../utils";
-import fragmentShader from "./barbelith.frag";
-import vertexShader from "./barbelith.vert";
+import { getSceneTime } from "../../utils";
+import fragmentShader from "./box.frag";
+import vertexShader from "./box.vert";
 
-const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
+/**
+ * @deprecated Part of the original abstract scene, superseded by the neon city scene (`src/app/_3d/City`).
+ * Unmounted and kept only until the city scene is approved; see `src/app/_3d/legacy/README.md`.
+ */
+const Box = (props: React.JSX.IntrinsicElements["mesh"]) => {
   const meshRef = useRef<Mesh>(null);
   const materialRef = useRef<RawShaderMaterial>(null);
 
   const uniforms = useMemo(
     () => ({
-      rotate: { value: 4 },
+      rotate: { value: 0 },
       time: { value: 0 },
     }),
     [],
@@ -25,14 +29,21 @@ const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
   useFrame(() => {
     const materialUniforms = materialRef.current?.uniforms;
 
-    if (materialUniforms) {
-      materialUniforms.time.value = getSceneTime();
+    if (!materialUniforms) {
+      return;
     }
+
+    // rotate starts at the 0 sentinel; randomize it on the first frame, where impure code is allowed
+    if (materialUniforms.rotate.value === 0) {
+      materialUniforms.rotate.value = Math.random() * 10;
+    }
+
+    materialUniforms.time.value = getSceneTime();
   });
 
   return (
     <mesh {...props} ref={meshRef}>
-      <sphereGeometry args={[192, 32, 32]} />
+      <boxGeometry args={[100, 100, 100]} />
       <rawShaderMaterial
         fragmentShader={fragmentShader}
         ref={materialRef}
@@ -45,4 +56,4 @@ const Barbelith = (props: React.JSX.IntrinsicElements["mesh"]) => {
   );
 };
 
-export default Barbelith;
+export default Box;

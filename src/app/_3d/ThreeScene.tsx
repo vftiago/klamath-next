@@ -1,45 +1,54 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
-import { MathUtils, Vector3 } from "three";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import { MathUtils, PerspectiveCamera, Vector3 } from "three";
 import { useBreakpoints } from "@/app/_shared/utils/use-breakpoints";
 import { usePrefersReducedMotion } from "@/app/_shared/utils/use-prefers-reduced-motion";
-import Barbelith from "./Barbelith/Barbelith";
-import Box from "./Box/Box";
-import Plane from "./Plane/Plane";
+import City from "./City/City";
+import { CAMERA, GROUND_Y } from "./City/config";
 import PostEffect from "./PostEffect/PostEffect";
 
-const PLANE_POSITION = new Vector3(0, -192, 128);
-const BARBELITH_POSITION = new Vector3(250, 350, -500);
+// The eye sits just above the water. The current route views keep the camera level (look-at height equals
+// eye height, look-at x equals eye x) and push the horizon down with a vertical lens shift (see `LensShift`),
+// so verticals stay vertical like the flat reference illustration. Pitched and yawed views are fine too now
+// that the window grid is box-filtered; camera fine-tuning is deferred until the river exists (plan phase 8).
+const EYE_Y = GROUND_Y + 50;
+
+/** Fraction of the viewport height the horizon is shifted down by the lens shift. */
+const HORIZON_SHIFT = 0.12;
 
 const CAMERA_STATES: Record<string, { lookAt: Vector3; position: Vector3 }> = {
-  // Home: default forward view
+  // Home: slightly raised and pulled back
   "/": {
-    lookAt: new Vector3(0, 0, 0),
-    position: new Vector3(0, 0, 1024),
+    lookAt: new Vector3(0, EYE_Y + 60, 0),
+    position: new Vector3(0, EYE_Y + 60, 1100),
   },
-  // About: looking at Barbelith from the side
+  // About: trucked right; parallax comes only from the layers' depth
   "/about": {
-    lookAt: BARBELITH_POSITION.clone(),
-    position: new Vector3(400, 0, 400),
+    lookAt: new Vector3(120, EYE_Y + 20, 0),
+    position: new Vector3(120, EYE_Y + 20, 980),
   },
-  // Projects: top-down view of the plane
+  // Projects: straight down the river at the skyline
   "/projects": {
-    lookAt: PLANE_POSITION.clone(),
-    position: new Vector3(0, 600, 128),
+    lookAt: new Vector3(0, EYE_Y, 0),
+    position: new Vector3(0, EYE_Y, CAMERA.z),
   },
-  // Repositories: angled view looking down at the boxes area
+  // Repositories: trucked left
   "/repositories": {
-    lookAt: new Vector3(-200, -800, 0),
-    position: new Vector3(400, -200, 800),
+    lookAt: new Vector3(-120, EYE_Y + 30, 0),
+    position: new Vector3(-120, EYE_Y + 30, 980),
   },
 };
 
 const DEFAULT_CAMERA_STATE = CAMERA_STATES["/"];
 
 const LERP_SPEED = 5;
+
+// Scrolling lowers the camera a little; clamped so it never dips under the river surface.
+const SCROLL_FACTOR = 1 / 6;
+const SCROLL_MIN_OFFSET = -70;
 
 const CameraController = () => {
   const pathname = usePathname();
@@ -57,7 +66,7 @@ const CameraController = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      scrollOffset.current = -window.scrollY / 4;
+      scrollOffset.current = Math.max(SCROLL_MIN_OFFSET, -window.scrollY * SCROLL_FACTOR);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -86,28 +95,44 @@ const CameraController = () => {
   return null;
 };
 
+/**
+ * Vertical lens shift: offsets the frustum instead of pitching the camera, so the horizon sits lower on screen
+ * while building faces stay parallel to the image plane.
+ */
+const LensShift = () => {
+  const camera = useThree((state) => state.camera);
+  const size = useThree((state) => state.size);
+
+  useLayoutEffect(() => {
+    if (!(camera instanceof PerspectiveCamera)) {
+      return;
+    }
+
+    camera.setViewOffset(size.width, size.height, 0, -HORIZON_SHIFT * size.height, size.width, size.height);
+
+    return () => camera.clearViewOffset();
+  }, [camera, size]);
+
+  return null;
+};
+
 const ThreeScene = () => {
   const { isMdScreen } = useBreakpoints();
   const prefersReducedMotion = usePrefersReducedMotion();
 
   // the scene is continuously animated decoration — honor reduced motion by not rendering it at all
   if (prefersReducedMotion) {
-    return (
-      <div className="abstract-bg fixed -z-10 h-screen w-full">
-        <div className="dot-grid" />
-      </div>
-    );
+    return <div className="abstract-bg fixed -z-10 h-screen w-full" />;
   }
 
   return (
     <div className="abstract-bg fixed -z-10 h-screen w-full">
-      <div className="dot-grid" />
       <Canvas
         camera={{
-          far: 10000,
-          fov: 45,
-          near: 1,
-          position: [0, 0, 1024],
+          far: CAMERA.far,
+          fov: CAMERA.fov,
+          near: CAMERA.near,
+          position: [0, EYE_Y + 60, 1100],
         }}
         dpr={isMdScreen ? [1, 2] : 1}
         gl={{
@@ -115,15 +140,8 @@ const ThreeScene = () => {
         }}
       >
         <CameraController />
-        <Barbelith position={[250, 350, -500]} />
-        <Plane position={[0, -192, 128]} />
-        <Box position={[400, -500, 200]}></Box>
-        <Box position={[-350, -600, -5]}></Box>
-        <Box position={[-150, -700, -150]}></Box>
-        <Box position={[-500, -900, 0]}></Box>
-        <Box position={[-100, -1200, -300]}></Box>
-        <Box position={[100, -1100, 25]}></Box>
-        <Box position={[150, -1500, -10]}></Box>
+        <LensShift />
+        <City />
         <PostEffect />
       </Canvas>
     </div>

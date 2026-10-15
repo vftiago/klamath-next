@@ -2,12 +2,16 @@ import { useFrame } from "@react-three/fiber";
 import type React from "react";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import type { Mesh, RawShaderMaterial } from "three";
-import { getSceneTime } from "../utils";
+import { getSceneTime } from "../../utils";
 import fragmentShader from "./plane.frag";
 import vertexShader from "./plane.vert";
 
 const PLANE_DIMENSIONS = 1024;
 
+/**
+ * @deprecated Part of the original abstract scene, superseded by the neon city scene (`src/app/_3d/City`).
+ * Unmounted and kept only until the city scene is approved; see `src/app/_3d/legacy/README.md`.
+ */
 const Plane = (props: React.JSX.IntrinsicElements["mesh"]) => {
   const meshRef = useRef<Mesh>(null);
   const materialRef = useRef<RawShaderMaterial>(null);

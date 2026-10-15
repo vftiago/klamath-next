@@ -40,12 +40,16 @@ src/
 │   │   │   └── layout.tsx
 │   │   └── layout.tsx
 │   ├── _3d/                         # Three.js scene
-│   │   ├── ThreeScene.tsx           # Main canvas, camera controller
+│   │   ├── ThreeScene.tsx           # Main canvas, camera controller, route camera states
 │   │   ├── DynamicThreeScene.tsx    # SSR-safe loader
-│   │   ├── utils.ts                 # getSceneTime (wrapped scene clock)
-│   │   ├── Box/                     # Rotating wireframe boxes
-│   │   ├── Plane/                   # Wavy background plane
-│   │   ├── Barbelith/               # Rotating sphere
+│   │   ├── utils.ts                 # getSceneTime (wrapped scene clock), mulberry32 seeded PRNG
+│   │   ├── City/                    # Neon city scene (see .tasks/neon-city-scene.md for the plan)
+│   │   │   ├── City.tsx             # Generates the layout per viewport aspect, mounts the layers
+│   │   │   ├── config.ts            # Camera constants, layer table, palette-independent sizing
+│   │   │   ├── generate.ts          # Pure seeded layout generator (no three.js imports)
+│   │   │   └── Buildings/           # One instanced draw per depth layer; windows are procedural in the shader
+│   │   ├── quality/tiers.ts         # Quality tier knobs (full / reduced / static / off)
+│   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
 │   │   └── PostEffect/              # Screen post-processing
 │   ├── _navbar/                     # Sidebar navigation
 │   │   ├── navbar.tsx
@@ -105,22 +109,26 @@ src/
 - Scroll-linked camera movement
 - Skipped entirely for `prefers-reduced-motion`; DPR capped to 1 below `md`
 - Shader uniforms are declared via a memoized `uniforms` prop and mutated through `materialRef` in `useFrame`
+- City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; layers are remounted by key when the quantized viewport aspect changes
+- The post-effect keeps scene alpha: geometry is opaque, empty sky shows the page background through a faint CRT layer
 - The repo's compiler-grade react-hooks lint forbids render-phase impurity (`Math.random`, ref reads, setState-in-effect) — randomness goes in event handlers, frame callbacks, or key-based remounts
 
 ## Important Files
 
-| File                                       | Purpose                                     |
-| ------------------------------------------ | ------------------------------------------- |
-| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation   |
-| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type           |
-| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type          |
-| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)         |
-| `src/app/layout.tsx`                       | Root layout, fonts, 3D background           |
-| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition             |
-| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette) |
-| `src/app/_navbar/headers.ts`               | Route headers with rarity system            |
-| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook             |
-| `next.config.ts`                           | Turbopack/Webpack shader loader config      |
+| File                                       | Purpose                                       |
+| ------------------------------------------ | --------------------------------------------- |
+| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation     |
+| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type             |
+| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type            |
+| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)           |
+| `src/app/layout.tsx`                       | Root layout, fonts, 3D background             |
+| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition               |
+| `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`  |
+| `src/app/_3d/City/config.ts`               | `CAMERA`, `LAYERS`, `GROUND_Y`, depth helpers |
+| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)   |
+| `src/app/_navbar/headers.ts`               | Route headers with rarity system              |
+| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook               |
+| `next.config.ts`                           | Turbopack/Webpack shader loader config        |
 
 ## Types
 
