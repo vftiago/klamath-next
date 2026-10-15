@@ -8,6 +8,8 @@ import fragmentShader from "./beacon.frag";
 import vertexShader from "./beacon.vert";
 
 type BeaconsProps = {
+  /** Blink; false keeps every beacon lit. */
+  blink?: boolean;
   layout: CityLayout;
 };
 
@@ -42,7 +44,7 @@ const buildAttributes = (layout: CityLayout): BeaconAttributes => {
 };
 
 /** Blinking red antenna lights on every layer, one Points draw. */
-const Beacons = ({ layout }: BeaconsProps) => {
+const Beacons = ({ blink = true, layout }: BeaconsProps) => {
   const materialRef = useRef<RawShaderMaterial>(null);
   const attributes = useMemo(() => buildAttributes(layout), [layout]);
   const uniforms = useMemo(
@@ -62,6 +64,7 @@ const Beacons = ({ layout }: BeaconsProps) => {
     }
 
     materialUniforms.uTime.value = getSceneTime();
+    materialUniforms.uBlink.value = blink ? 1 : 0;
     // projectionMatrix[1][1] = 1 / tan(fov / 2); point sizes are in drawing-buffer pixels
     materialUniforms.uProjectionScale.value =
       0.5 * state.size.height * state.viewport.dpr * state.camera.projectionMatrix.elements[5];

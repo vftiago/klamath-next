@@ -1,67 +1,81 @@
 /**
- * Quality tiers for the city scene. Picked by `use-quality-tier` (phase 7); until then the scene runs FULL
- * on `md+` and REDUCED below, mirroring the existing DPR rule.
+ * Quality tiers for the city scene. `useQualityTier` picks one from the breakpoint and reduced-motion
+ * state, then a frame-time probe may step it down; components read the knobs through `useQuality`.
  */
 export type QualityTier = "full" | "off" | "reduced" | "static";
 
 export type QualityKnobs = {
-  /** Enable the bloom pass in PostEffect (phase 4). */
-  bloom: boolean;
+  /** Continuous animation: window toggling, beacon blinks, badge bob/flicker. */
+  animate: boolean;
+  /** Frame-time budget in ms the probe holds this tier to; above it the scene steps down one tier. */
+  budgetMs: number;
   /** Maximum device pixel ratio for the canvas. */
   dprMax: number;
-  /** Number of scrolling fog planes (phase 2). */
+  /** Number of scrolling fog planes, nearest layers first. */
   fogPlanes: number;
-  /** Render-target scale for the river reflection, 0 = skip the pass (phase 3). */
-  reflectionScale: number;
-  /** Instanced rain drops, 0 = rain unavailable (phase 6). */
+  /** Instanced rain drops, 0 = rain unavailable regardless of the toggle. */
   rainDrops: number;
-  /** Run the neon sign state machine; false freezes signs at "ok" (phase 4). */
+  /** Render-target scale for the river reflection, 0 = skip the pass (flat tinted water). */
+  reflectionScale: number;
+  /** Render only on demand (camera moves, scroll) instead of every frame. */
+  renderOnDemand: boolean;
+  /** Run the neon sign state machine; false holds signs steady. */
   signFlicker: boolean;
-  /** Spawn stall smoke particles (phase 5). */
+  /** Spawn stall smoke particles. */
   smoke: boolean;
-  /** Animate window toggling and other continuous motion. */
-  windowToggle: boolean;
 };
 
 export const QUALITY_TIERS: Record<QualityTier, QualityKnobs> = {
   full: {
-    bloom: true,
+    animate: true,
+    budgetMs: 18,
     dprMax: 2,
-    fogPlanes: 3,
+    fogPlanes: 5,
     rainDrops: 480,
     reflectionScale: 0.5,
+    renderOnDemand: false,
     signFlicker: true,
     smoke: true,
-    windowToggle: true,
   },
   off: {
-    bloom: false,
+    animate: false,
+    budgetMs: Infinity,
     dprMax: 1,
     fogPlanes: 0,
     rainDrops: 0,
     reflectionScale: 0,
+    renderOnDemand: true,
     signFlicker: false,
     smoke: false,
-    windowToggle: false,
   },
   reduced: {
-    bloom: false,
+    animate: true,
+    budgetMs: 22,
     dprMax: 1,
-    fogPlanes: 2,
+    fogPlanes: 3,
     rainDrops: 200,
     reflectionScale: 0.33,
+    renderOnDemand: false,
     signFlicker: true,
     smoke: true,
-    windowToggle: true,
   },
   static: {
-    bloom: false,
+    animate: false,
+    budgetMs: Infinity,
     dprMax: 1,
     fogPlanes: 1,
     rainDrops: 0,
     reflectionScale: 0,
+    renderOnDemand: true,
     signFlicker: false,
     smoke: false,
-    windowToggle: false,
   },
+};
+
+/** The tier below a given one; `static` is the floor for a visible scene. */
+export const STEP_DOWN: Record<QualityTier, QualityTier> = {
+  full: "reduced",
+  off: "off",
+  reduced: "static",
+  static: "static",
 };

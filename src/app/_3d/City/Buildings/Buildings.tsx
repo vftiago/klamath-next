@@ -9,6 +9,8 @@ import fragmentShader from "./building.frag";
 import vertexShader from "./building.vert";
 
 type BuildingsProps = {
+  /** Advance the window toggle clock; false freezes the lit pattern. */
+  animate?: boolean;
   layer: CityLayer;
   layout: CityLayout;
 };
@@ -66,7 +68,7 @@ const buildAttributes = (layer: CityLayer, groundY: number): InstanceAttributes 
  *
  * Remounted (via key) when the layout changes, so uniforms and attributes are created once per mount.
  */
-const Buildings = ({ layer, layout }: BuildingsProps) => {
+const Buildings = ({ animate = true, layer, layout }: BuildingsProps) => {
   const materialRef = useRef<RawShaderMaterial>(null);
 
   const attributes = useMemo(() => buildAttributes(layer, layout.groundY), [layer, layout.groundY]);
@@ -105,7 +107,9 @@ const Buildings = ({ layer, layout }: BuildingsProps) => {
       return;
     }
 
-    materialUniforms.uTime.value = getSceneTime();
+    if (animate) {
+      materialUniforms.uTime.value = getSceneTime();
+    }
   });
 
   return (
