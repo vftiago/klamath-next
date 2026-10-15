@@ -33,6 +33,7 @@ flat in float vPattern;
 flat in float vFrame;
 flat in float vCameraSide;
 flat in vec4 vRands;
+flat in vec2 vBlank;
 
 out vec4 fragColor;
 
@@ -151,7 +152,14 @@ vec4 windows(float u, float v, vec2 fw) {
   float col = floor(cu / pitchX);
   float row = floor(cv / pitchY);
 
-  if (col < 0.0 || col >= columns || row < 0.0 || topMargin + row * pitchY + cellH > bottomLimit) {
+  float cellTop = topMargin + row * pitchY;
+
+  if (col < 0.0 || col >= columns || row < 0.0 || cellTop + cellH > bottomLimit) {
+    return vec4(0.0);
+  }
+
+  // floors behind a facade-mounted sign have no windows
+  if (vBlank.y > vBlank.x && cellTop < vBlank.y && cellTop + cellH > vBlank.x) {
     return vec4(0.0);
   }
 
@@ -199,8 +207,12 @@ void main(void) {
 
   bool front = vNormal.z > 0.5;
   bool side = abs(vNormal.x) > 0.5;
-  // roof furniture: plain boxes, no windows or detail lines
+  // roof furniture and brackets: plain boxes, no windows or detail lines; brackets in a lighter metal tone
   bool plain = vPattern > 2.5;
+  if (vPattern > 3.5) {
+    base = mix(base, vec3(0.42, 0.38, 0.5), 0.6);
+    color = base;
+  }
 
   if (front && !plain) {
     float u = vLocal.x + vSize.x * 0.5;

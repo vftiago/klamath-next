@@ -11,11 +11,14 @@ import {
   visibleWidthAt,
   WIDTH_MARGIN,
 } from "./config";
+import { BILLBOARD_POOL, FRAME_SIGNS, MAX_TEXT_CHARS, SIGN_POOL } from "./signage";
 
 /** Window layout: 0 = grid, 1 = horizontal bands, 2 = tall columns. */
 export type WindowPattern = 0 | 1 | 2;
 
 export type Building = {
+  /** Window-free band behind a facade-mounted sign: [top, bottom] measured down from the roof, world units. */
+  blank: null | readonly [number, number];
   /** Box depth (z extent), world units. */
   depth: number;
   /** Full-height edge building on the nearest layer that anchors the big vertical signs. */
@@ -33,11 +36,13 @@ export type Building = {
   x: number;
 };
 
-/** A plain box (no windows) used for roof furniture; `baseY` is relative to the ground line. */
+/** A plain box (no windows) used for roof furniture and sign brackets; `baseY` is relative to the ground line. */
 export type PlainBox = {
   baseY: number;
   depth: number;
   height: number;
+  /** Window pattern value the shader should use: 3 = building color, 4 = lighter metal. */
+  pattern?: number;
   width: number;
   x: number;
 };
@@ -54,6 +59,7 @@ export type Billboard = {
   /** Neon color slot (0-4), weighted pink/cyan/lime like the signs. */
   colorSlot: number;
   height: number;
+  text: string;
   width: number;
   x: number;
   y: number;
@@ -61,23 +67,27 @@ export type Billboard = {
   z: number;
 };
 
-/** A neon sign hung on a building face. Position is the box's bottom-left corner, ground-relative y. */
+/** How a sign is attached: flat on the facade over a windowless band, or hung beside an edge on brackets. */
+export type SignMount = "blade" | "facade";
+
+/** A neon sign. Position is the box's bottom-left corner, ground-relative y. */
 export type Sign = {
-  /** Glyph cell size, world units. */
+  /** Character cell size, world units. */
   cell: number;
   /** Neon color slot (0-4), weighted pink/cyan/lime. */
   colorSlot: number;
-  /** Index of a permanently dark glyph, or -1. */
+  /** Index of a permanently dark character, or -1. */
   dead: number;
   /** Whether the sign's driver may stutter, drop out or brown out. */
   flaky: boolean;
-  /** True for the big vertical signs on the edge frame buildings. */
+  /** True for the big blade signs on the edge frame buildings. */
   framed: boolean;
-  glyphs: number[];
   height: number;
-  /** Box margin around the glyph cells, world units. */
+  /** Box margin around the character cells, world units. */
   margin: number;
+  mount: SignMount;
   phase: number;
+  text: string;
   vertical: boolean;
   width: number;
   x: number;
@@ -126,11 +136,16 @@ const DEPTH_FACTOR = 0.68;
 
 type RoofFurniture = Pick<CityLayer, "beacons" | "billboards" | "details">;
 
-/** Glyph cell size per layer, reference px; the nearest layer adds up to 6 px of variation. */
+/** Character cell size per layer, reference px; the nearest layer adds up to 6 px of variation. */
 const SIGN_CELL_BY_LAYER = [0, 7, 9, 10, 11, 18];
 /** Sign brightness per layer. */
 export const SIGN_DIM_BY_LAYER = [0.4, 0.6, 0.72, 0.82, 0.9, 1];
 const GLYPH_PITCH = 1.18;
+/** Blade signs hang this far (reference px) from the building edge; brackets bridge the gap. */
+const BLADE_GAP = 4;
+const BRACKET_THICKNESS = 1.5;
+/** Window pattern value for bracket boxes: drawn plain in a lighter metal tone. */
+export const BRACKET_PATTERN = 4;
 
 const signBox = (cell: number, count: number, vertical: boolean) => {
   const margin = Math.max(3, Math.round(0.3 * cell));
@@ -141,8 +156,9 @@ const signBox = (cell: number, count: number, vertical: boolean) => {
 
 type SignPlacement = {
   cell: number;
-  count: number;
   framed: boolean;
+  mount: SignMount;
+  text: string;
   vertical: boolean;
   /** Box left edge, world x. */
   x: number;
@@ -150,15 +166,9 @@ type SignPlacement = {
   yFromTop: number;
 };
 
-const makeSign = (
-  building: Building,
-  placement: SignPlacement,
-  scale: number,
-  rand: () => number,
-  glyphCount: number,
-): Sign => {
-  const { cell, count, framed, vertical, x, yFromTop } = placement;
-  const box = signBox(cell, count, vertical);
+const makeSign = (building: Building, placement: SignPlacement, scale: number, rand: () => number): Sign => {
+  const { cell, framed, mount, text, vertical, x, yFromTop } = placement;
+  const box = signBox(cell, text.length, vertical);
 
   return {
     cell: cell * scale,
@@ -166,10 +176,11 @@ const makeSign = (
     dead: -1,
     flaky: rand() < 0.55,
     framed,
-    glyphs: Array.from({ length: count }, () => Math.floor(rand() * glyphCount)),
     height: box.height * scale,
     margin: box.margin * scale,
+    mount,
     phase: rand() * Math.PI * 2,
+    text,
     vertical,
     width: box.width * scale,
     x,
@@ -178,10 +189,44 @@ const makeSign = (
   };
 };
 
+/** Two short arms tying a blade sign to the building edge it hangs beside. */
+const bracketsFor = (building: Building, sign: Sign, side: -1 | 1, scale: number): PlainBox[] => {
+  const edge = building.x + (side * building.width) / 2;
+  const length = (BLADE_GAP + 2) * scale;
+  const thickness = BRACKET_THICKNESS * scale;
+  const inset = 3 * scale;
+  const x = edge + (side * length) / 2;
+
+  return [sign.y + sign.height - inset - thickness, sign.y + inset].map((baseY) => ({
+    baseY,
+    depth: building.depth,
+    height: thickness,
+    pattern: BRACKET_PATTERN,
+    width: length,
+    x,
+  }));
+};
+
+/** First pool entry, starting from a random offset, that satisfies `fits`. */
+const pickText = (pool: readonly string[], rand: () => number, fits: (text: string) => boolean): null | string => {
+  const start = Math.floor(rand() * pool.length);
+
+  for (let i = 0; i < pool.length; i++) {
+    const text = pool[(start + i) % pool.length];
+    if (text && text.length <= MAX_TEXT_CHARS && fits(text)) {
+      return text;
+    }
+  }
+
+  return null;
+};
+
+type SignResult = { brackets: PlainBox[]; signs: Sign[] };
+
 /**
- * Sign placement per the reference: a per-layer chance (tall buildings on the middle layers are likelier),
- * horizontal when it fits the facade, otherwise vertical hugging one edge; rows snap to the window pitch.
- * Frame buildings instead get up to three big vertical signs down their inner edge.
+ * Sign placement. Vertical signs are blade signs hung beside a building edge on brackets (frame buildings:
+ * the inner edge, up to three, texts from `FRAME_SIGNS`). Horizontal signs sit flat on the facade and the
+ * building gets a window-free band behind them. Per-layer odds follow the reference.
  */
 const generateSigns = (
   building: Building,
@@ -190,63 +235,78 @@ const generateSigns = (
   scale: number,
   skylineHeight: number,
   rand: () => number,
-  glyphCount: number,
-): Sign[] => {
+): SignResult => {
   const nearest = index === NEAREST_LAYER;
   const middle = index <= NEAREST_LAYER - 2;
   const [, , cellH, gapY] = layerConfig.win;
   const rowPitch = (cellH + gapY) * scale;
   const widthRef = building.width / scale;
-  const signs: Sign[] = [];
+  const left = building.x - building.width / 2;
+  const result: SignResult = { brackets: [], signs: [] };
 
   if (building.frame) {
     // inner edge: the left frame building sits at negative x and shows its right side
-    const innerIsRight = building.x < 0;
+    const side: -1 | 1 = building.x < 0 ? 1 : -1;
+    const slotBase = building.x < 0 ? 0 : 3;
     let yFromTop = (90 + 30 * rand()) * scale;
     const limit = building.height - 90 * scale;
 
-    for (let n = 0; n < 3;) {
+    for (let n = 0; n < 3; n++) {
       const cell = 22 + Math.round(6 * rand());
-      const count = 2 + Math.floor(3 * rand());
-      const box = signBox(cell, count, true);
+      const fits = (text: string) => yFromTop + signBox(cell, text.length, true).height * scale <= limit;
+      const preset = FRAME_SIGNS[slotBase + n];
+      const text = preset && fits(preset) ? preset : pickText(SIGN_POOL, rand, fits);
 
-      if (yFromTop + box.height * scale > limit) {
+      if (!text) {
         break;
       }
 
-      const left = building.x - building.width / 2;
-      const x = innerIsRight ? left + building.width - (box.width + 3) * scale : left + 3 * scale;
-      signs.push(
-        makeSign(building, { cell, count, framed: true, vertical: true, x, yFromTop }, scale, rand, glyphCount),
+      const box = signBox(cell, text.length, true);
+      const x = side > 0 ? left + building.width + BLADE_GAP * scale : left - (BLADE_GAP + box.width) * scale;
+      const sign = makeSign(
+        building,
+        { cell, framed: true, mount: "blade", text, vertical: true, x, yFromTop },
+        scale,
+        rand,
       );
-      n++;
+      result.signs.push(sign);
+      result.brackets.push(...bracketsFor(building, sign, side, scale));
       yFromTop += (box.height + 10 + 16 * rand()) * scale;
     }
 
-    return signs;
+    return result;
   }
 
   const tall = building.height > skylineHeight * layerConfig.top * 0.66;
   const chance = index === 0 ? 0 : middle ? (tall ? 0.5 : 0.03) : nearest ? 0.28 : 0.2;
 
   if (rand() >= chance) {
-    return signs;
+    return result;
   }
 
-  const cell = index === NEAREST_LAYER ? SIGN_CELL_BY_LAYER[index] + Math.round(6 * rand()) : SIGN_CELL_BY_LAYER[index];
-  const count = 2 + Math.floor(rand() * (index >= NEAREST_LAYER - 1 ? 3 : 2));
-  const horizontalBox = signBox(cell, count, false);
-  const horizontal = horizontalBox.width <= widthRef - 8 && horizontalBox.width >= 0.55 * widthRef && rand() < 0.4;
-  const box = horizontal ? horizontalBox : signBox(cell, count, true);
-
+  const cell = nearest ? SIGN_CELL_BY_LAYER[index] + Math.round(6 * rand()) : SIGN_CELL_BY_LAYER[index];
   const top = 8 * scale;
   const bottomLimit = building.height - (nearest ? 72 : 14) * scale;
-  const boxH = box.height * scale;
+  const horizontalRoll = rand() < 0.4;
 
-  if (box.width * scale > building.width - 6 * scale || boxH > bottomLimit - top) {
-    return signs;
+  // horizontal on the facade when a word spans 55-100% of it and the roll allows; otherwise a blade sign
+  const horizontalText = horizontalRoll
+    ? pickText(SIGN_POOL, rand, (text) => {
+        const box = signBox(cell, text.length, false);
+        return box.width <= widthRef - 8 && box.width >= 0.55 * widthRef && box.height * scale <= bottomLimit - top;
+      })
+    : null;
+  const vertical = horizontalText === null;
+  const text =
+    horizontalText ??
+    pickText(SIGN_POOL, rand, (t) => signBox(cell, t.length, true).height * scale <= bottomLimit - top);
+
+  if (!text) {
+    return result;
   }
 
+  const box = signBox(cell, text.length, vertical);
+  const boxH = box.height * scale;
   const room = bottomLimit - top - boxH;
   const topMargin = (3 + index + 2) * scale;
   let yFromTop = top + rand() * (middle ? Math.min(room, building.height * 0.16) : 0.6 * room);
@@ -258,18 +318,28 @@ const generateSigns = (
     ),
   );
 
-  const left = building.x - building.width / 2;
-  const x = horizontal
-    ? left + (building.width - box.width * scale) / 2
-    : rand() < 0.5
-      ? left + 3 * scale
-      : left + building.width - (box.width + 3) * scale;
+  if (vertical) {
+    const side: -1 | 1 = rand() < 0.5 ? -1 : 1;
+    const x = side > 0 ? left + building.width + BLADE_GAP * scale : left - (BLADE_GAP + box.width) * scale;
+    const sign = makeSign(
+      building,
+      { cell, framed: false, mount: "blade", text, vertical: true, x, yFromTop },
+      scale,
+      rand,
+    );
+    result.signs.push(sign);
+    result.brackets.push(...bracketsFor(building, sign, side, scale));
+    return result;
+  }
 
-  signs.push(
-    makeSign(building, { cell, count, framed: false, vertical: !horizontal, x, yFromTop }, scale, rand, glyphCount),
+  const x = left + (building.width - box.width * scale) / 2;
+  result.signs.push(
+    makeSign(building, { cell, framed: false, mount: "facade", text, vertical: false, x, yFromTop }, scale, rand),
   );
+  // no windows on the floors behind the sign
+  building.blank = [yFromTop - 2 * scale, yFromTop + boxH + 2 * scale];
 
-  return signs;
+  return result;
 };
 
 /**
@@ -325,6 +395,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
     out.billboards.push({
       colorSlot: Math.floor(r1 * 5),
       height: boardH,
+      text: BILLBOARD_POOL[Math.floor(r3 * BILLBOARD_POOL.length)] ?? "",
       width: boardW,
       x: boardLeft + boardW / 2,
       y: top + postH + boardH / 2,
@@ -347,13 +418,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
   return out;
 };
 
-const generateLayer = (
-  config: LayerConfig,
-  index: number,
-  aspect: number,
-  seed: number,
-  glyphCount: number,
-): CityLayer => {
+const generateLayer = (config: LayerConfig, index: number, aspect: number, seed: number): CityLayer => {
   const rand = mulberry32(seed + 131 * index);
   const scale = depthScale(config.z);
   const skylineHeight = REF_VIEW_HEIGHT * SKYLINE_RATIO * scale;
@@ -370,6 +435,7 @@ const generateLayer = (
     const patternRoll = rand();
 
     buildings.push({
+      blank: null,
       depth: Math.max(1, width * DEPTH_FACTOR * config.side),
       frame: false,
       height,
@@ -394,6 +460,7 @@ const generateLayer = (
       const innerEdge = side * (visible / 2 - (frameWidth - config.px * scale));
 
       buildings.push({
+        blank: null,
         depth: Math.max(1, frameWidth * DEPTH_FACTOR * config.side),
         frame: true,
         height: frameHeight,
@@ -415,7 +482,9 @@ const generateLayer = (
     furniture.beacons.push(...roof.beacons);
     furniture.billboards.push(...roof.billboards);
     furniture.details.push(...roof.details);
-    signs.push(...generateSigns(building, index, config, scale, skylineHeight, rand, glyphCount));
+    const placed = generateSigns(building, index, config, scale, skylineHeight, rand);
+    signs.push(...placed.signs);
+    furniture.details.push(...placed.brackets);
   }
 
   return { ...furniture, buildings, config, index, scale, signs, skylineHeight, span, z: config.z };
@@ -425,8 +494,8 @@ const generateLayer = (
  * Pure, deterministic city layout. Same seed and aspect always yield the same city.
  * No three.js imports here: the output is plain data that components turn into instanced attributes.
  */
-export const generateCity = (aspect: number, seed: number = SEED, glyphCount = 16): CityLayout => {
-  const layers = LAYERS.map((config, index) => generateLayer(config, index, aspect, seed, glyphCount));
+export const generateCity = (aspect: number, seed: number = SEED): CityLayout => {
+  const layers = LAYERS.map((config, index) => generateLayer(config, index, aspect, seed));
 
   // one sign, preferably a framed one, gets a permanently dead glyph
   const allSigns = layers.flatMap((layer) => layer.signs);
@@ -435,7 +504,7 @@ export const generateCity = (aspect: number, seed: number = SEED, glyphCount = 1
   const victim = pool[Math.floor(mulberry32(99)() * pool.length)];
 
   if (victim) {
-    victim.dead = Math.floor(mulberry32(7)() * victim.glyphs.length);
+    victim.dead = Math.floor(mulberry32(7)() * victim.text.length);
   }
 
   return { groundY: GROUND_Y, layers, searchlight: pickSearchlight(layers, aspect) };
