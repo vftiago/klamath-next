@@ -16,8 +16,6 @@ float random(vec2 c) {
 void main() {
   float now = clamp((time - delay) / duration, 0.0, 1.0);
 
-  float opacity = 0.1 * now;
-
   float whiteNoise = random(vUv.xy * time) * 0.1 - 0.1;
 
   float monitor1 = abs(sin(vUv.y * resolution.y * 2.4 + time * 10.0)) * 0.04;
@@ -28,13 +26,18 @@ void main() {
   float vignetteMask = smoothstep(0.8, 1.4, length(vUv * 2.0 - 1.0));
   vec3 vignette = vignetteMask * vec3(1.0, 1.0, 1.0) * 0.1;
 
-  vec3 texColor = texture2D(texture, vUv).rgb;
+  vec4 tex = texture2D(texture, vUv);
 
-  vec3 finalColor = texColor + whiteNoise + monitor + vignette;
+  vec3 finalColor = tex.rgb + whiteNoise + monitor + vignette;
 
   finalColor = clamp(finalColor, 0.0, 1.0);
 
   finalColor *= now;
 
-  gl_FragColor = vec4(finalColor, opacity);
+  // scene geometry stays opaque; where nothing was drawn only a faint layer of the CRT effects remains so
+  // the page background shows through as the sky
+  float opacity = max(tex.a, 0.1) * now;
+
+  // the canvas is composited with premultiplied alpha
+  gl_FragColor = vec4(finalColor * opacity, opacity);
 }
