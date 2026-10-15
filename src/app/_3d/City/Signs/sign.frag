@@ -2,22 +2,25 @@
 precision highp float;
 
 uniform sampler2D uAtlas;
-uniform float uGlyphCount;
+// atlas grid: columns, rows per variant band
+uniform vec2 uAtlasGrid;
 
 in vec2 vLocal;
 flat in vec2 vSize;
 flat in vec3 vColor;
 flat in vec4 vParams;
-flat in vec4 vGlyphs;
+flat in vec4 vGlyphs0;
+flat in vec4 vGlyphs1;
+flat in vec4 vGlyphs2;
 flat in vec3 vMeta;
 flat in vec2 vState;
 
 out vec4 fragColor;
 
-const float ATLAS_ROWS = 3.0;
-const float ROW_HALO = 0.0;
-const float ROW_CORE = 1.0;
-const float ROW_UNLIT = 2.0;
+const float ATLAS_VARIANTS = 3.0;
+const float VARIANT_HALO = 0.0;
+const float VARIANT_CORE = 1.0;
+const float VARIANT_UNLIT = 2.0;
 const float GLYPH_PITCH = 1.18;
 
 const vec3 BACKING = vec3(8.0, 3.0, 16.0) / 255.0;
@@ -30,15 +33,17 @@ float segCoverage(float x, float len, float fw) {
 }
 
 float glyphAt(int k) {
-  if (k == 0) return vGlyphs.x;
-  if (k == 1) return vGlyphs.y;
-  if (k == 2) return vGlyphs.z;
-  return vGlyphs.w;
+  if (k < 4) return k == 0 ? vGlyphs0.x : k == 1 ? vGlyphs0.y : k == 2 ? vGlyphs0.z : vGlyphs0.w;
+  if (k < 8) return k == 4 ? vGlyphs1.x : k == 5 ? vGlyphs1.y : k == 6 ? vGlyphs1.z : vGlyphs1.w;
+  return k == 8 ? vGlyphs2.x : k == 9 ? vGlyphs2.y : k == 10 ? vGlyphs2.z : vGlyphs2.w;
 }
 
-// alpha of one atlas row for a glyph, p in [0, 1]^2 inside the padded atlas cell (y down)
-float atlas(float glyph, float row, vec2 p) {
-  return texture(uAtlas, vec2((glyph + p.x) / uGlyphCount, 1.0 - (row + p.y) / ATLAS_ROWS)).a;
+// alpha of one variant of an atlas cell, p in [0, 1]^2 inside the padded cell (y down)
+float atlas(float glyph, float variant, vec2 p) {
+  float col = mod(glyph, uAtlasGrid.x);
+  float row = floor(glyph / uAtlasGrid.x);
+  vec2 uv = vec2((col + p.x) / uAtlasGrid.x, 1.0 - (variant * uAtlasGrid.y + row + p.y) / (ATLAS_VARIANTS * uAtlasGrid.y));
+  return texture(uAtlas, uv).a;
 }
 
 void main(void) {
@@ -74,7 +79,7 @@ void main(void) {
   color = mix(color, vColor, 0.12 * i * covWide);
   color = mix(color, vColor, (0.2 + 0.6 * i) * dim * covThin);
 
-  // glyph cells run along the sign; each glyph's atlas cell is padded by half a cell so halos overlap
+  // character cells run along the sign; each atlas cell is padded by half a cell so halos overlap
   float pitch = GLYPH_PITCH * cell;
   float pad = ceil(0.5 * cell / px) * px;
   float box = cell + 2.0 * pad;
@@ -96,7 +101,7 @@ void main(void) {
 
     float glyph = glyphAt(kk);
 
-    float unlitA = atlas(glyph, ROW_UNLIT, p);
+    float unlitA = atlas(glyph, VARIANT_UNLIT, p);
     color = mix(color, unlitColor, unlitA * dim);
 
     if (kk == dead) continue;
@@ -105,8 +110,8 @@ void main(void) {
     if (kk == offGlyph) f *= 0.04;
     if (f < 0.03) continue;
 
-    float haloA = atlas(glyph, ROW_HALO, p);
-    float coreA = atlas(glyph, ROW_CORE, p);
+    float haloA = atlas(glyph, VARIANT_HALO, p);
+    float coreA = atlas(glyph, VARIANT_CORE, p);
     color = mix(color, vColor, f * haloA);
     color = mix(color, coreColor, f * coreA);
   }

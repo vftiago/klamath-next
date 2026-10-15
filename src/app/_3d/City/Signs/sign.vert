@@ -6,12 +6,15 @@ in vec3 position;
 in vec3 aOffset;
 in vec2 aSize;
 in vec3 aColor;
-// cell size, margin, vertical (0/1), glyph count
+// cell size, margin, vertical (0/1), character count
 in vec4 aParams;
-in vec4 aGlyphs;
-// dim, dead glyph index, world units per reference px
+// atlas cell index per character, up to 12
+in vec4 aGlyphs0;
+in vec4 aGlyphs1;
+in vec4 aGlyphs2;
+// dim, dead character index, world units per reference px
 in vec3 aMeta;
-// level, off glyph index (dynamic)
+// level, off character index (dynamic)
 in vec2 aState;
 
 uniform mat4 projectionMatrix;
@@ -21,7 +24,9 @@ out vec2 vLocal;
 flat out vec2 vSize;
 flat out vec3 vColor;
 flat out vec4 vParams;
-flat out vec4 vGlyphs;
+flat out vec4 vGlyphs0;
+flat out vec4 vGlyphs1;
+flat out vec4 vGlyphs2;
 flat out vec3 vMeta;
 flat out vec2 vState;
 
@@ -33,7 +38,9 @@ void main(void) {
   vSize = aSize;
   vColor = aColor;
   vParams = aParams;
-  vGlyphs = aGlyphs;
+  vGlyphs0 = aGlyphs0;
+  vGlyphs1 = aGlyphs1;
+  vGlyphs2 = aGlyphs2;
   vMeta = aMeta;
   vState = aState;
 

@@ -11,6 +11,8 @@ in float aSeed;
 in float aPattern;
 in float aFrame;
 in vec4 aRands;
+// window-free band behind a facade sign: [top, bottom] from the roof, world units; (-1, -1) = none
+in vec2 aBlank;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
@@ -25,6 +27,7 @@ flat out float vPattern;
 flat out float vFrame;
 flat out float vCameraSide;
 flat out vec4 vRands;
+flat out vec2 vBlank;
 
 void main(void) {
   vec3 local = vec3(position.x * aSize.x, (position.y + 0.5) * aSize.y, position.z * aSize.z);
@@ -38,6 +41,7 @@ void main(void) {
   vFrame = aFrame;
   vWorldY = world.y;
   vRands = aRands;
+  vBlank = aBlank;
   // which side of the building the camera is on: +1 when the camera is to the right of its center
   vCameraSide = cameraPosition.x >= aOffset.x ? 1.0 : -1.0;
 

@@ -14,6 +14,7 @@ type BuildingsProps = {
 };
 
 type InstanceAttributes = {
+  blank: Float32Array;
   frame: Float32Array;
   offset: Float32Array;
   pattern: Float32Array;
@@ -28,6 +29,7 @@ const PLAIN_PATTERN = 3;
 const buildAttributes = (layer: CityLayer, groundY: number): InstanceAttributes => {
   const count = layer.buildings.length + layer.details.length;
   const attributes: InstanceAttributes = {
+    blank: new Float32Array(count * 2).fill(-1),
     frame: new Float32Array(count),
     offset: new Float32Array(count * 3),
     pattern: new Float32Array(count),
@@ -43,13 +45,16 @@ const buildAttributes = (layer: CityLayer, groundY: number): InstanceAttributes 
     attributes.seed[i] = building.seed;
     attributes.pattern[i] = building.pattern;
     attributes.frame[i] = building.frame ? 1 : 0;
+    if (building.blank) {
+      attributes.blank.set(building.blank, i * 2);
+    }
   });
 
   layer.details.forEach((detail, j) => {
     const i = layer.buildings.length + j;
     attributes.offset.set([detail.x, groundY + detail.baseY, layer.z], i * 3);
     attributes.size.set([detail.width, detail.height, detail.depth], i * 3);
-    attributes.pattern[i] = PLAIN_PATTERN;
+    attributes.pattern[i] = detail.pattern ?? PLAIN_PATTERN;
   });
 
   return attributes;
@@ -112,6 +117,7 @@ const Buildings = ({ layer, layout }: BuildingsProps) => {
         <instancedBufferAttribute args={[attributes.pattern, 1]} attach="attributes-aPattern" />
         <instancedBufferAttribute args={[attributes.frame, 1]} attach="attributes-aFrame" />
         <instancedBufferAttribute args={[attributes.rands, 4]} attach="attributes-aRands" />
+        <instancedBufferAttribute args={[attributes.blank, 2]} attach="attributes-aBlank" />
       </boxGeometry>
       <rawShaderMaterial
         fragmentShader={fragmentShader}

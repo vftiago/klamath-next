@@ -1,20 +1,24 @@
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CanvasTexture, InstancedBufferAttribute } from "three";
-import { DynamicDrawUsage, GLSL3 } from "three";
+import { useMemo, useRef } from "react";
+import type { InstancedBufferAttribute } from "three";
+import { DynamicDrawUsage, GLSL3, Vector2 } from "three";
 import { getSceneTime } from "../../utils";
 import type { CityLayout, Sign } from "../generate";
 import { SIGN_DIM_BY_LAYER } from "../generate";
-import { createGlyphAtlas } from "./glyph-atlas";
-import { GLYPH_COUNT } from "./glyphs";
+import type { TextAtlas } from "../text-atlas";
+import { glyphIndex } from "../text-atlas";
 import fragmentShader from "./sign.frag";
 import vertexShader from "./sign.vert";
 
 type SignsProps = {
+  atlas: TextAtlas;
   /** Run the flicker state machine; false holds every sign steady at full brightness. */
   flicker?: boolean;
   layout: CityLayout;
 };
+
+/** Characters per sign the shader supports (three vec4 attributes). */
+const MAX_CHARS = 12;
 
 type SignMode = "brown" | "dropout" | "ok" | "stutter";
 
@@ -34,7 +38,9 @@ type SignAttributes = {
   color: Float32Array;
   count: number;
   drivers: SignDriver[];
-  glyphs: Float32Array;
+  glyphs0: Float32Array;
+  glyphs1: Float32Array;
+  glyphs2: Float32Array;
   meta: Float32Array;
   offset: Float32Array;
   params: Float32Array;
@@ -53,7 +59,7 @@ const NEON_SLOTS = [
 
 const STEADY_LEVEL = 0.95;
 
-const buildAttributes = (layout: CityLayout): SignAttributes => {
+const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes => {
   const entries: { layerIndex: number; scale: number; sign: Sign; z: number }[] = [];
 
   for (const layer of layout.layers) {
@@ -67,7 +73,9 @@ const buildAttributes = (layout: CityLayout): SignAttributes => {
     color: new Float32Array(count * 3),
     count,
     drivers: [],
-    glyphs: new Float32Array(count * 4),
+    glyphs0: new Float32Array(count * 4),
+    glyphs1: new Float32Array(count * 4),
+    glyphs2: new Float32Array(count * 4),
     meta: new Float32Array(count * 3),
     offset: new Float32Array(count * 3),
     params: new Float32Array(count * 4),
@@ -79,13 +87,17 @@ const buildAttributes = (layout: CityLayout): SignAttributes => {
     attributes.offset.set([sign.x, layout.groundY + sign.y, z + sign.z], i * 3);
     attributes.size.set([sign.width, sign.height], i * 2);
     attributes.color.set(NEON_SLOTS[sign.colorSlot] ?? NEON_SLOTS[0], i * 3);
-    attributes.params.set([sign.cell, sign.margin, sign.vertical ? 1 : 0, sign.glyphs.length], i * 4);
-    attributes.glyphs.set([sign.glyphs[0] ?? 0, sign.glyphs[1] ?? 0, sign.glyphs[2] ?? 0, sign.glyphs[3] ?? 0], i * 4);
+    const chars = [...sign.text].slice(0, MAX_CHARS);
+    attributes.params.set([sign.cell, sign.margin, sign.vertical ? 1 : 0, chars.length], i * 4);
+    const glyphs = Array.from({ length: MAX_CHARS }, (_, c) => (chars[c] ? glyphIndex(atlas, chars[c]) : 0));
+    attributes.glyphs0.set(glyphs.slice(0, 4), i * 4);
+    attributes.glyphs1.set(glyphs.slice(4, 8), i * 4);
+    attributes.glyphs2.set(glyphs.slice(8, 12), i * 4);
     attributes.meta.set([SIGN_DIM_BY_LAYER[layerIndex] ?? 1, sign.dead, scale], i * 3);
     attributes.state.set([STEADY_LEVEL, -1], i * 2);
     attributes.drivers.push({
       flaky: sign.flaky,
-      glyphCount: sign.glyphs.length,
+      glyphCount: chars.length,
       level: 1,
       mode: "ok",
       offGlyph: -1,
@@ -139,16 +151,14 @@ const advanceDriver = (driver: SignDriver, now: number) => {
   }
 };
 
-/** Neon signs on every layer: one instanced quad draw, glyphs from a shared atlas, per-sign flicker state. */
-const Signs = ({ flicker = true, layout }: SignsProps) => {
+/** Neon signs on every layer: one instanced quad draw, characters from the shared text atlas, per-sign flicker. */
+const Signs = ({ atlas, flicker = true, layout }: SignsProps) => {
   const stateAttributeRef = useRef<InstancedBufferAttribute>(null);
-  const [atlas] = useState<CanvasTexture>(() => createGlyphAtlas());
-  const attributes = useMemo(() => buildAttributes(layout), [layout]);
-  const uniforms = useMemo(() => ({ uAtlas: { value: atlas }, uGlyphCount: { value: GLYPH_COUNT } }), [atlas]);
-
-  useEffect(() => {
-    return () => atlas.dispose();
-  }, [atlas]);
+  const attributes = useMemo(() => buildAttributes(layout, atlas), [atlas, layout]);
+  const uniforms = useMemo(
+    () => ({ uAtlas: { value: atlas.texture }, uAtlasGrid: { value: new Vector2(atlas.columns, atlas.rows) } }),
+    [atlas],
+  );
 
   useFrame(() => {
     const stateAttribute = stateAttributeRef.current;
@@ -185,7 +195,9 @@ const Signs = ({ flicker = true, layout }: SignsProps) => {
         <instancedBufferAttribute args={[attributes.size, 2]} attach="attributes-aSize" />
         <instancedBufferAttribute args={[attributes.color, 3]} attach="attributes-aColor" />
         <instancedBufferAttribute args={[attributes.params, 4]} attach="attributes-aParams" />
-        <instancedBufferAttribute args={[attributes.glyphs, 4]} attach="attributes-aGlyphs" />
+        <instancedBufferAttribute args={[attributes.glyphs0, 4]} attach="attributes-aGlyphs0" />
+        <instancedBufferAttribute args={[attributes.glyphs1, 4]} attach="attributes-aGlyphs1" />
+        <instancedBufferAttribute args={[attributes.glyphs2, 4]} attach="attributes-aGlyphs2" />
         <instancedBufferAttribute args={[attributes.meta, 3]} attach="attributes-aMeta" />
         <instancedBufferAttribute
           args={[attributes.state, 2]}
