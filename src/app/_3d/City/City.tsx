@@ -1,11 +1,13 @@
 import { useThree } from "@react-three/fiber";
 import { useMemo } from "react";
+import Beacon from "./Beacon/Beacon";
 import Beacons from "./Beacons/Beacons";
 import Billboards from "./Billboards/Billboards";
 import Buildings from "./Buildings/Buildings";
 import Fog from "./Fog/Fog";
 import { generateCity } from "./generate";
 import River from "./River/River";
+import Signs from "./Signs/Signs";
 import Sky from "./Sky/Sky";
 
 /** Aspect is quantized so small resizes (scrollbars, mobile URL bar) don't regenerate the city. */
@@ -25,6 +27,8 @@ const City = () => {
         <Buildings key={layer.index} layer={layer} layout={layout} />
       ))}
       <Billboards layout={layout} />
+      <Signs layout={layout} />
+      <Beacon layout={layout} />
       <Beacons layout={layout} />
       <Fog layout={layout} />
       <River />

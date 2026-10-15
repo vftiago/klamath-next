@@ -50,6 +50,8 @@ src/
 │   │   │   ├── Buildings/           # One instanced draw per depth layer; windows and roof boxes in one shader
 │   │   │   ├── Billboards/          # Rooftop neon-framed boards, instanced quads
 │   │   │   ├── Beacons/             # Blinking antenna lights, one Points draw
+│   │   │   ├── Signs/               # Neon glyph signs: glyph atlas (CanvasTexture), instanced quads, per-sign flicker driver
+│   │   │   ├── Beacon/              # Rooftop searchlight: lamp, additive beam, hovering logo badge
 │   │   │   ├── Fog/                 # Scrolling fog planes between layers (CanvasTexture tile)
 │   │   │   ├── River/               # Water plane; mirrored-camera reflection pass (priority 0.5) into a half-res target
 │   │   │   └── Sky/                 # Night sky gradient plane; `.abstract-bg` in globals.css mirrors it as the fallback
@@ -118,6 +120,7 @@ src/
 - City shaders are GLSL ES 3.0 (`glslVersion={GLSL3}`, `in`/`out`, `flat` per-instance varyings) and box-filter procedural detail against `fwidth` so thin patterns don't alias
 - DOM-backed textures (e.g. the fog tile canvas) are created in `useState` initializers and disposed in effect cleanups
 - Frame order: `useFrame` priorities are 0 (uniform updates), 0.5 (river reflection render), 1 (`PostEffect`, which renders the main scene and the CRT quad); new passes slot in between
+- Additive light (beam, badge) uses `AdditiveBlending` with alpha 1 in the shader: three's additive mode is `src * alpha + dst`, so alpha 0 adds nothing
 - The post-effect keeps scene alpha; with the sky plane the frame is opaque, and the CSS `.abstract-bg` night-sky gradient is the fallback for loading, fade-in, reduced motion and no-WebGL states
 - The repo's compiler-grade react-hooks lint forbids render-phase impurity (`Math.random`, ref reads, setState-in-effect) — randomness goes in event handlers, frame callbacks, or key-based remounts
 

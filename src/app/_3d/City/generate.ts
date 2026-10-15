@@ -61,6 +61,31 @@ export type Billboard = {
   z: number;
 };
 
+/** A neon sign hung on a building face. Position is the box's bottom-left corner, ground-relative y. */
+export type Sign = {
+  /** Glyph cell size, world units. */
+  cell: number;
+  /** Neon color slot (0-4), weighted pink/cyan/lime. */
+  colorSlot: number;
+  /** Index of a permanently dark glyph, or -1. */
+  dead: number;
+  /** Whether the sign's driver may stutter, drop out or brown out. */
+  flaky: boolean;
+  /** True for the big vertical signs on the edge frame buildings. */
+  framed: boolean;
+  glyphs: number[];
+  height: number;
+  /** Box margin around the glyph cells, world units. */
+  margin: number;
+  phase: number;
+  vertical: boolean;
+  width: number;
+  x: number;
+  y: number;
+  /** z of the sign plane relative to the layer's z. */
+  z: number;
+};
+
 export type CityLayer = {
   beacons: Beacon[];
   billboards: Billboard[];
@@ -68,6 +93,7 @@ export type CityLayer = {
   config: LayerConfig;
   /** Roof furniture (water towers, antennas, HVAC, billboard posts) drawn as plain boxes. */
   details: PlainBox[];
+  signs: Sign[];
   index: number;
   /** World units per reference pixel at this depth. */
   scale: number;
@@ -78,15 +104,173 @@ export type CityLayer = {
   z: number;
 };
 
+/** The rooftop searchlight and its hovering badge: on the tallest central building of the second-nearest layer. */
+export type Searchlight = {
+  /** Badge radius, world units. */
+  radius: number;
+  /** Roof height above the ground line. */
+  roofY: number;
+  x: number;
+  /** World z of the roof's front edge. */
+  z: number;
+};
+
 export type CityLayout = {
   groundY: number;
   layers: CityLayer[];
+  searchlight: null | Searchlight;
 };
 
 /** Side-face depth that projects to the reference's fake trapezoid width: ~0.68 * side * width. */
 const DEPTH_FACTOR = 0.68;
 
 type RoofFurniture = Pick<CityLayer, "beacons" | "billboards" | "details">;
+
+/** Glyph cell size per layer, reference px; the nearest layer adds up to 6 px of variation. */
+const SIGN_CELL_BY_LAYER = [0, 7, 9, 10, 11, 18];
+/** Sign brightness per layer. */
+export const SIGN_DIM_BY_LAYER = [0.4, 0.6, 0.72, 0.82, 0.9, 1];
+const GLYPH_PITCH = 1.18;
+
+const signBox = (cell: number, count: number, vertical: boolean) => {
+  const margin = Math.max(3, Math.round(0.3 * cell));
+  const run = count * GLYPH_PITCH * cell + 2 * margin;
+  const across = cell + 2 * margin;
+  return { height: vertical ? run : across, margin, width: vertical ? across : run };
+};
+
+type SignPlacement = {
+  cell: number;
+  count: number;
+  framed: boolean;
+  vertical: boolean;
+  /** Box left edge, world x. */
+  x: number;
+  /** Box top, measured down from the building's roof, in world units. */
+  yFromTop: number;
+};
+
+const makeSign = (
+  building: Building,
+  placement: SignPlacement,
+  scale: number,
+  rand: () => number,
+  glyphCount: number,
+): Sign => {
+  const { cell, count, framed, vertical, x, yFromTop } = placement;
+  const box = signBox(cell, count, vertical);
+
+  return {
+    cell: cell * scale,
+    colorSlot: Math.floor(rand() * 5),
+    dead: -1,
+    flaky: rand() < 0.55,
+    framed,
+    glyphs: Array.from({ length: count }, () => Math.floor(rand() * glyphCount)),
+    height: box.height * scale,
+    margin: box.margin * scale,
+    phase: rand() * Math.PI * 2,
+    vertical,
+    width: box.width * scale,
+    x,
+    y: building.height - (yFromTop + box.height * scale),
+    z: building.depth / 2 + 0.5 * scale,
+  };
+};
+
+/**
+ * Sign placement per the reference: a per-layer chance (tall buildings on the middle layers are likelier),
+ * horizontal when it fits the facade, otherwise vertical hugging one edge; rows snap to the window pitch.
+ * Frame buildings instead get up to three big vertical signs down their inner edge.
+ */
+const generateSigns = (
+  building: Building,
+  index: number,
+  layerConfig: LayerConfig,
+  scale: number,
+  skylineHeight: number,
+  rand: () => number,
+  glyphCount: number,
+): Sign[] => {
+  const nearest = index === NEAREST_LAYER;
+  const middle = index <= NEAREST_LAYER - 2;
+  const [, , cellH, gapY] = layerConfig.win;
+  const rowPitch = (cellH + gapY) * scale;
+  const widthRef = building.width / scale;
+  const signs: Sign[] = [];
+
+  if (building.frame) {
+    // inner edge: the left frame building sits at negative x and shows its right side
+    const innerIsRight = building.x < 0;
+    let yFromTop = (90 + 30 * rand()) * scale;
+    const limit = building.height - 90 * scale;
+
+    for (let n = 0; n < 3;) {
+      const cell = 22 + Math.round(6 * rand());
+      const count = 2 + Math.floor(3 * rand());
+      const box = signBox(cell, count, true);
+
+      if (yFromTop + box.height * scale > limit) {
+        break;
+      }
+
+      const left = building.x - building.width / 2;
+      const x = innerIsRight ? left + building.width - (box.width + 3) * scale : left + 3 * scale;
+      signs.push(
+        makeSign(building, { cell, count, framed: true, vertical: true, x, yFromTop }, scale, rand, glyphCount),
+      );
+      n++;
+      yFromTop += (box.height + 10 + 16 * rand()) * scale;
+    }
+
+    return signs;
+  }
+
+  const tall = building.height > skylineHeight * layerConfig.top * 0.66;
+  const chance = index === 0 ? 0 : middle ? (tall ? 0.5 : 0.03) : nearest ? 0.28 : 0.2;
+
+  if (rand() >= chance) {
+    return signs;
+  }
+
+  const cell = index === NEAREST_LAYER ? SIGN_CELL_BY_LAYER[index] + Math.round(6 * rand()) : SIGN_CELL_BY_LAYER[index];
+  const count = 2 + Math.floor(rand() * (index >= NEAREST_LAYER - 1 ? 3 : 2));
+  const horizontalBox = signBox(cell, count, false);
+  const horizontal = horizontalBox.width <= widthRef - 8 && horizontalBox.width >= 0.55 * widthRef && rand() < 0.4;
+  const box = horizontal ? horizontalBox : signBox(cell, count, true);
+
+  const top = 8 * scale;
+  const bottomLimit = building.height - (nearest ? 72 : 14) * scale;
+  const boxH = box.height * scale;
+
+  if (box.width * scale > building.width - 6 * scale || boxH > bottomLimit - top) {
+    return signs;
+  }
+
+  const room = bottomLimit - top - boxH;
+  const topMargin = (3 + index + 2) * scale;
+  let yFromTop = top + rand() * (middle ? Math.min(room, building.height * 0.16) : 0.6 * room);
+  yFromTop = Math.max(
+    top,
+    Math.min(
+      top + room,
+      topMargin + Math.round((yFromTop - topMargin) / rowPitch) * rowPitch - Math.min(2, gapY / 2) * scale,
+    ),
+  );
+
+  const left = building.x - building.width / 2;
+  const x = horizontal
+    ? left + (building.width - box.width * scale) / 2
+    : rand() < 0.5
+      ? left + 3 * scale
+      : left + building.width - (box.width + 3) * scale;
+
+  signs.push(
+    makeSign(building, { cell, count, framed: false, vertical: !horizontal, x, yFromTop }, scale, rand, glyphCount),
+  );
+
+  return signs;
+};
 
 /**
  * Roof furniture per the reference's roof-type roll. Sizes are reference px scaled to the layer.
@@ -163,7 +347,13 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
   return out;
 };
 
-const generateLayer = (config: LayerConfig, index: number, aspect: number, seed: number): CityLayer => {
+const generateLayer = (
+  config: LayerConfig,
+  index: number,
+  aspect: number,
+  seed: number,
+  glyphCount: number,
+): CityLayer => {
   const rand = mulberry32(seed + 131 * index);
   const scale = depthScale(config.z);
   const skylineHeight = REF_VIEW_HEIGHT * SKYLINE_RATIO * scale;
@@ -218,22 +408,65 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
   }
 
   const furniture: RoofFurniture = { beacons: [], billboards: [], details: [] };
+  const signs: Sign[] = [];
 
   for (const building of buildings) {
     const roof = generateRoof(building, index, scale, config.side);
     furniture.beacons.push(...roof.beacons);
     furniture.billboards.push(...roof.billboards);
     furniture.details.push(...roof.details);
+    signs.push(...generateSigns(building, index, config, scale, skylineHeight, rand, glyphCount));
   }
 
-  return { ...furniture, buildings, config, index, scale, skylineHeight, span, z: config.z };
+  return { ...furniture, buildings, config, index, scale, signs, skylineHeight, span, z: config.z };
 };
 
 /**
  * Pure, deterministic city layout. Same seed and aspect always yield the same city.
  * No three.js imports here: the output is plain data that components turn into instanced attributes.
  */
-export const generateCity = (aspect: number, seed: number = SEED): CityLayout => ({
-  groundY: GROUND_Y,
-  layers: LAYERS.map((config, index) => generateLayer(config, index, aspect, seed)),
-});
+export const generateCity = (aspect: number, seed: number = SEED, glyphCount = 16): CityLayout => {
+  const layers = LAYERS.map((config, index) => generateLayer(config, index, aspect, seed, glyphCount));
+
+  // one sign, preferably a framed one, gets a permanently dead glyph
+  const allSigns = layers.flatMap((layer) => layer.signs);
+  const candidates = allSigns.filter((sign) => sign.framed);
+  const pool = candidates.length ? candidates : allSigns;
+  const victim = pool[Math.floor(mulberry32(99)() * pool.length)];
+
+  if (victim) {
+    victim.dead = Math.floor(mulberry32(7)() * victim.glyphs.length);
+  }
+
+  return { groundY: GROUND_Y, layers, searchlight: pickSearchlight(layers, aspect) };
+};
+
+const pickSearchlight = (layers: CityLayer[], aspect: number): null | Searchlight => {
+  const layer = layers[NEAREST_LAYER - 1];
+
+  if (!layer) {
+    return null;
+  }
+
+  // candidates: non-frame buildings within the central 40% of the visible width at this depth
+  const limit = 0.2 * visibleWidthAt(layer.z, aspect);
+  let best: Building | null = null;
+
+  for (const building of layer.buildings) {
+    if (building.frame || Math.abs(building.x) > limit) {
+      continue;
+    }
+    if (!best || building.height > best.height) {
+      best = building;
+    }
+  }
+
+  if (!best) {
+    return null;
+  }
+
+  // reference: radius = clamp(3% of the viewport width, 26, 56) screen px
+  const radius = Math.max(26, Math.min(56, 0.03 * aspect * REF_VIEW_HEIGHT)) * layer.scale;
+
+  return { radius, roofY: best.height, x: best.x, z: layer.z + best.depth / 2 };
+};
