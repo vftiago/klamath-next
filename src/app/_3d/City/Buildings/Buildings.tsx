@@ -52,7 +52,7 @@ const buildAttributes = (layer: CityLayer, groundY: number): InstanceAttributes 
 
   layer.details.forEach((detail, j) => {
     const i = layer.buildings.length + j;
-    attributes.offset.set([detail.x, groundY + detail.baseY, layer.z], i * 3);
+    attributes.offset.set([detail.x, groundY + detail.baseY, layer.z + (detail.z ?? 0)], i * 3);
     attributes.size.set([detail.width, detail.height, detail.depth], i * 3);
     attributes.pattern[i] = detail.pattern ?? PLAIN_PATTERN;
   });

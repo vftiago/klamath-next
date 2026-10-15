@@ -47,6 +47,8 @@ export type PlainBox = {
   pattern?: number;
   width: number;
   x: number;
+  /** Box center z relative to the layer's z (default 0, the building centers). */
+  z?: number;
 };
 
 /** Blinking red antenna light; `y` is relative to the ground line. */
@@ -147,9 +149,11 @@ const SIGN_CELL_BY_LAYER = [0, 7, 9, 10, 11, 18];
 /** Sign brightness per layer. */
 export const SIGN_DIM_BY_LAYER = [0.4, 0.6, 0.72, 0.82, 0.9, 1];
 const GLYPH_PITCH = 1.18;
-/** Blade signs hang this far (reference px) from the building edge; brackets bridge the gap. */
-const BLADE_GAP = 4;
-const BRACKET_THICKNESS = 1.5;
+/** Blade signs hang this far (reference px) from the building edge; two short poles bridge the gap. */
+const BLADE_GAP = 6;
+const BRACKET_THICKNESS = 2;
+/** Distance from the sign's top/bottom edge to each pole, reference px. */
+const BRACKET_INSET = 8;
 /** Window pattern value for bracket boxes: drawn plain in a lighter metal tone. */
 export const BRACKET_PATTERN = 4;
 
@@ -195,21 +199,27 @@ const makeSign = (building: Building, placement: SignPlacement, scale: number, r
   };
 };
 
-/** Two short arms tying a blade sign to the building edge it hangs beside. */
+/**
+ * Two short poles tying a blade sign to the facade it hangs beside: thin rods at the facade plane that
+ * bridge the gap from the building edge into the sign box, like a real wall-mounted blade sign.
+ */
 const bracketsFor = (building: Building, sign: Sign, side: -1 | 1, scale: number): PlainBox[] => {
   const edge = building.x + (side * building.width) / 2;
   const length = (BLADE_GAP + 2) * scale;
   const thickness = BRACKET_THICKNESS * scale;
-  const inset = 3 * scale;
+  // the poles sit a little in from the sign's top and bottom edges
+  const inset = BRACKET_INSET * scale;
   const x = edge + (side * length) / 2;
 
   return [sign.y + sign.height - inset - thickness, sign.y + inset].map((baseY) => ({
     baseY,
-    depth: building.depth,
+    depth: thickness,
     height: thickness,
     pattern: BRACKET_PATTERN,
     width: length,
     x,
+    // flush with the facade, just behind the sign plane
+    z: sign.z - thickness / 2,
   }));
 };
 
