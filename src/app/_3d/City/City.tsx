@@ -1,7 +1,11 @@
 import { useThree } from "@react-three/fiber";
 import { useMemo } from "react";
+import Beacons from "./Beacons/Beacons";
+import Billboards from "./Billboards/Billboards";
 import Buildings from "./Buildings/Buildings";
+import Fog from "./Fog/Fog";
 import { generateCity } from "./generate";
+import Sky from "./Sky/Sky";
 
 /** Aspect is quantized so small resizes (scrollbars, mobile URL bar) don't regenerate the city. */
 const ASPECT_STEP = 0.1;
@@ -12,12 +16,16 @@ const City = () => {
 
   const layout = useMemo(() => generateCity(quantizedAspect), [quantizedAspect]);
 
+  // keyed on aspect: a new layout remounts everything so attributes and uniforms are built once per mount
   return (
-    <group>
+    <group key={quantizedAspect}>
+      <Sky aspect={quantizedAspect} />
       {layout.layers.map((layer) => (
-        // keyed on aspect: a new layout remounts the layer so attributes and uniforms are built once per mount
-        <Buildings key={`${layer.index}-${quantizedAspect}`} layer={layer} layout={layout} />
+        <Buildings key={layer.index} layer={layer} layout={layout} />
       ))}
+      <Billboards layout={layout} />
+      <Beacons layout={layout} />
+      <Fog layout={layout} />
     </group>
   );
 };
