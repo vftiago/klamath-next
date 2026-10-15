@@ -9,6 +9,7 @@ import { usePrefersReducedMotion } from "@/app/_shared/utils/use-prefers-reduced
 import City from "./City/City";
 import { CAMERA, GROUND_Y } from "./City/config";
 import PostEffect from "./PostEffect/PostEffect";
+import { useRainPreference } from "./Rain/use-rain-preference";
 
 // The eye sits just above the water. The current route views keep the camera level (look-at height equals
 // eye height, look-at x equals eye x) and push the horizon down with a vertical lens shift (see `LensShift`),
@@ -119,6 +120,7 @@ const LensShift = () => {
 const ThreeScene = () => {
   const { isMdScreen } = useBreakpoints();
   const prefersReducedMotion = usePrefersReducedMotion();
+  const rain = useRainPreference();
 
   // the scene is continuously animated decoration — honor reduced motion by not rendering it at all
   if (prefersReducedMotion) {
@@ -141,7 +143,7 @@ const ThreeScene = () => {
       >
         <CameraController />
         <LensShift />
-        <City />
+        <City rain={rain} />
         <PostEffect />
       </Canvas>
     </div>

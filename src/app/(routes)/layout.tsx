@@ -1,4 +1,5 @@
 import Navbar from "../_navbar";
+import RainToggle from "../_shared/ui/rain-toggle";
 
 const KnownRoutesLayout = ({
   children,
@@ -11,6 +12,7 @@ const KnownRoutesLayout = ({
         <Navbar />
       </div>
       <div className="flex w-full p-4 md:pl-24">{children}</div>
+      <RainToggle />
     </>
   );
 };

@@ -1,5 +1,7 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
+import Rain from "../Rain/Rain";
+import Ripples from "../Rain/Ripples";
 import Beacon from "./Beacon/Beacon";
 import Beacons from "./Beacons/Beacons";
 import Billboards from "./Billboards/Billboards";
@@ -68,7 +70,12 @@ const useTextAtlas = (layout: CityLayout): null | TextAtlas => {
   return atlas;
 };
 
-const City = () => {
+type CityProps = {
+  /** Show the rain overlay (drops and ripples). */
+  rain?: boolean;
+};
+
+const City = ({ rain = true }: CityProps) => {
   const aspect = useThree((state) => state.viewport.aspect);
   const quantizedAspect = Math.max(0.5, Math.round(aspect / ASPECT_STEP) * ASPECT_STEP);
 
@@ -89,6 +96,8 @@ const City = () => {
       <Stalls layout={layout} />
       <Fog layout={layout} />
       <River shoreZ={layout.shoreZ} />
+      {rain ? <Rain /> : null}
+      {rain ? <Ripples shoreZ={layout.shoreZ} /> : null}
     </group>
   );
 };
