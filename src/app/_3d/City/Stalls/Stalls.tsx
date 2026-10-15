@@ -1,0 +1,129 @@
+import { useEffect, useMemo, useState } from "react";
+import { GLSL3 } from "three";
+import { mulberry32 } from "../../utils";
+import type { CityLayout } from "../generate";
+import Smoke from "./Smoke";
+import type { SmokeSource } from "./Smoke";
+import type { StallSheet } from "./stall-art";
+import { createStallSheet } from "./stall-art";
+import fragmentShader from "./stall.frag";
+import vertexShader from "./stall.vert";
+
+type StallsProps = {
+  layout: CityLayout;
+  /** Spawn stall smoke. */
+  smoke?: boolean;
+};
+
+type StallAttributes = {
+  count: number;
+  offset: Float32Array;
+  size: Float32Array;
+  smokeSources: SmokeSource[];
+  uv: Float32Array;
+};
+
+const SEED = 2028;
+
+/**
+ * Clusters of 2-4 stalls along the nearest layer, as in the reference: stalls 8-18 px apart inside a
+ * cluster, 70-240 px between clusters. Each picks a painted variant from the sheet.
+ */
+const placeStalls = (layout: CityLayout, sheet: StallSheet): StallAttributes => {
+  const layer = layout.layers[layout.layers.length - 1];
+  const placements: { cell: StallSheet["cells"][number]; left: number }[] = [];
+
+  if (layer && sheet.cells.length) {
+    const rand = mulberry32(SEED);
+    const half = layer.span / 2;
+    let x = -half - 60 * rand();
+
+    while (x < half) {
+      const clusterSize = 2 + Math.floor(3 * rand());
+      for (let k = 0; k < clusterSize && x < half; k++) {
+        const cell = sheet.cells[Math.floor(rand() * sheet.cells.length)];
+        if (!cell) break;
+        placements.push({ cell, left: x });
+        x += cell.stallWidth + 8 + 10 * rand();
+      }
+      x += 70 + 170 * rand();
+    }
+  }
+
+  const count = placements.length;
+  const attributes: StallAttributes = {
+    count,
+    offset: new Float32Array(count * 3),
+    size: new Float32Array(count * 2),
+    smokeSources: [],
+    uv: new Float32Array(count * 4),
+  };
+
+  placements.forEach(({ cell, left }, i) => {
+    const padX = (cell.width - cell.stallWidth) / 2;
+    attributes.offset.set([left - padX, layout.groundY, layout.stallZ], i * 3);
+    attributes.size.set([cell.width, cell.height], i * 2);
+    attributes.uv.set(cell.uv, i * 4);
+    attributes.smokeSources.push({
+      left: left - padX + cell.smokeLeft,
+      width: cell.smokeWidth,
+      x: left + cell.stallWidth / 2,
+      y: layout.groundY + cell.smokeY,
+      z: layout.stallZ + 1,
+    });
+  });
+
+  return attributes;
+};
+
+/** Street level: a pavement strip in front of the nearest layer, the stalls on it, and their smoke. */
+const Stalls = ({ layout, smoke = true }: StallsProps) => {
+  // DOM work (the sprite sheet canvas) belongs in a state initializer, not render
+  const [sheet] = useState(() => createStallSheet());
+  const attributes = useMemo(() => placeStalls(layout, sheet), [layout, sheet]);
+  const uniforms = useMemo(() => ({ uSheet: { value: sheet.texture } }), [sheet]);
+
+  useEffect(() => {
+    return () => sheet.texture.dispose();
+  }, [sheet]);
+
+  const layer = layout.layers[layout.layers.length - 1];
+  const span = layer?.span ?? 0;
+  // the pavement runs from behind the building fronts to the water's edge
+  const pavementFrom = -20;
+  const pavementDepth = layout.shoreZ - pavementFrom;
+
+  return (
+    <group>
+      <mesh position={[0, layout.groundY + 0.3, pavementFrom + pavementDepth / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[span, pavementDepth]} />
+        <meshBasicMaterial color="rgb(14, 6, 24)" />
+      </mesh>
+      {/* kerb at the water */}
+      <mesh position={[0, layout.groundY + 1, layout.shoreZ - 1]}>
+        <boxGeometry args={[span, 2, 2]} />
+        <meshBasicMaterial color="rgb(44, 18, 52)" />
+      </mesh>
+      {attributes.count > 0 ? (
+        <instancedMesh args={[undefined, undefined, attributes.count]} frustumCulled={false}>
+          <planeGeometry args={[1, 1]}>
+            <instancedBufferAttribute args={[attributes.offset, 3]} attach="attributes-aOffset" />
+            <instancedBufferAttribute args={[attributes.size, 2]} attach="attributes-aSize" />
+            <instancedBufferAttribute args={[attributes.uv, 4]} attach="attributes-aUv" />
+          </planeGeometry>
+          <rawShaderMaterial
+            depthWrite={false}
+            fragmentShader={fragmentShader}
+            glslVersion={GLSL3}
+            transparent={true}
+            uniforms={uniforms}
+            vertexShader={vertexShader}
+          />
+        </instancedMesh>
+      ) : null}
+      <Smoke active={smoke} sources={attributes.smokeSources} />
+    </group>
+  );
+};
+
+export default Stalls;
