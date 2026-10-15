@@ -58,6 +58,7 @@ src/
 │   │   │   ├── Fog/                 # Scrolling fog planes between layers (CanvasTexture tile)
 │   │   │   ├── River/               # Water plane; mirrored-camera reflection pass (priority 0.5) into a half-res target
 │   │   │   └── Sky/                 # Night sky gradient plane; `.abstract-bg` in globals.css mirrors it as the fallback
+│   │   ├── Rain/                    # Rain overlay: shader-driven drops, ripple pool, persisted on/off preference
 │   │   ├── quality/tiers.ts         # Quality tier knobs (full / reduced / static / off)
 │   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
 │   │   └── PostEffect/              # Screen post-processing
@@ -76,6 +77,7 @@ src/
 │   │   │   ├── error-boundary-wrapper.tsx
 │   │   │   ├── error-widget.tsx
 │   │   │   ├── glass-panel.tsx
+│   │   │   ├── rain-toggle.tsx      # Fixed top-right rain switch (hidden under reduced motion)
 │   │   │   └── search-input.tsx
 │   │   └── utils/
 │   │       ├── use-breakpoints.ts
@@ -246,6 +248,7 @@ RootLayout (fonts, 3D background, analytics)
 
 - **Rarity system** in navbar headers (Common/Uncommon/Rare with weighted random); header picking happens in state initializers / click handlers, keyed by pathname
 - **Post-processing** shader with CRT-style scanlines, noise, vignette; render target sized to CSS size × DPR
+- **Rain toggle**: `useRainPreference` (localStorage `klamath:rain` + a window event) defaults to on unless `prefers-reduced-motion`; `City` mounts `Rain` and `Ripples` only while enabled
 - **Error boundaries** wrap data-fetching components; retry uses `router.refresh()`; `global-error.tsx` covers the root layout
 - **Catch-all route** for custom 404
 - **ISR**: `/projects` and `/repositories` revalidate hourly; per-route `metadata` titles use the root template
