@@ -167,11 +167,11 @@ pnpm analyze  # Bundle analysis (webpack build — @next/bundle-analyzer is webp
 
 ## Responsive Breakpoints
 
-| Breakpoint | Width   | Notes                             |
-| ---------- | ------- | --------------------------------- |
-| mobile     | <768px  | No navbar, DPR-capped 3D scene    |
-| md         | 768px+  | Navbar visible                    |
-| lg         | 1024px+ | Full layouts                      |
+| Breakpoint | Width   | Notes                          |
+| ---------- | ------- | ------------------------------ |
+| mobile     | <768px  | No navbar, DPR-capped 3D scene |
+| md         | 768px+  | Navbar visible                 |
+| lg         | 1024px+ | Full layouts                   |
 
 ## Animation
 
