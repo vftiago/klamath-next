@@ -5,6 +5,7 @@ import Billboards from "./Billboards/Billboards";
 import Buildings from "./Buildings/Buildings";
 import Fog from "./Fog/Fog";
 import { generateCity } from "./generate";
+import River from "./River/River";
 import Sky from "./Sky/Sky";
 
 /** Aspect is quantized so small resizes (scrollbars, mobile URL bar) don't regenerate the city. */
@@ -26,6 +27,7 @@ const City = () => {
       <Billboards layout={layout} />
       <Beacons layout={layout} />
       <Fog layout={layout} />
+      <River />
     </group>
   );
 };
