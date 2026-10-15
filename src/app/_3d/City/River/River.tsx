@@ -20,14 +20,15 @@ import vertexShader from "./river.vert";
 type RiverProps = {
   /** Reflection render-target scale relative to the drawing buffer; 0 skips the reflection pass. */
   reflectionScale?: number;
+  /** World z of the shoreline (the pavement's edge). */
+  shoreZ: number;
 };
 
 /** Far end of the water, behind the farthest layer, and its near edge behind the default camera. */
 const RIVER_FAR_Z = LAYERS[0].z - 400;
 const RIVER_NEAR_Z = 1300;
 const RIVER_WIDTH = 24000;
-/** Shoreline: the nearest layer's base. The near edge used for the wobble/darkening ramp sits before the camera. */
-const SHORE_Z = LAYERS[LAYERS.length - 1].z;
+/** The near edge used for the wobble/darkening ramp sits before the camera. */
 const EDGE_Z = 800;
 
 const UP = new Vector3(0, 1, 0);
@@ -51,7 +52,7 @@ const createReflection = () => ({
   view: new Vector3(),
 });
 
-const River = ({ reflectionScale = 0.5 }: RiverProps) => {
+const River = ({ reflectionScale = 0.5, shoreZ }: RiverProps) => {
   const gl = useThree((state) => state.gl);
   const size = useThree((state) => state.size);
   const viewport = useThree((state) => state.viewport);
@@ -70,12 +71,12 @@ const River = ({ reflectionScale = 0.5 }: RiverProps) => {
       uEdgeZ: { value: EDGE_Z },
       uMap: { value: null },
       uReflection: { value: reflectionScale > 0 ? 1 : 0 },
-      uShoreZ: { value: SHORE_Z },
+      uShoreZ: { value: shoreZ },
       uTextureMatrix: { value: new Matrix4() },
       uTime: { value: 0 },
       uViewport: { value: new Vector2(1, 1) },
     }),
-    [reflectionScale],
+    [reflectionScale, shoreZ],
   );
 
   useLayoutEffect(() => {

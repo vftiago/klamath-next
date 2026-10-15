@@ -23,6 +23,12 @@ export const SKYLINE_RATIO = 0.7;
 /** World y of the ground line / river surface, shared by all layers. */
 export const GROUND_Y = -250;
 
+/** Gap between the nearest layer's deepest front face and the stall plane, world units. */
+export const STALL_CLEARANCE = 8;
+
+/** Pavement depth in front of the stall plane; its far edge is the river's shoreline. */
+export const PAVEMENT_DEPTH = 20;
+
 /** Extra width generated beyond the visible frustum so camera moves and parallax never reveal an edge. */
 export const WIDTH_MARGIN = 1.6;
 

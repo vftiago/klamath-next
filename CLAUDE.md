@@ -54,6 +54,7 @@ src/
 │   │   │   ├── text-atlas.ts        # Character atlas (CanvasTexture, 3 variants) built from the layout's texts after fonts load
 │   │   │   ├── Signs/               # Neon text signs: blade (beside an edge, bracketed) or facade (over a windowless band)
 │   │   │   ├── Beacon/              # Rooftop searchlight: lamp, additive beam, hovering logo badge
+│   │   │   ├── Stalls/              # Street level: painted stall sprite sheet on instanced quads, pavement, smoke Points
 │   │   │   ├── Fog/                 # Scrolling fog planes between layers (CanvasTexture tile)
 │   │   │   ├── River/               # Water plane; mirrored-camera reflection pass (priority 0.5) into a half-res target
 │   │   │   └── Sky/                 # Night sky gradient plane; `.abstract-bg` in globals.css mirrors it as the fallback
@@ -123,6 +124,7 @@ src/
 - DOM-backed textures (e.g. the fog tile canvas) are created in `useState` initializers and disposed in effect cleanups
 - Frame order: `useFrame` priorities are 0 (uniform updates), 0.5 (river reflection render), 1 (`PostEffect`, which renders the main scene and the CRT quad); new passes slot in between
 - Additive light (beam, badge) uses `AdditiveBlending` with alpha 1 in the shader: three's additive mode is `src * alpha + dst`, so alpha 0 adds nothing
+- Dynamic `BufferAttribute`s are written through the attribute's own `.array` inside `useFrame`; writing into the memoized source array trips `react-hooks/immutability`
 - Signage text is real words from `City/signage.ts`; Latin uses the site's condensed face via the `--font-barlow-condensed` CSS variable, CJK falls back to system fonts. The atlas is built in an effect after `document.fonts.ready`, so signs and billboards mount a beat after the buildings
 - The post-effect keeps scene alpha; with the sky plane the frame is opaque, and the CSS `.abstract-bg` night-sky gradient is the fallback for loading, fade-in, reduced motion and no-WebGL states
 - The repo's compiler-grade react-hooks lint forbids render-phase impurity (`Math.random`, ref reads, setState-in-effect) — randomness goes in event handlers, frame callbacks, or key-based remounts

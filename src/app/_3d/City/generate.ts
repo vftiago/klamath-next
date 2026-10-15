@@ -5,9 +5,11 @@ import {
   GROUND_Y,
   LAYERS,
   NEAREST_LAYER,
+  PAVEMENT_DEPTH,
   REF_VIEW_HEIGHT,
   SEED,
   SKYLINE_RATIO,
+  STALL_CLEARANCE,
   visibleWidthAt,
   WIDTH_MARGIN,
 } from "./config";
@@ -129,6 +131,10 @@ export type CityLayout = {
   groundY: number;
   layers: CityLayer[];
   searchlight: null | Searchlight;
+  /** World z where the pavement ends and the water begins (the river's shoreline). */
+  shoreZ: number;
+  /** World z of the stall plane: just in front of the nearest layer's deepest front face. */
+  stallZ: number;
 };
 
 /** Side-face depth that projects to the reference's fake trapezoid width: ~0.68 * side * width. */
@@ -507,7 +513,18 @@ export const generateCity = (aspect: number, seed: number = SEED): CityLayout =>
     victim.dead = Math.floor(mulberry32(7)() * victim.text.length);
   }
 
-  return { groundY: GROUND_Y, layers, searchlight: pickSearchlight(layers, aspect) };
+  // the street sits in front of whatever the nearest layer's deepest box (frame buildings included) reaches
+  const nearest = layers[NEAREST_LAYER];
+  const deepestFront = nearest ? Math.max(0, ...nearest.buildings.map((building) => building.depth / 2)) : 0;
+  const stallZ = deepestFront + STALL_CLEARANCE;
+
+  return {
+    groundY: GROUND_Y,
+    layers,
+    searchlight: pickSearchlight(layers, aspect),
+    shoreZ: stallZ + PAVEMENT_DEPTH,
+    stallZ,
+  };
 };
 
 const pickSearchlight = (layers: CityLayer[], aspect: number): null | Searchlight => {

@@ -10,6 +10,7 @@ import { generateCity } from "./generate";
 import River from "./River/River";
 import Signs from "./Signs/Signs";
 import Sky from "./Sky/Sky";
+import Stalls from "./Stalls/Stalls";
 import type { TextAtlas } from "./text-atlas";
 import { createTextAtlas, resolveSignFont } from "./text-atlas";
 
@@ -85,8 +86,9 @@ const City = () => {
       {atlas ? <Signs atlas={atlas} layout={layout} /> : null}
       <Beacon layout={layout} />
       <Beacons layout={layout} />
+      <Stalls layout={layout} />
       <Fog layout={layout} />
-      <River />
+      <River shoreZ={layout.shoreZ} />
     </group>
   );
 };
