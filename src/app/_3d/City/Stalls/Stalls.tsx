@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { GLSL3 } from "three";
 import { mulberry32 } from "../../utils";
+import { STALL_CLUSTER, STALL_CLUSTER_GAP, STALL_SCALE } from "../config";
 import type { CityLayout } from "../generate";
 import Smoke from "./Smoke";
 import type { SmokeSource } from "./Smoke";
@@ -26,8 +27,8 @@ type StallAttributes = {
 const SEED = 2028;
 
 /**
- * Clusters of 2-4 stalls along the nearest layer, as in the reference: stalls 8-18 px apart inside a
- * cluster, 70-240 px between clusters. Each picks a painted variant from the sheet.
+ * Clusters of stalls along the nearest layer: stalls 8-18 px apart inside a cluster, `STALL_CLUSTER_GAP`
+ * between clusters, every sprite drawn at `STALL_SCALE`. Each picks a painted variant from the sheet.
  */
 const placeStalls = (layout: CityLayout, sheet: StallSheet): StallAttributes => {
   const layer = layout.layers[layout.layers.length - 1];
@@ -39,14 +40,14 @@ const placeStalls = (layout: CityLayout, sheet: StallSheet): StallAttributes => 
     let x = -half - 60 * rand();
 
     while (x < half) {
-      const clusterSize = 2 + Math.floor(3 * rand());
+      const clusterSize = STALL_CLUSTER.min + Math.floor((STALL_CLUSTER.extra + 1) * rand());
       for (let k = 0; k < clusterSize && x < half; k++) {
         const cell = sheet.cells[Math.floor(rand() * sheet.cells.length)];
         if (!cell) break;
         placements.push({ cell, left: x });
-        x += cell.stallWidth + 8 + 10 * rand();
+        x += (cell.stallWidth + 8 + 10 * rand()) * STALL_SCALE;
       }
-      x += 70 + 170 * rand();
+      x += STALL_CLUSTER_GAP.min + STALL_CLUSTER_GAP.extra * rand();
     }
   }
 
@@ -60,15 +61,16 @@ const placeStalls = (layout: CityLayout, sheet: StallSheet): StallAttributes => 
   };
 
   placements.forEach(({ cell, left }, i) => {
-    const padX = (cell.width - cell.stallWidth) / 2;
+    const k = STALL_SCALE;
+    const padX = ((cell.width - cell.stallWidth) / 2) * k;
     attributes.offset.set([left - padX, layout.groundY, layout.stallZ], i * 3);
-    attributes.size.set([cell.width, cell.height], i * 2);
+    attributes.size.set([cell.width * k, cell.height * k], i * 2);
     attributes.uv.set(cell.uv, i * 4);
     attributes.smokeSources.push({
-      left: left - padX + cell.smokeLeft,
-      width: cell.smokeWidth,
-      x: left + cell.stallWidth / 2,
-      y: layout.groundY + cell.smokeY,
+      left: left - padX + cell.smokeLeft * k,
+      width: cell.smokeWidth * k,
+      x: left + (cell.stallWidth * k) / 2,
+      y: layout.groundY + cell.smokeY * k,
       z: layout.stallZ + 1,
     });
   });

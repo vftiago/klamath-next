@@ -29,6 +29,13 @@ export const STALL_CLEARANCE = 8;
 /** Pavement depth in front of the stall plane; its far edge is the river's shoreline. */
 export const PAVEMENT_DEPTH = 20;
 
+/** Stall sprites are painted at the reference's size and drawn at this scale. */
+export const STALL_SCALE = 0.7;
+
+/** Stalls per cluster (min, extra) and the gap between clusters (min, extra), reference px. */
+export const STALL_CLUSTER = { extra: 3, min: 2 } as const;
+export const STALL_CLUSTER_GAP = { extra: 170, min: 70 } as const;
+
 /** Extra width generated beyond the visible frustum so camera moves and parallax never reveal an edge. */
 export const WIDTH_MARGIN = 1.6;
 
