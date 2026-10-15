@@ -400,14 +400,21 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
       out.beacons.push({ phase: r3 * Math.PI * 2, x: mastX, y: top + mastH });
     }
   } else if (roof < 0.64 && index >= 2) {
-    // billboard on two posts
+    // billboard on two posts; the posts stand in the board's plane at the facade so they show against the sky
     const boardW = width * (0.5 + 0.3 * r0);
     const boardH = 0.36 * boardW;
     const boardLeft = left + (width - boardW) / 2;
     const postH = (4 + 1.5 * index) * scale;
     const postW = 1.5 * scale;
-    out.details.push(box(boardLeft + 0.2 * boardW - postW / 2, top, postW, postH));
-    out.details.push(box(boardLeft + 0.8 * boardW - postW / 2, top, postW, postH));
+    const boardZ = building.depth / 2 + 0.5 * scale;
+    for (const fraction of [0.2, 0.8]) {
+      out.details.push({
+        ...box(boardLeft + fraction * boardW - postW / 2, top, postW, postH + 2 * scale),
+        depth: postW,
+        pattern: BRACKET_PATTERN,
+        z: boardZ - postW / 2,
+      });
+    }
     out.billboards.push({
       colorSlot: Math.floor(r1 * 5),
       height: boardH,
@@ -415,7 +422,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
       width: boardW,
       x: boardLeft + boardW / 2,
       y: top + postH + boardH / 2,
-      z: building.depth / 2 + 0.5 * scale,
+      z: boardZ,
     });
   } else if (roof < 0.82) {
     // HVAC unit on legs plus a few small boxes
