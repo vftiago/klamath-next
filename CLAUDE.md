@@ -47,7 +47,11 @@ src/
 │   │   │   ├── City.tsx             # Generates the layout per viewport aspect, mounts the layers
 │   │   │   ├── config.ts            # Camera constants, layer table, palette-independent sizing
 │   │   │   ├── generate.ts          # Pure seeded layout generator (no three.js imports)
-│   │   │   └── Buildings/           # One instanced draw per depth layer; windows are procedural in the shader
+│   │   │   ├── Buildings/           # One instanced draw per depth layer; windows and roof boxes in one shader
+│   │   │   ├── Billboards/          # Rooftop neon-framed boards, instanced quads
+│   │   │   ├── Beacons/             # Blinking antenna lights, one Points draw
+│   │   │   ├── Fog/                 # Scrolling fog planes between layers (CanvasTexture tile)
+│   │   │   └── Sky/                 # Night sky gradient plane; `.abstract-bg` in globals.css mirrors it as the fallback
 │   │   ├── quality/tiers.ts         # Quality tier knobs (full / reduced / static / off)
 │   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
 │   │   └── PostEffect/              # Screen post-processing
@@ -109,8 +113,10 @@ src/
 - Scroll-linked camera movement
 - Skipped entirely for `prefers-reduced-motion`; DPR capped to 1 below `md`
 - Shader uniforms are declared via a memoized `uniforms` prop and mutated through `materialRef` in `useFrame`
-- City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; layers are remounted by key when the quantized viewport aspect changes
-- The post-effect keeps scene alpha: geometry is opaque, empty sky shows the page background through a faint CRT layer
+- City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; the whole city group is remounted by key when the quantized viewport aspect changes
+- City shaders are GLSL ES 3.0 (`glslVersion={GLSL3}`, `in`/`out`, `flat` per-instance varyings) and box-filter procedural detail against `fwidth` so thin patterns don't alias
+- DOM-backed textures (e.g. the fog tile canvas) are created in `useState` initializers and disposed in effect cleanups
+- The post-effect keeps scene alpha; with the sky plane the frame is opaque, and the CSS `.abstract-bg` night-sky gradient is the fallback for loading, fade-in, reduced motion and no-WebGL states
 - The repo's compiler-grade react-hooks lint forbids render-phase impurity (`Math.random`, ref reads, setState-in-effect) — randomness goes in event handlers, frame callbacks, or key-based remounts
 
 ## Important Files

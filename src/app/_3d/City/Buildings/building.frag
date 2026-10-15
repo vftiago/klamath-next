@@ -199,8 +199,10 @@ void main(void) {
 
   bool front = vNormal.z > 0.5;
   bool side = abs(vNormal.x) > 0.5;
+  // roof furniture: plain boxes, no windows or detail lines
+  bool plain = vPattern > 2.5;
 
-  if (front) {
+  if (front && !plain) {
     float u = vLocal.x + vSize.x * 0.5;
     float v = vSize.y - vLocal.y;
     vec2 fw = fwidth(vec2(u, v));

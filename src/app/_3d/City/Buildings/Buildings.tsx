@@ -22,8 +22,11 @@ type InstanceAttributes = {
   size: Float32Array;
 };
 
+/** Window pattern value that tells the shader to draw a plain box (roof furniture). */
+const PLAIN_PATTERN = 3;
+
 const buildAttributes = (layer: CityLayer, groundY: number): InstanceAttributes => {
-  const count = layer.buildings.length;
+  const count = layer.buildings.length + layer.details.length;
   const attributes: InstanceAttributes = {
     frame: new Float32Array(count),
     offset: new Float32Array(count * 3),
@@ -40,6 +43,13 @@ const buildAttributes = (layer: CityLayer, groundY: number): InstanceAttributes 
     attributes.seed[i] = building.seed;
     attributes.pattern[i] = building.pattern;
     attributes.frame[i] = building.frame ? 1 : 0;
+  });
+
+  layer.details.forEach((detail, j) => {
+    const i = layer.buildings.length + j;
+    attributes.offset.set([detail.x, groundY + detail.baseY, layer.z], i * 3);
+    attributes.size.set([detail.width, detail.height, detail.depth], i * 3);
+    attributes.pattern[i] = PLAIN_PATTERN;
   });
 
   return attributes;
@@ -94,7 +104,7 @@ const Buildings = ({ layer, layout }: BuildingsProps) => {
   });
 
   return (
-    <instancedMesh args={[undefined, undefined, layer.buildings.length]} frustumCulled={false}>
+    <instancedMesh args={[undefined, undefined, layer.buildings.length + layer.details.length]} frustumCulled={false}>
       <boxGeometry args={[1, 1, 1]}>
         <instancedBufferAttribute args={[attributes.offset, 3]} attach="attributes-aOffset" />
         <instancedBufferAttribute args={[attributes.size, 3]} attach="attributes-aSize" />
