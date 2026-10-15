@@ -2,7 +2,7 @@
 
 ## Overview
 
-Personal portfolio website built with Next.js 16. Showcases GitHub projects and repositories with an interactive Three.js background.
+Personal portfolio website built with Next.js 16. Showcases GitHub projects and repositories over a procedurally generated neon city (Three.js): parallax skyline layers with flickering windows, neon signs and billboards with real text, a rooftop searchlight, food stalls, fog, a reflective river, toggleable rain, and a CRT post-effect. Inspired by nanodrops.org; the build plan lives in the untracked `.tasks/neon-city-scene.md`.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS v4, Three.js (via @react-three/fiber), Typed.js
 
@@ -43,7 +43,7 @@ src/
 │   │   ├── ThreeScene.tsx           # Main canvas, camera controller, route camera states
 │   │   ├── DynamicThreeScene.tsx    # SSR-safe loader
 │   │   ├── utils.ts                 # getSceneTime (wrapped scene clock), mulberry32 seeded PRNG
-│   │   ├── City/                    # Neon city scene (see .tasks/neon-city-scene.md for the plan)
+│   │   ├── City/                    # Neon city scene (plan: .tasks/neon-city-scene.md, gitignored)
 │   │   │   ├── City.tsx             # Generates the layout per viewport aspect, mounts the layers
 │   │   │   ├── config.ts            # Camera constants, layer table, palette-independent sizing
 │   │   │   ├── generate.ts          # Pure seeded layout generator (no three.js imports)
@@ -143,6 +143,9 @@ src/
 | `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition               |
 | `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`  |
 | `src/app/_3d/City/config.ts`               | `CAMERA`, `LAYERS`, `GROUND_Y`, depth helpers |
+| `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)  |
+| `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets          |
+| `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)        |
 | `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)   |
 | `src/app/_navbar/headers.ts`               | Route headers with rarity system              |
 | `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook               |
@@ -191,6 +194,8 @@ pnpm format   # Prettier
 pnpm analyze  # Bundle analysis (webpack build — @next/bundle-analyzer is webpack-only)
 ```
 
+Bundle reference (Turbopack production build, gzipped): the three + R3F + city chunk is ~259 KB, of which the city itself is ~22 KB; total client JS ~455 KB. No runtime dependencies were added for the city.
+
 ## Commit Messages
 
 Format: `<gitmoji> <subject>` — a single line, no body, no scope prefix, no trailers.
@@ -219,17 +224,17 @@ Examples: `⬆️ upgrade dependencies`, `🐛 fix several bugs`, `🚨 update e
 
 ## Responsive Breakpoints
 
-| Breakpoint | Width   | Notes                          |
-| ---------- | ------- | ------------------------------ |
-| mobile     | <768px  | No navbar, DPR-capped 3D scene |
-| md         | 768px+  | Navbar visible                 |
-| lg         | 1024px+ | Full layouts                   |
+| Breakpoint | Width   | Notes                             |
+| ---------- | ------- | --------------------------------- |
+| mobile     | <768px  | No navbar, `reduced` tier (DPR 1) |
+| md         | 768px+  | Navbar visible                    |
+| lg         | 1024px+ | Full layouts                      |
 
 ## Animation
 
 - **CSS** - List stagger animations via `animate-fade-in` + per-item `animationDelay`
 - **Typed.js** - Navbar header typing effect
-- **Three.js** - Continuous shader animations via `useFrame`
+- **Three.js** - City animation is mostly shader-side from `getSceneTime()`: window toggling (hashed periods), beacon blinks, fog scroll, river wobble, rain drops. CPU-side per frame: sign flicker state (`advanceDriver`), ripple spawns, smoke particles, badge bob. All of it is gated by the quality tier
 
 ## Layout Hierarchy
 
@@ -247,6 +252,8 @@ RootLayout (fonts, 3D background, analytics)
 ## Special Features
 
 - **Rarity system** in navbar headers (Common/Uncommon/Rare with weighted random); header picking happens in state initializers / click handlers, keyed by pathname
+- **Neon city** is fully procedural and seeded: no assets besides `public/logo.svg` (used for the beacon badge). Text, palette and layer tables are the tuning surface (`signage.ts`, `config.ts`, shader constants)
+- **Legacy scene** (`_3d/legacy/`): `Box`, `Plane`, `Barbelith` are deprecated and unmounted, kept until the city is approved, then removed in an isolated commit. They tree-shake out of the bundle
 - **Post-processing** shader with CRT-style scanlines, noise, vignette; render target sized to CSS size × DPR
 - **Quality tiers**: `useQuality()` exposes the knobs (`animate`, `signFlicker`, `smoke`, `fogPlanes`, `reflectionScale`, `rainDrops`, `renderOnDemand`); `static` renders on demand (`frameloop="demand"`, invalidated by camera moves, scroll and the fade-in); the verified tier is kept in `sessionStorage` (`klamath:quality`)
 - **Rain toggle**: `useRainPreference` (localStorage `klamath:rain` + a window event) defaults to on unless `prefers-reduced-motion`; `City` mounts `Rain` and `Ripples` only while enabled
