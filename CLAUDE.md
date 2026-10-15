@@ -165,6 +165,32 @@ pnpm format   # Prettier
 pnpm analyze  # Bundle analysis (webpack build — @next/bundle-analyzer is webpack-only)
 ```
 
+## Commit Messages
+
+Format: `<gitmoji> <subject>` — a single line, no body, no scope prefix, no trailers.
+
+- Start with one [gitmoji](https://gitmoji.dev) followed by a space
+- Subject is lowercase, imperative, and short (under ~60 characters)
+- One logical change per commit; no `Co-Authored-By` or other attribution lines
+
+Common emoji in this repo:
+
+| Emoji | Use                  |
+| ----- | -------------------- |
+| ✨    | new feature          |
+| 🐛    | bug fix              |
+| 💄    | UI / styling         |
+| ♻️    | refactor             |
+| ⚡️    | performance          |
+| ⬆️    | dependency upgrade   |
+| 🔧    | config files         |
+| 🚨    | lint fixes           |
+| 📝    | docs                 |
+| 🔥    | remove code or files |
+| ⚰️    | remove dead code     |
+
+Examples: `⬆️ upgrade dependencies`, `🐛 fix several bugs`, `🚨 update eslint.config and fix lint errors`
+
 ## Responsive Breakpoints
 
 | Breakpoint | Width   | Notes                          |
