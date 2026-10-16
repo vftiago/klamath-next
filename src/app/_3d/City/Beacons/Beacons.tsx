@@ -33,7 +33,7 @@ const buildAttributes = (layout: CityLayout): BeaconAttributes => {
   for (const layer of layout.layers) {
     for (const beacon of layer.beacons) {
       // just in front of the mast so the light isn't swallowed by the building's depth test
-      attributes.position.set([beacon.x, layout.groundY + beacon.y, layer.z + 2 * layer.scale], i * 3);
+      attributes.position.set([beacon.x, layout.groundY + beacon.y, layer.z + beacon.z + 2 * layer.scale], i * 3);
       attributes.radii.set([(1.2 + 0.25 * layer.index) * layer.scale, (4 + layer.index) * layer.scale], i * 2);
       attributes.phase[i] = Math.PI * 2 * ((beacon.x * 0.137) % 1) + beacon.phase;
       i++;

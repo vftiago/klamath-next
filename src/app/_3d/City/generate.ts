@@ -36,6 +36,8 @@ export type Building = {
   width: number;
   /** World x of the building's center. */
   x: number;
+  /** Box center z relative to the layer's z (0 = the layer's front row). */
+  z: number;
 };
 
 /** A plain box (no windows) used for roof furniture and sign brackets; `baseY` is relative to the ground line. */
@@ -56,6 +58,8 @@ export type Beacon = {
   phase: number;
   x: number;
   y: number;
+  /** Relative to the layer's z. */
+  z: number;
 };
 
 /** Rooftop billboard: a vertical board with a neon frame and text bars; `y` is its center, ground-relative. */
@@ -195,7 +199,7 @@ const makeSign = (building: Building, placement: SignPlacement, scale: number, r
     width: box.width * scale,
     x,
     y: building.height - (yFromTop + box.height * scale),
-    z: building.depth / 2 + 0.5 * scale,
+    z: building.z + building.depth / 2 + 0.5 * scale,
   };
 };
 
@@ -379,6 +383,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
     height: h,
     width: w,
     x: bx + w / 2,
+    z: building.z,
   });
 
   if (roof < 0.26) {
@@ -397,7 +402,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
     const mastW = 1.5 * scale;
     out.details.push(box(mastX - mastW / 2, top, mastW, mastH));
     if (r2 < 0.7) {
-      out.beacons.push({ phase: r3 * Math.PI * 2, x: mastX, y: top + mastH });
+      out.beacons.push({ phase: r3 * Math.PI * 2, x: mastX, y: top + mastH, z: building.z });
     }
   } else if (roof < 0.64 && index >= 2) {
     // billboard on two posts; the posts stand in the board's plane at the facade so they show against the sky
@@ -406,7 +411,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
     const boardLeft = left + (width - boardW) / 2;
     const postH = (4 + 1.5 * index) * scale;
     const postW = 1.5 * scale;
-    const boardZ = building.depth / 2 + 0.5 * scale;
+    const boardZ = building.z + building.depth / 2 + 0.5 * scale;
     for (const fraction of [0.2, 0.8]) {
       out.details.push({
         ...box(boardLeft + fraction * boardW - postW / 2, top, postW, postH + 2 * scale),
@@ -468,6 +473,7 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
       seed: Math.floor(rand() * 10000),
       width,
       x: cursor + width / 2,
+      z: 0,
     });
 
     cursor += width + (rand() < 0.35 ? rand() * (5 + 3 * index) * scale : 0);
@@ -493,6 +499,7 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
         seed: 7000 + (side + 1),
         width: frameWidth,
         x: innerEdge + (side * frameWidth) / 2,
+        z: 0,
       });
     }
   }
@@ -532,7 +539,9 @@ export const generateCity = (aspect: number, seed: number = SEED): CityLayout =>
 
   // the street sits in front of whatever the nearest layer's deepest box (frame buildings included) reaches
   const nearest = layers[NEAREST_LAYER];
-  const deepestFront = nearest ? Math.max(0, ...nearest.buildings.map((building) => building.depth / 2)) : 0;
+  const deepestFront = nearest
+    ? Math.max(0, ...nearest.buildings.map((building) => building.z + building.depth / 2))
+    : 0;
   const stallZ = deepestFront + STALL_CLEARANCE;
 
   return {
@@ -571,5 +580,5 @@ const pickSearchlight = (layers: CityLayer[], aspect: number): null | Searchligh
   // reference: radius = clamp(3% of the viewport width, 26, 56) screen px
   const radius = Math.max(26, Math.min(56, 0.03 * aspect * REF_VIEW_HEIGHT)) * layer.scale;
 
-  return { radius, roofY: best.height, x: best.x, z: layer.z + best.depth / 2 };
+  return { radius, roofY: best.height, x: best.x, z: layer.z + best.z + best.depth / 2 };
 };
