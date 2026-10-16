@@ -14,11 +14,10 @@ import {
   LAYERS,
   NEAREST_FRONT_LIMIT,
   NEAREST_LAYER,
-  PAVEMENT_DEPTH,
   REF_VIEW_HEIGHT,
   SEED,
   SKYLINE_RATIO,
-  STALL_CLEARANCE,
+  STALL,
   STREET_EVERY,
   streetWidth,
   visibleWidthAt,
@@ -622,13 +621,13 @@ export const generateCity = (aspect: number, seed: number = SEED): CityLayout =>
   const deepestFront = nearest
     ? Math.max(0, ...nearest.buildings.map((building) => building.z + building.depth / 2))
     : 0;
-  const stallZ = deepestFront + STALL_CLEARANCE;
+  const stallZ = deepestFront + STALL.clearance;
 
   return {
     groundY: GROUND_Y,
     layers,
     searchlight: pickSearchlight(layers, aspect),
-    shoreZ: stallZ + PAVEMENT_DEPTH,
+    shoreZ: stallZ + STALL.pavementDepth,
     stallZ,
   };
 };
