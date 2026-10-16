@@ -3,7 +3,7 @@ import { GLSL3 } from "three";
 import { mulberry32 } from "../../utils";
 import { STALL_CLUSTER, STALL_CLUSTER_GAP, STALL_SCALE } from "../config";
 import type { CityLayout } from "../generate";
-import { GROUND_NEAR_Z, GROUND_WIDTH } from "../Ground/Ground";
+import { GROUND_WIDTH } from "../Ground/Ground";
 import Smoke from "./Smoke";
 import type { SmokeSource } from "./Smoke";
 import type { StallSheet } from "./stall-art";
@@ -79,7 +79,7 @@ const placeStalls = (layout: CityLayout, sheet: StallSheet): StallAttributes => 
   return attributes;
 };
 
-/** Street level: a pavement strip in front of the nearest layer, the stalls on it, and their smoke. */
+/** Street level: the kerb at the water, the stalls on the ground plane, and their smoke. */
 const Stalls = ({ layout, smoke = true }: StallsProps) => {
   // DOM work (the sprite sheet canvas) belongs in a state initializer, not render
   const [sheet] = useState(() => createStallSheet());
@@ -90,17 +90,9 @@ const Stalls = ({ layout, smoke = true }: StallsProps) => {
     return () => sheet.texture.dispose();
   }, [sheet]);
 
-  // the pavement runs from the ground plane's near edge, behind the building fronts, to the water's edge
-  const pavementFrom = GROUND_NEAR_Z;
-  const pavementDepth = layout.shoreZ - pavementFrom;
-
   return (
     <group>
-      <mesh position={[0, layout.groundY + 0.3, pavementFrom + pavementDepth / 2]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[GROUND_WIDTH, pavementDepth]} />
-        <meshBasicMaterial color="rgb(14, 6, 24)" />
-      </mesh>
-      {/* kerb at the water */}
+      {/* kerb at the water; the pavement itself is the ground plane */}
       <mesh position={[0, layout.groundY + 1, layout.shoreZ - 1]}>
         <boxGeometry args={[GROUND_WIDTH, 2, 2]} />
         <meshBasicMaterial color="rgb(44, 18, 52)" />
