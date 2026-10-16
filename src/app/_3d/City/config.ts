@@ -23,18 +23,37 @@ export const SKYLINE_RATIO = 0.7;
 /** World y of the ground line / river surface, shared by all layers. */
 export const GROUND_Y = -250;
 
-/** Gap between the nearest layer's deepest front face and the stall plane, world units. */
-export const STALL_CLEARANCE = 8;
-
-/** Pavement depth in front of the stall plane; its far edge is the river's shoreline. */
-export const PAVEMENT_DEPTH = 20;
-
-/** Stall sprites are painted at the reference's size and drawn at this scale. */
-export const STALL_SCALE = 0.7;
-
-/** Stalls per cluster (min, extra) and the gap between clusters (min, extra), reference px. */
-export const STALL_CLUSTER = { extra: 3, min: 2 } as const;
-export const STALL_CLUSTER_GAP = { extra: 170, min: 70 } as const;
+/**
+ * Street stalls: every tuning knob in one place. Sizes are reference px unless noted; the stalls are planned
+ * at the reference's size and built at `scale`. Colours and the exact part layout live in `Stalls/`.
+ */
+export const STALL = {
+  /** Gap between the nearest layer's deepest front face and the stall plane, world units. */
+  clearance: 8,
+  /** Stalls per cluster (min, extra). */
+  cluster: { extra: 3, min: 2 },
+  /** Gap between clusters (min, extra), world units. */
+  clusterGap: { extra: 170, min: 70 },
+  /** Depth of the counter at the front of the footprint. */
+  counterDepth: 10,
+  /** Footprint depth (min, extra); independent of width so wide stalls don't balloon. */
+  depth: { extra: 16, min: 44 },
+  /**
+   * Volumetric haze around each stall: `peak` is the haze added through a sphere's centre (lanterns included),
+   * `radius` a multiple of the stall width, `height` the centre's height as a fraction of the body height.
+   */
+  glow: { height: 0.45, peak: 0.05, radius: 1.5 },
+  /** Lantern lights: chance a variant hangs them, sphere radius, and strength relative to `glow.peak`. */
+  lantern: { chance: 0.6, radius: 35, strength: 3 },
+  /** Pavement depth in front of the stall plane (the footprints included), world units; its far edge is the shoreline. */
+  pavementDepth: 60,
+  /** World units per reference px. */
+  scale: 0.7,
+  /** Space kept free between the kitchen block and the counter for whoever is serving. */
+  servingGap: 8,
+  /** Number of painted variants. */
+  variants: 10,
+} as const;
 
 /** Extra width generated beyond the visible frustum so camera moves and parallax never reveal an edge. */
 export const WIDTH_MARGIN = 1.6;
