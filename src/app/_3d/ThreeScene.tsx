@@ -24,26 +24,31 @@ const EYE_Y = GROUND_Y + 50;
 /** Fraction of the viewport height the horizon is shifted down by the lens shift. */
 const HORIZON_SHIFT = 0.12;
 
+/** Height of the aerial views above the ground line; the far layer's tallest buildings top out near +1600. */
+const AERIAL_Y = GROUND_Y + 1700;
+
+// TESTING: the sub-routes use pitched aerial views so the city can be inspected from above; the level,
+// lens-shifted framing of the home route is the intended look. Re-tune these before shipping.
 const CAMERA_STATES: Record<string, { lookAt: Vector3; position: Vector3 }> = {
   // Home: slightly raised and pulled back
   "/": {
     lookAt: new Vector3(0, EYE_Y + 60, 0),
     position: new Vector3(0, EYE_Y + 60, 1100),
   },
-  // About: trucked right; parallax comes only from the layers' depth
+  // About: aerial view from the right, looking down across the layers
   "/about": {
-    lookAt: new Vector3(120, EYE_Y + 20, 0),
-    position: new Vector3(120, EYE_Y + 20, 980),
+    lookAt: new Vector3(0, GROUND_Y + 100, -600),
+    position: new Vector3(1100, AERIAL_Y - 500, 700),
   },
-  // Projects: straight down the river at the skyline
+  // Projects: near top-down, looking steeply down at the near and middle layers
   "/projects": {
-    lookAt: new Vector3(0, EYE_Y, 0),
-    position: new Vector3(0, EYE_Y, CAMERA.z),
+    lookAt: new Vector3(0, GROUND_Y, -500),
+    position: new Vector3(0, AERIAL_Y, 500),
   },
-  // Repositories: trucked left
+  // Repositories: aerial view from the left, looking down the length of the river
   "/repositories": {
-    lookAt: new Vector3(-120, EYE_Y + 30, 0),
-    position: new Vector3(-120, EYE_Y + 30, 980),
+    lookAt: new Vector3(0, GROUND_Y + 100, -800),
+    position: new Vector3(-1100, AERIAL_Y - 300, 900),
   },
 };
 
