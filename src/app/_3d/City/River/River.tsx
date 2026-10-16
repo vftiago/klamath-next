@@ -13,7 +13,7 @@ import {
   WebGLRenderTarget,
 } from "three";
 import { getSceneTime } from "../../utils";
-import { GROUND_Y, LAYERS } from "../config";
+import { GROUND_Y } from "../config";
 import fragmentShader from "./river.frag";
 import vertexShader from "./river.vert";
 
@@ -24,8 +24,10 @@ type RiverProps = {
   shoreZ: number;
 };
 
-/** Far end of the water, behind the farthest layer, and its near edge behind the default camera. */
-const RIVER_FAR_Z = LAYERS[0].z - 400;
+/**
+ * The water starts at the shoreline (the ground plane covers everything behind it; overlapping the two at
+ * 0.3 units apart z-fights from far cameras) and ends behind the default camera.
+ */
 const RIVER_NEAR_Z = 1300;
 const RIVER_WIDTH = 24000;
 /** The near edge used for the wobble/darkening ramp sits before the camera. */
@@ -204,11 +206,11 @@ const River = ({ reflectionScale = 0.5, shoreZ }: RiverProps) => {
   return (
     <mesh
       frustumCulled={false}
-      position={[0, GROUND_Y, (RIVER_FAR_Z + RIVER_NEAR_Z) / 2]}
+      position={[0, GROUND_Y, (shoreZ + RIVER_NEAR_Z) / 2]}
       ref={meshRef}
       rotation={[-Math.PI / 2, 0, 0]}
     >
-      <planeGeometry args={[RIVER_WIDTH, RIVER_NEAR_Z - RIVER_FAR_Z]} />
+      <planeGeometry args={[RIVER_WIDTH, RIVER_NEAR_Z - shoreZ]} />
       <rawShaderMaterial
         fragmentShader={fragmentShader}
         glslVersion={GLSL3}
