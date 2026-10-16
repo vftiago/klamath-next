@@ -41,7 +41,7 @@ const buildAttributes = (layer: CityLayer, groundY: number): InstanceAttributes 
   };
 
   layer.buildings.forEach((building, i) => {
-    attributes.offset.set([building.x, groundY, layer.z], i * 3);
+    attributes.offset.set([building.x, groundY, layer.z + building.z], i * 3);
     attributes.size.set([building.width, building.height, building.depth], i * 3);
     attributes.rands.set(building.rands, i * 4);
     attributes.seed[i] = building.seed;
