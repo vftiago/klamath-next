@@ -10,6 +10,7 @@ import Buildings from "./Buildings/Buildings";
 import Fog from "./Fog/Fog";
 import type { CityLayout } from "./generate";
 import { generateCity } from "./generate";
+import Ground from "./Ground/Ground";
 import River from "./River/River";
 import Signs from "./Signs/Signs";
 import Sky from "./Sky/Sky";
@@ -88,6 +89,7 @@ const City = ({ rain = true }: CityProps) => {
   return (
     <group key={quantizedAspect}>
       <Sky aspect={quantizedAspect} />
+      <Ground layout={layout} />
       {layout.layers.map((layer) => (
         <Buildings animate={quality.animate} key={layer.index} layer={layer} layout={layout} />
       ))}
