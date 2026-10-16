@@ -13,7 +13,7 @@ type GroundProps = {
 export const GROUND_NEAR_Z = -20;
 
 /** The ground runs this far behind the farthest layer, so the far buildings never stand at its edge. */
-const BEYOND_FAR = 300;
+const BEYOND_FAR = 500;
 
 /**
  * Dark ground under the whole city, from the stall pavement back past the farthest layer. Without it the

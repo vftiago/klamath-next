@@ -74,7 +74,7 @@ export const LAYERS: readonly LayerConfig[] = [
     maxW: 44,
     minW: 16,
     px: 4,
-    side: 0,
+    side: 0.25,
     top: 0.9,
     win: [2, 2, 2, 3],
     z: -2000,
@@ -87,7 +87,7 @@ export const LAYERS: readonly LayerConfig[] = [
     maxW: 58,
     minW: 22,
     px: 7,
-    side: 0.2,
+    side: 0.35,
     top: 0.82,
     win: [2, 3, 3, 4],
     z: -1300,
@@ -100,7 +100,7 @@ export const LAYERS: readonly LayerConfig[] = [
     maxW: 78,
     minW: 30,
     px: 11,
-    side: 0.35,
+    side: 0.5,
     top: 0.72,
     win: [3, 4, 4, 5],
     z: -800,
@@ -113,7 +113,7 @@ export const LAYERS: readonly LayerConfig[] = [
     maxW: 106,
     minW: 42,
     px: 17,
-    side: 0.55,
+    side: 0.65,
     top: 0.62,
     win: [3, 5, 4, 6],
     z: -450,
@@ -126,7 +126,7 @@ export const LAYERS: readonly LayerConfig[] = [
     maxW: 140,
     minW: 60,
     px: 25,
-    side: 0.8,
+    side: 0.85,
     top: 0.54,
     win: [4, 6, 6, 8],
     z: -200,
@@ -135,6 +135,34 @@ export const LAYERS: readonly LayerConfig[] = [
 ];
 
 export const NEAREST_LAYER = LAYERS.length - 1;
+
+/**
+ * Block depth. A building's depth is `width * DEPTH_FACTOR * side`, varied per building by a random factor in
+ * `DEPTH_VARIATION`, then capped so its front face stays short of the fog plane in front of the layer
+ * (`FRONT_LIMIT_RATIO` of the gap to the nearer layer; the nearest layer uses `NEAREST_FRONT_LIMIT`).
+ */
+export const DEPTH_FACTOR = 0.85;
+export const DEPTH_VARIATION = { extra: 0.6, min: 0.7 } as const;
+export const FRONT_LIMIT_RATIO = 0.3;
+export const NEAREST_FRONT_LIMIT = 100;
+
+/**
+ * Back row: a second, lower row of boxes behind each layer's front row, separated by a small alley and
+ * reaching at most `BACK_LIMIT_RATIO` of the gap to the farther layer. Heights are `top * (min + extra * r)`.
+ */
+export const BACK_LIMIT_RATIO = 0.55;
+export const BACK_ROW_HEIGHT = { extra: 0.55, min: 0.15 } as const;
+/** Alley between the rows, reference px. */
+export const ALLEY = 6;
+/** Gap the far layer's back row may use (it has no farther neighbour), world units. */
+export const FAR_LAYER_BACK_GAP = 700;
+
+/**
+ * Streets: a wider gap every `STREET_EVERY.min + rand * STREET_EVERY.extra` buildings, running through both
+ * rows. Width in reference px grows with the layer index so far layers keep a dense silhouette.
+ */
+export const STREET_EVERY = { extra: 2, min: 3 } as const;
+export const streetWidth = (index: number, r: number): number => (6 + 5 * index) * (1 + r);
 
 /** World units per reference pixel at depth z (1 at z = 0). */
 export const depthScale = (z: number): number => (CAMERA.z - z) / CAMERA.z;
