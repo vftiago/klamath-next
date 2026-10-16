@@ -3,6 +3,7 @@ import type { LayerConfig } from "./config";
 import {
   ALLEY,
   BACK_LIMIT_RATIO,
+  BACK_ROW_DEPTH,
   BACK_ROW_HEIGHT,
   DEPTH_FACTOR,
   DEPTH_VARIATION,
@@ -531,7 +532,8 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
         }
         streetIndex++;
       }
-      const depth = depthFor(width, rand(), backSpace);
+      // back-row depth fills the space behind the front row rather than following the box width
+      const depth = backSpace * (BACK_ROW_DEPTH.min + BACK_ROW_DEPTH.extra * rand());
       const patternRoll = rand();
 
       back.push({
