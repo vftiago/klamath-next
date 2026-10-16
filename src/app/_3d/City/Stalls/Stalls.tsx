@@ -3,6 +3,7 @@ import { GLSL3 } from "three";
 import { mulberry32 } from "../../utils";
 import { STALL_CLUSTER, STALL_CLUSTER_GAP, STALL_SCALE } from "../config";
 import type { CityLayout } from "../generate";
+import { GROUND_NEAR_Z } from "../Ground/Ground";
 import Smoke from "./Smoke";
 import type { SmokeSource } from "./Smoke";
 import type { StallSheet } from "./stall-art";
@@ -91,8 +92,8 @@ const Stalls = ({ layout, smoke = true }: StallsProps) => {
 
   const layer = layout.layers[layout.layers.length - 1];
   const span = layer?.span ?? 0;
-  // the pavement runs from behind the building fronts to the water's edge
-  const pavementFrom = -20;
+  // the pavement runs from the ground plane's near edge, behind the building fronts, to the water's edge
+  const pavementFrom = GROUND_NEAR_Z;
   const pavementDepth = layout.shoreZ - pavementFrom;
 
   return (
