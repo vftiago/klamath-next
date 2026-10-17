@@ -3,6 +3,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import type { RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
+import type { Seeds } from "../City/config";
 import { useQuality } from "./QualityContext";
 
 export type RenderStats = {
@@ -52,11 +53,12 @@ export const StatsProbe = ({ statsRef }: ProbeProps) => {
 };
 
 type OverlayProps = {
+  seeds: Seeds;
   statsRef: RefObject<RenderStats>;
 };
 
 /** Outside the canvas: a small fixed readout, shown with `?debug=1`. */
-export const DebugOverlay = ({ statsRef }: OverlayProps) => {
+export const DebugOverlay = ({ seeds, statsRef }: OverlayProps) => {
   const quality = useQuality();
   const [snapshot, setSnapshot] = useState<RenderStats>(createStats);
 
@@ -71,6 +73,9 @@ export const DebugOverlay = ({ statsRef }: OverlayProps) => {
       <div>frame {snapshot.frameMs.toFixed(1)} ms</div>
       <div>calls {snapshot.calls}</div>
       <div>tris {snapshot.triangles}</div>
+      <div>
+        seeds {seeds.city} / {seeds.sign}
+      </div>
     </div>
   );
 };

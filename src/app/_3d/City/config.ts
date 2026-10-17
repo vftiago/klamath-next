@@ -58,7 +58,54 @@ export const STALL = {
 /** Extra width generated beyond the visible frustum so camera moves and parallax never reveal an edge. */
 export const WIDTH_MARGIN = 1.6;
 
-export const SEED = 2024;
+/**
+ * Viewport aspect the layout is generated for, whatever the real one, so every screen width gets the same
+ * buildings and signs; whatever falls outside the real viewport's span is culled afterwards. A viewport wider
+ * than this would reveal the layout's edge, so raise it rather than the margin if that ever happens.
+ */
+export const GENERATION_ASPECT = 2.4;
+
+export type Seeds = {
+  /** Skeleton: buildings, streets, back rows and roof furniture. */
+  city: number;
+  /** Decorative neon signs, rolled per building; independent of `city`. */
+  sign: number;
+};
+
+/** Committed seeds. `?seed=<n>` and `?signSeed=<n>` override them for a session (see `seeds.ts`). */
+export const SEEDS: Seeds = { city: 2024, sign: 2024 };
+
+/**
+ * Neon signs: placement odds and sizes, reference px unless noted. Text lives in `signage.ts`. The six frame
+ * signs are authored and always placed; every other sign is rolled per building and only placed where it has
+ * `breathing` room from any building, roof furniture or other sign in its layer's front plane.
+ */
+export const SIGNAGE = {
+  /** Blade signs hang this far from the building edge; two short poles bridge the gap. */
+  bladeGap: 6,
+  /** Bracket poles: distance in from the sign's top and bottom edges, and their thickness. */
+  bracket: { inset: 8, thickness: 2 },
+  /** Clear space kept around a blade sign (and below the frame signs). */
+  breathing: 4,
+  /** Character cell size per layer; the nearest layer adds up to `cellJitter` px. */
+  cellByLayer: [0, 7, 9, 10, 11, 18],
+  cellJitter: 6,
+  /** Chance a front building gets a sign: middle layers by height, the nearest layer, the rest. The far layer gets none. */
+  chance: { middleShort: 0.03, middleTall: 0.5, nearest: 0.28, other: 0.2 },
+  /** Sign brightness per layer. */
+  dimByLayer: [0.4, 0.6, 0.72, 0.82, 0.9, 1],
+  /** Chance a sign's driver may stutter, drop out or brown out. */
+  flakyChance: 0.55,
+  /**
+   * Frame signs: cell size (min, extra), the first sign's distance below the roof (min, extra), the gap
+   * between signs (min, extra), and the space kept above the frame building's foot.
+   */
+  frame: { bottomMargin: 90, cell: { extra: 6, min: 22 }, gap: { extra: 16, min: 10 }, top: { extra: 30, min: 90 } },
+  /** Chance a sign is tried flat on the facade first (when a word spans 55-100% of it) rather than as a blade. */
+  horizontalChance: 0.4,
+  /** A building narrowed to clear a frame sign is dropped if less than this fraction of the layer's `minW` remains. */
+  trimKeep: 0.6,
+} as const;
 
 export type LayerConfig = {
   /** Fog plane alpha between this layer and the next (phase 2). */
