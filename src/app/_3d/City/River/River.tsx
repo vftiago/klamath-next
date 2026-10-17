@@ -104,7 +104,9 @@ const River = ({ reflectionScale = 0.5, shoreZ }: RiverProps) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Three.js uniforms are loosely typed
       materialUniforms.uViewport.value.set(size.width, size.height);
     }
-  }, [size, viewport.dpr, reflectionScale]);
+    // `uniforms` is a dependency on purpose: Fast Refresh re-evaluates the memo (deps ignored) and R3F merges the
+    // new object, with `uMap: null`, into the material; this effect must run again to wire the target back in
+  }, [size, viewport.dpr, reflectionScale, uniforms]);
 
   useLayoutEffect(() => {
     return () => {
