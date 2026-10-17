@@ -5,7 +5,8 @@ import { GROUND_WIDTH } from "../Ground/Ground";
 import Smoke from "./Smoke";
 import type { StallSheet } from "./stall-art";
 import { createStallSheet } from "./stall-art";
-import { buildStallParts } from "./stall-geometry";
+import type { Placement } from "./stall-geometry";
+import { buildStallParts, placeStalls } from "./stall-geometry";
 import type { StallPlan } from "./stall-plan";
 import { planStalls } from "./stall-plan";
 import fragmentShader from "./stall.frag";
@@ -20,16 +21,18 @@ type StallsProps = {
   smoke?: boolean;
 };
 
-type Variants = { plans: StallPlan[]; sheet: StallSheet };
+type Variants = { placements: Placement[]; plans: StallPlan[]; sheet: StallSheet };
 
 /** Street level: the kerb at the water, the stalls on the ground plane, and their smoke. */
 const Stalls = ({ layout, smoke = true }: StallsProps) => {
-  // the plans are pure, but the sheet painted from them is DOM work: both belong in a state initializer
-  const [{ plans, sheet }] = useState<Variants>(() => {
-    const planned = planStalls();
-    return { plans: planned, sheet: createStallSheet(planned) };
+  // plans and placements are pure, but the sheet painted from them is DOM work: all three belong in a state
+  // initializer (the component remounts with the layout, so the placements never go stale)
+  const [{ placements, sheet }] = useState<Variants>(() => {
+    const plans = planStalls();
+    const placed = placeStalls(layout, plans);
+    return { placements: placed, plans, sheet: createStallSheet(plans, placed) };
   });
-  const parts = useMemo(() => buildStallParts(layout, plans, sheet), [layout, plans, sheet]);
+  const parts = useMemo(() => buildStallParts(layout, placements, sheet), [layout, placements, sheet]);
   const uniforms = useMemo(() => ({ uSheet: { value: sheet.texture } }), [sheet]);
 
   useEffect(() => {

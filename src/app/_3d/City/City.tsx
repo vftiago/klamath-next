@@ -8,7 +8,7 @@ import Beacons from "./Beacons/Beacons";
 import Billboards from "./Billboards/Billboards";
 import Buildings from "./Buildings/Buildings";
 import type { Seeds } from "./config";
-import { SEEDS } from "./config";
+import { SEEDS, STALL } from "./config";
 import Fog from "./Fog/Fog";
 import type { CityLayout } from "./generate";
 import { generateCity } from "./generate";
@@ -22,6 +22,13 @@ import { createTextAtlas, resolveSignFont } from "./text-atlas";
 
 /** Aspect is quantized so small resizes (scrollbars, mobile URL bar) don't regenerate the city. */
 const ASPECT_STEP = 0.1;
+
+/**
+ * The stalls build their sheet and geometry once, in state initializers, so a `STALL` edit under Fast Refresh
+ * would otherwise show only after a reload. Keying them on the config remounts them when it changes; in
+ * production this is a constant.
+ */
+const STALL_KEY = JSON.stringify(STALL);
 
 /** Every character the layout's signs and billboards use. */
 const collectChars = (layout: CityLayout): string[] => {
@@ -101,7 +108,7 @@ const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
       {atlas ? <Signs atlas={atlas} flicker={quality.signFlicker} layout={layout} /> : null}
       <Beacon animate={quality.animate} layout={layout} />
       <Beacons blink={quality.animate} layout={layout} />
-      <Stalls layout={layout} smoke={quality.smoke} />
+      <Stalls key={STALL_KEY} layout={layout} smoke={quality.smoke} />
       <Fog layout={layout} planes={quality.fogPlanes} />
       <River reflectionScale={quality.reflectionScale} shoreZ={layout.shoreZ} />
       {rain && quality.rainDrops > 0 ? <Rain drops={quality.rainDrops} /> : null}
