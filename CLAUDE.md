@@ -50,7 +50,8 @@ src/
 │   │   │   ├── Buildings/           # One instanced draw per depth layer; windows and roof boxes in one shader
 │   │   │   ├── Billboards/          # Rooftop neon-framed boards, instanced quads
 │   │   │   ├── Beacons/             # Blinking antenna lights, one Points draw
-│   │   │   ├── signage.ts           # EDIT HERE to change sign/billboard text: FRAME_SIGNS (6 big blade signs) + pools
+│   │   │   ├── signage.ts           # EDIT HERE to change sign/billboard text: FRAME_SIGNS (6 authored blade signs, with routes) + pools
+│   │   │   ├── seeds.ts             # `?seed=` (city) and `?signSeed=` (signs) URL overrides of SEEDS
 │   │   │   ├── text-atlas.ts        # Character atlas (CanvasTexture, 3 variants) built from the layout's texts after fonts load
 │   │   │   ├── Signs/               # Neon text signs: blade (beside an edge, bracketed) or facade (over a windowless band)
 │   │   │   ├── Beacon/              # Rooftop searchlight: lamp, additive beam, hovering logo badge
@@ -121,7 +122,8 @@ src/
 - Scroll-linked camera movement
 - Skipped entirely for `prefers-reduced-motion`; quality tier starts at `reduced` below `md` (DPR 1) and `full` above (DPR ≤ 2), then a frame-time probe steps down while the 75th-percentile frame exceeds the tier's budget; `?quality=<tier>` forces one, `?debug=1` shows frame ms and draw calls
 - Shader uniforms are declared via a memoized `uniforms` prop and mutated through `materialRef` in `useFrame`
-- City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; the whole city group is remounted by key when the quantized viewport aspect changes
+- City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; the whole city group is remounted by key when the quantized viewport aspect or the seeds change. Layers are walked for a fixed `GENERATION_ASPECT` and culled to the real one, so every width shows a window onto the same city
+- Signage has its own seed: the skeleton comes from `seeds.city`, each building's sign from its own PRNG (`building.seed` mixed with `seeds.sign`), so reseeding signs never moves a building. The six frame signs are authored (`FRAME_SIGNS`); the generator clears a strip beside each frame for them. Rolled blade signs are placed only with `SIGNAGE.breathing` room from every building, roof detail, billboard and sign in their layer's front plane, else they fall back to the other side, a facade sign, or nothing
 - City shaders are GLSL ES 3.0 (`glslVersion={GLSL3}`, `in`/`out`, `flat` per-instance varyings) and box-filter procedural detail against `fwidth` so thin patterns don't alias
 - DOM-backed textures (e.g. the fog tile canvas) are created in `useState` initializers and disposed in effect cleanups
 - Frame order: `useFrame` priorities are 0 (uniform updates), 0.5 (river reflection render), 1 (`PostEffect`, which renders the main scene and the CRT quad); new passes slot in between
@@ -133,23 +135,23 @@ src/
 
 ## Important Files
 
-| File                                       | Purpose                                       |
-| ------------------------------------------ | --------------------------------------------- |
-| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation     |
-| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type             |
-| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type            |
-| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)           |
-| `src/app/layout.tsx`                       | Root layout, fonts, 3D background             |
-| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition               |
-| `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`  |
-| `src/app/_3d/City/config.ts`               | `CAMERA`, `LAYERS`, `GROUND_Y`, depth helpers |
-| `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)  |
-| `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets          |
-| `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)        |
-| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)   |
-| `src/app/_navbar/headers.ts`               | Route headers with rarity system              |
-| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook               |
-| `next.config.ts`                           | Turbopack/Webpack shader loader config        |
+| File                                       | Purpose                                                   |
+| ------------------------------------------ | --------------------------------------------------------- |
+| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation                 |
+| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type                         |
+| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type                        |
+| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)                       |
+| `src/app/layout.tsx`                       | Root layout, fonts, 3D background                         |
+| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition                           |
+| `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`              |
+| `src/app/_3d/City/config.ts`               | `CAMERA`, `LAYERS`, `STALL`, `SIGNAGE`, `SEEDS`           |
+| `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)              |
+| `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets                      |
+| `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)                    |
+| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)               |
+| `src/app/_navbar/headers.ts`               | Route headers with rarity system                          |
+| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                           |
+| `next.config.ts`                           | Turbopack/Webpack shader loader config                    |
 
 ## Types
 

@@ -8,6 +8,7 @@ import { useBreakpoints } from "@/app/_shared/utils/use-breakpoints";
 import { usePrefersReducedMotion } from "@/app/_shared/utils/use-prefers-reduced-motion";
 import City from "./City/City";
 import { CAMERA, GROUND_Y } from "./City/config";
+import { readSeedOverrides } from "./City/seeds";
 import PostEffect from "./PostEffect/PostEffect";
 import { createStats, DebugOverlay, StatsProbe } from "./quality/DebugOverlay";
 import { qualityFor, QualityProvider } from "./quality/QualityContext";
@@ -161,6 +162,7 @@ const ThreeScene = () => {
   const [flags] = useState(() => ({
     debug: new URLSearchParams(window.location.search).has("debug"),
     forced: readForcedTier(),
+    seeds: readSeedOverrides(),
   }));
   const statsRef = useRef(createStats());
   const tier = useQualityTier({ forced: flags.forced, initial: isMdScreen ? "full" : "reduced" });
@@ -190,12 +192,12 @@ const ThreeScene = () => {
           <CameraController />
           <LensShift />
           <FadeInKeepAlive />
-          <City rain={rain} />
+          <City rain={rain} seeds={flags.seeds} />
           <PostEffect />
           {flags.debug ? <StatsProbe statsRef={statsRef} /> : null}
         </Canvas>
       </div>
-      {flags.debug ? <DebugOverlay statsRef={statsRef} /> : null}
+      {flags.debug ? <DebugOverlay seeds={flags.seeds} statsRef={statsRef} /> : null}
     </QualityProvider>
   );
 };

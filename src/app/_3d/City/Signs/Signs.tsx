@@ -3,8 +3,8 @@ import { useMemo, useRef } from "react";
 import type { InstancedBufferAttribute } from "three";
 import { DynamicDrawUsage, GLSL3, Vector2 } from "three";
 import { getSceneTime } from "../../utils";
+import { SIGNAGE } from "../config";
 import type { CityLayout, Sign } from "../generate";
-import { SIGN_DIM_BY_LAYER } from "../generate";
 import type { TextAtlas } from "../text-atlas";
 import { glyphIndex } from "../text-atlas";
 import fragmentShader from "./sign.frag";
@@ -41,6 +41,8 @@ type SignAttributes = {
   glyphs0: Float32Array;
   glyphs1: Float32Array;
   glyphs2: Float32Array;
+  /** Sign id per instance, so a pointer hit on `instanceId` maps back to its sign (and route). */
+  ids: string[];
   meta: Float32Array;
   offset: Float32Array;
   params: Float32Array;
@@ -76,6 +78,7 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     glyphs0: new Float32Array(count * 4),
     glyphs1: new Float32Array(count * 4),
     glyphs2: new Float32Array(count * 4),
+    ids: entries.map(({ sign }) => sign.id),
     meta: new Float32Array(count * 3),
     offset: new Float32Array(count * 3),
     params: new Float32Array(count * 4),
@@ -93,7 +96,7 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     attributes.glyphs0.set(glyphs.slice(0, 4), i * 4);
     attributes.glyphs1.set(glyphs.slice(4, 8), i * 4);
     attributes.glyphs2.set(glyphs.slice(8, 12), i * 4);
-    attributes.meta.set([SIGN_DIM_BY_LAYER[layerIndex] ?? 1, sign.dead, scale], i * 3);
+    attributes.meta.set([SIGNAGE.dimByLayer[layerIndex] ?? 1, sign.dead, scale], i * 3);
     attributes.state.set([STEADY_LEVEL, -1], i * 2);
     attributes.drivers.push({
       flaky: sign.flaky,

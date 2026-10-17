@@ -1,5 +1,5 @@
 import { mulberry32 } from "../utils";
-import type { LayerConfig } from "./config";
+import type { Seeds } from "./config";
 import {
   ALLEY,
   BACK_LIMIT_RATIO,
@@ -10,12 +10,14 @@ import {
   depthScale,
   FAR_LAYER_BACK_GAP,
   FRONT_LIMIT_RATIO,
+  GENERATION_ASPECT,
   GROUND_Y,
   LAYERS,
   NEAREST_FRONT_LIMIT,
   NEAREST_LAYER,
   REF_VIEW_HEIGHT,
-  SEED,
+  SEEDS,
+  SIGNAGE,
   SKYLINE_RATIO,
   STALL,
   STREET_EVERY,
@@ -23,6 +25,7 @@ import {
   visibleWidthAt,
   WIDTH_MARGIN,
 } from "./config";
+import type { LayerConfig } from "./config";
 import { BILLBOARD_POOL, FRAME_SIGNS, MAX_TEXT_CHARS, SIGN_POOL } from "./signage";
 
 /** Window layout: 0 = grid, 1 = horizontal bands, 2 = tall columns. */
@@ -101,6 +104,10 @@ export type Sign = {
   /** True for the big blade signs on the edge frame buildings. */
   framed: boolean;
   height: number;
+  /** Route the sign navigates to once signs are clickable; authored signs only. */
+  href?: string;
+  /** Stable id: the frame record's id, or `layer:buildingSeed:ordinal` for rolled signs. */
+  id: string;
   /** Box margin around the character cells, world units. */
   margin: number;
   mount: SignMount;
@@ -127,7 +134,7 @@ export type CityLayer = {
   scale: number;
   /** Skyline height (tallest possible building) at this depth, world units. */
   skylineHeight: number;
-  /** Generated width of the layer (visible width plus margin), world units. */
+  /** Width of the layer kept after culling (visible width plus margin), world units. */
   span: number;
   z: number;
 };
@@ -155,18 +162,16 @@ export type CityLayout = {
 
 type RoofFurniture = Pick<CityLayer, "beacons" | "billboards" | "details">;
 
-/** Character cell size per layer, reference px; the nearest layer adds up to 6 px of variation. */
-const SIGN_CELL_BY_LAYER = [0, 7, 9, 10, 11, 18];
-/** Sign brightness per layer. */
-export const SIGN_DIM_BY_LAYER = [0.4, 0.6, 0.72, 0.82, 0.9, 1];
 const GLYPH_PITCH = 1.18;
-/** Blade signs hang this far (reference px) from the building edge; two short poles bridge the gap. */
-const BLADE_GAP = 6;
-const BRACKET_THICKNESS = 2;
-/** Distance from the sign's top/bottom edge to each pole, reference px. */
-const BRACKET_INSET = 8;
 /** Window pattern value for bracket boxes: drawn plain in a lighter metal tone. */
 export const BRACKET_PATTERN = 4;
+
+/** Mixes a building's seed with the sign seed into a per-building PRNG seed; nearby inputs give unrelated streams. */
+const mix = (a: number, b: number): number => (Math.imul(a + 1, 0x9e3779b1) ^ Math.imul(b + 1, 0x85ebca6b)) | 0;
+
+/** A building's own sign stream: depends on the building (its seed and layer) and the sign seed, nothing else. */
+const signStream = (building: Building, layerIndex: number, signSeed: number): (() => number) =>
+  mulberry32(mix(building.seed + layerIndex * 10007, signSeed));
 
 const signBox = (cell: number, count: number, vertical: boolean) => {
   const margin = Math.max(3, Math.round(0.3 * cell));
@@ -175,9 +180,70 @@ const signBox = (cell: number, count: number, vertical: boolean) => {
   return { height: vertical ? run : across, margin, width: vertical ? across : run };
 };
 
+/** An axis-aligned rectangle in a layer's front plane: world x, ground-relative y. */
+type Rect = { bottom: number; left: number; right: number; top: number };
+
+const intersects = (a: Rect, b: Rect): boolean =>
+  a.left < b.right && a.right > b.left && a.bottom < b.top && a.top > b.bottom;
+
+const signRect = (sign: Sign): Rect => ({
+  bottom: sign.y,
+  left: sign.x,
+  right: sign.x + sign.width,
+  top: sign.y + sign.height,
+});
+
+const buildingRect = (building: Building): Rect => ({
+  bottom: 0,
+  left: building.x - building.width / 2,
+  right: building.x + building.width / 2,
+  top: building.height,
+});
+
+/**
+ * Everything in a layer's front plane a blade sign could clip: front-row buildings, their roof furniture and
+ * billboards, and the signs placed so far. Back rows stand behind every front face, so they never clip.
+ */
+const frontObstacles = (layer: CityLayer): Rect[] => {
+  const rects: Rect[] = [];
+
+  for (const building of layer.buildings) {
+    if (building.z === 0) {
+      rects.push(buildingRect(building));
+    }
+  }
+  for (const detail of layer.details) {
+    if ((detail.z ?? 0) >= 0) {
+      rects.push({
+        bottom: detail.baseY,
+        left: detail.x - detail.width / 2,
+        right: detail.x + detail.width / 2,
+        top: detail.baseY + detail.height,
+      });
+    }
+  }
+  for (const board of layer.billboards) {
+    if (board.z >= 0) {
+      rects.push({
+        bottom: board.y - board.height / 2,
+        left: board.x - board.width / 2,
+        right: board.x + board.width / 2,
+        top: board.y + board.height / 2,
+      });
+    }
+  }
+  for (const sign of layer.signs) {
+    rects.push(signRect(sign));
+  }
+
+  return rects;
+};
+
 type SignPlacement = {
   cell: number;
   framed: boolean;
+  href?: string;
+  id: string;
   mount: SignMount;
   text: string;
   vertical: boolean;
@@ -188,16 +254,18 @@ type SignPlacement = {
 };
 
 const makeSign = (building: Building, placement: SignPlacement, scale: number, rand: () => number): Sign => {
-  const { cell, framed, mount, text, vertical, x, yFromTop } = placement;
+  const { cell, framed, href, id, mount, text, vertical, x, yFromTop } = placement;
   const box = signBox(cell, text.length, vertical);
 
   return {
     cell: cell * scale,
     colorSlot: Math.floor(rand() * 5),
     dead: -1,
-    flaky: rand() < 0.55,
+    flaky: rand() < SIGNAGE.flakyChance,
     framed,
     height: box.height * scale,
+    href,
+    id,
     margin: box.margin * scale,
     mount,
     phase: rand() * Math.PI * 2,
@@ -216,10 +284,10 @@ const makeSign = (building: Building, placement: SignPlacement, scale: number, r
  */
 const bracketsFor = (building: Building, sign: Sign, side: -1 | 1, scale: number): PlainBox[] => {
   const edge = building.x + (side * building.width) / 2;
-  const length = (BLADE_GAP + 2) * scale;
-  const thickness = BRACKET_THICKNESS * scale;
+  const length = (SIGNAGE.bladeGap + 2) * scale;
+  const thickness = SIGNAGE.bracket.thickness * scale;
   // the poles sit a little in from the sign's top and bottom edges
-  const inset = BRACKET_INSET * scale;
+  const inset = SIGNAGE.bracket.inset * scale;
   const x = edge + (side * length) / 2;
 
   return [sign.y + sign.height - inset - thickness, sign.y + inset].map((baseY) => ({
@@ -232,6 +300,12 @@ const bracketsFor = (building: Building, sign: Sign, side: -1 | 1, scale: number
     // flush with the facade, just behind the sign plane
     z: sign.z - thickness / 2,
   }));
+};
+
+/** World x of a blade sign's left edge when hung on `side` of the building. */
+const bladeX = (building: Building, side: -1 | 1, boxWidth: number, scale: number): number => {
+  const left = building.x - building.width / 2;
+  return side > 0 ? left + building.width + SIGNAGE.bladeGap * scale : left - (SIGNAGE.bladeGap + boxWidth) * scale;
 };
 
 /** First pool entry, starting from a random offset, that satisfies `fits`. */
@@ -248,125 +322,265 @@ const pickText = (pool: readonly string[], rand: () => number, fits: (text: stri
   return null;
 };
 
-type SignResult = { brackets: PlainBox[]; signs: Sign[] };
+/** Smallest character cell a frame sign shrinks to when its column would otherwise reach the building's foot. */
+const FRAME_MIN_CELL = 12;
 
 /**
- * Sign placement. Vertical signs are blade signs hung beside a building edge on brackets (frame buildings:
- * the inner edge, up to three, texts from `FRAME_SIGNS`). Horizontal signs sit flat on the facade and the
- * building gets a window-free band behind them. Per-layer odds follow the reference.
+ * The authored blade signs on one frame building: `FRAME_SIGNS` slots for its side, top to bottom, on the
+ * inner edge. Cell sizes and spacing come from the building's own sign stream; if the column would reach the
+ * foot, every cell shrinks a step at a time until it fits, so the authored texts are always placed.
  */
-const generateSigns = (
-  building: Building,
-  index: number,
-  layerConfig: LayerConfig,
-  scale: number,
-  skylineHeight: number,
-  rand: () => number,
-): SignResult => {
-  const nearest = index === NEAREST_LAYER;
-  const middle = index <= NEAREST_LAYER - 2;
-  const [, , cellH, gapY] = layerConfig.win;
-  const rowPitch = (cellH + gapY) * scale;
-  const widthRef = building.width / scale;
-  const left = building.x - building.width / 2;
-  const result: SignResult = { brackets: [], signs: [] };
+const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number): void => {
+  const { scale } = layer;
+  const rand = signStream(building, layer.index, signSeed);
+  const { frame } = SIGNAGE;
+  // the left frame building sits at negative x and shows its right side
+  const side: -1 | 1 = building.x < 0 ? 1 : -1;
+  const prefix = building.x < 0 ? "left" : "right";
+  const records = [0, 1, 2].flatMap((n) => FRAME_SIGNS.filter((entry) => entry.slot === `${prefix}-${n}`));
 
-  if (building.frame) {
-    // inner edge: the left frame building sits at negative x and shows its right side
-    const side: -1 | 1 = building.x < 0 ? 1 : -1;
-    const slotBase = building.x < 0 ? 0 : 3;
-    let yFromTop = (90 + 30 * rand()) * scale;
-    const limit = building.height - 90 * scale;
-
-    for (let n = 0; n < 3; n++) {
-      const cell = 22 + Math.round(6 * rand());
-      const fits = (text: string) => yFromTop + signBox(cell, text.length, true).height * scale <= limit;
-      const preset = FRAME_SIGNS[slotBase + n];
-      const text = preset && fits(preset) ? preset : pickText(SIGN_POOL, rand, fits);
-
-      if (!text) {
-        break;
-      }
-
-      const box = signBox(cell, text.length, true);
-      const x = side > 0 ? left + building.width + BLADE_GAP * scale : left - (BLADE_GAP + box.width) * scale;
-      const sign = makeSign(
-        building,
-        { cell, framed: true, mount: "blade", text, vertical: true, x, yFromTop },
-        scale,
-        rand,
-      );
-      result.signs.push(sign);
-      result.brackets.push(...bracketsFor(building, sign, side, scale));
-      yFromTop += (box.height + 10 + 16 * rand()) * scale;
-    }
-
-    return result;
+  if (records.length === 0) {
+    return;
   }
 
-  const tall = building.height > skylineHeight * layerConfig.top * 0.66;
-  const chance = index === 0 ? 0 : middle ? (tall ? 0.5 : 0.03) : nearest ? 0.28 : 0.2;
+  const first = frame.top.min + frame.top.extra * rand();
+  let cells = records.map(() => frame.cell.min + Math.round(frame.cell.extra * rand()));
+  const gaps = records.slice(1).map(() => frame.gap.min + frame.gap.extra * rand());
+  const available = building.height / scale - frame.bottomMargin - first;
+  const columnHeight = (sizes: number[]): number =>
+    sizes.reduce((sum, cell, i) => sum + signBox(cell, records[i]?.text.length ?? 0, true).height, 0) +
+    gaps.reduce((sum, gap) => sum + gap, 0);
 
-  if (rand() >= chance) {
-    return result;
+  while (columnHeight(cells) > available && Math.max(...cells) > FRAME_MIN_CELL) {
+    cells = cells.map((cell) => Math.max(FRAME_MIN_CELL, cell - 1));
   }
 
-  const cell = nearest ? SIGN_CELL_BY_LAYER[index] + Math.round(6 * rand()) : SIGN_CELL_BY_LAYER[index];
-  const top = 8 * scale;
-  const bottomLimit = building.height - (nearest ? 72 : 14) * scale;
-  const horizontalRoll = rand() < 0.4;
+  let yFromTop = first * scale;
 
-  // horizontal on the facade when a word spans 55-100% of it and the roll allows; otherwise a blade sign
-  const horizontalText = horizontalRoll
-    ? pickText(SIGN_POOL, rand, (text) => {
-        const box = signBox(cell, text.length, false);
-        return box.width <= widthRef - 8 && box.width >= 0.55 * widthRef && box.height * scale <= bottomLimit - top;
-      })
-    : null;
-  const vertical = horizontalText === null;
-  const text =
-    horizontalText ??
-    pickText(SIGN_POOL, rand, (t) => signBox(cell, t.length, true).height * scale <= bottomLimit - top);
-
-  if (!text) {
-    return result;
-  }
-
-  const box = signBox(cell, text.length, vertical);
-  const boxH = box.height * scale;
-  const room = bottomLimit - top - boxH;
-  const topMargin = (3 + index + 2) * scale;
-  let yFromTop = top + rand() * (middle ? Math.min(room, building.height * 0.16) : 0.6 * room);
-  yFromTop = Math.max(
-    top,
-    Math.min(
-      top + room,
-      topMargin + Math.round((yFromTop - topMargin) / rowPitch) * rowPitch - Math.min(2, gapY / 2) * scale,
-    ),
-  );
-
-  if (vertical) {
-    const side: -1 | 1 = rand() < 0.5 ? -1 : 1;
-    const x = side > 0 ? left + building.width + BLADE_GAP * scale : left - (BLADE_GAP + box.width) * scale;
+  records.forEach((record, n) => {
+    const cell = cells[n] ?? FRAME_MIN_CELL;
+    const box = signBox(cell, record.text.length, true);
     const sign = makeSign(
       building,
-      { cell, framed: false, mount: "blade", text, vertical: true, x, yFromTop },
+      {
+        cell,
+        framed: true,
+        href: record.href,
+        id: record.id,
+        mount: "blade",
+        text: record.text,
+        vertical: true,
+        x: bladeX(building, side, box.width, scale),
+        yFromTop,
+      },
       scale,
       rand,
     );
-    result.signs.push(sign);
-    result.brackets.push(...bracketsFor(building, sign, side, scale));
-    return result;
+    layer.signs.push(sign);
+    layer.details.push(...bracketsFor(building, sign, side, scale));
+    yFromTop += (box.height + (gaps[n] ?? 0)) * scale;
+  });
+};
+
+/**
+ * Keeps the frame signs clear before they are placed: a strip inside the frame's inner edge wide enough for
+ * the widest possible blade sign, its gap and breathing room, full height. Front buildings reaching into it
+ * are narrowed to its edge, or dropped when too little would remain. Independent of the sign seed, so
+ * reseeding signs never changes the skeleton. Runs before roof furniture is generated, so nothing floats.
+ */
+const reserveFrameStrip = (layer: CityLayer, frame: Building): void => {
+  const { scale } = layer;
+  const { frame: frameKnobs } = SIGNAGE;
+  const widest = signBox(frameKnobs.cell.min + frameKnobs.cell.extra, 1, true).width;
+  const stripWidth = (SIGNAGE.bladeGap + widest + SIGNAGE.breathing) * scale;
+  const keep = SIGNAGE.trimKeep * layer.config.minW * scale;
+  const side: -1 | 1 = frame.x < 0 ? 1 : -1;
+  const edge = frame.x + (side * frame.width) / 2;
+  const far = edge + side * stripWidth;
+  const strip: Rect = { bottom: 0, left: Math.min(edge, far), right: Math.max(edge, far), top: Infinity };
+
+  layer.buildings = layer.buildings.filter((building) => {
+    if (building.frame || building.z !== 0) {
+      return true;
+    }
+
+    const rect = buildingRect(building);
+
+    if (!intersects(rect, strip)) {
+      return true;
+    }
+
+    const left = side > 0 ? Math.max(rect.left, far) : rect.left;
+    const right = side > 0 ? rect.right : Math.min(rect.right, far);
+
+    if (right - left < keep) {
+      return false;
+    }
+
+    building.width = right - left;
+    building.x = (left + right) / 2;
+    return true;
+  });
+};
+
+/**
+ * One rolled sign per front building, from the building's own stream. Horizontal signs sit flat on the
+ * facade (the building gets a window-free band behind them) and always fit. Blade signs hang beside an
+ * edge on brackets and are placed only where nothing in the front plane comes within `breathing` of them:
+ * rolled side first, then the other, then a facade sign if a word spans the building, otherwise no sign.
+ */
+const placeDecorativeSign = (
+  layer: CityLayer,
+  building: Building,
+  id: string,
+  obstacles: Rect[],
+  rand: () => number,
+): void => {
+  const { config, index, scale, skylineHeight } = layer;
+  const nearest = index === NEAREST_LAYER;
+  const middle = index <= NEAREST_LAYER - 2;
+  const tall = building.height > skylineHeight * config.top * 0.66;
+  const { chance } = SIGNAGE;
+  const odds =
+    index === 0
+      ? 0
+      : middle
+        ? tall
+          ? chance.middleTall
+          : chance.middleShort
+        : nearest
+          ? chance.nearest
+          : chance.other;
+
+  if (rand() >= odds) {
+    return;
   }
 
-  const x = left + (building.width - box.width * scale) / 2;
-  result.signs.push(
-    makeSign(building, { cell, framed: false, mount: "facade", text, vertical: false, x, yFromTop }, scale, rand),
-  );
-  // no windows on the floors behind the sign
-  building.blank = [yFromTop - 2 * scale, yFromTop + boxH + 2 * scale];
+  const [, , cellH, gapY] = config.win;
+  const rowPitch = (cellH + gapY) * scale;
+  const widthRef = building.width / scale;
+  const left = building.x - building.width / 2;
+  const baseCell = SIGNAGE.cellByLayer[index] ?? 0;
+  const cell = nearest ? baseCell + Math.round(SIGNAGE.cellJitter * rand()) : baseCell;
+  const top = 8 * scale;
+  const bottomLimit = building.height - (nearest ? 72 : 14) * scale;
+  const breathing = SIGNAGE.breathing * scale;
 
-  return result;
+  const fitsFacade = (text: string): boolean => {
+    const box = signBox(cell, text.length, false);
+    return box.width <= widthRef - 8 && box.width >= 0.55 * widthRef && box.height * scale <= bottomLimit - top;
+  };
+  const fitsBlade = (text: string): boolean => signBox(cell, text.length, true).height * scale <= bottomLimit - top;
+
+  // a random height below the roof, snapped to the window rows
+  const snapY = (boxH: number): number => {
+    const room = bottomLimit - top - boxH;
+    const topMargin = (3 + index + 2) * scale;
+    const raw = top + rand() * (middle ? Math.min(room, building.height * 0.16) : 0.6 * room);
+    const snapped = topMargin + Math.round((raw - topMargin) / rowPitch) * rowPitch - Math.min(2, gapY / 2) * scale;
+    return Math.max(top, Math.min(top + room, snapped));
+  };
+
+  const facade = (text: string): void => {
+    const box = signBox(cell, text.length, false);
+    const boxH = box.height * scale;
+    const yFromTop = snapY(boxH);
+    const x = left + (building.width - box.width * scale) / 2;
+    const sign = makeSign(
+      building,
+      { cell, framed: false, id, mount: "facade", text, vertical: false, x, yFromTop },
+      scale,
+      rand,
+    );
+    layer.signs.push(sign);
+    obstacles.push(signRect(sign));
+    // no windows on the floors behind the sign
+    building.blank = [yFromTop - 2 * scale, yFromTop + boxH + 2 * scale];
+  };
+
+  const blade = (text: string): boolean => {
+    const box = signBox(cell, text.length, true);
+    const yFromTop = snapY(box.height * scale);
+    const first: -1 | 1 = rand() < 0.5 ? -1 : 1;
+
+    const sides: readonly (-1 | 1)[] = first > 0 ? [1, -1] : [-1, 1];
+
+    for (const side of sides) {
+      const sign = makeSign(
+        building,
+        {
+          cell,
+          framed: false,
+          id,
+          mount: "blade",
+          text,
+          vertical: true,
+          x: bladeX(building, side, box.width, scale),
+          yFromTop,
+        },
+        scale,
+        rand,
+      );
+      const edge = building.x + (side * building.width) / 2;
+      // the strip from the building edge (brackets included) to the sign's far edge, with breathing room
+      const zone: Rect = {
+        bottom: sign.y - breathing,
+        left: side > 0 ? edge : sign.x - breathing,
+        right: side > 0 ? sign.x + sign.width + breathing : edge,
+        top: sign.y + sign.height + breathing,
+      };
+
+      if (obstacles.some((obstacle) => intersects(obstacle, zone))) {
+        continue;
+      }
+
+      layer.signs.push(sign);
+      layer.details.push(...bracketsFor(building, sign, side, scale));
+      obstacles.push(signRect(sign));
+      return true;
+    }
+
+    return false;
+  };
+
+  const horizontalFirst = rand() < SIGNAGE.horizontalChance;
+  const facadeText = horizontalFirst ? pickText(SIGN_POOL, rand, fitsFacade) : null;
+
+  if (facadeText) {
+    facade(facadeText);
+    return;
+  }
+
+  const bladeText = pickText(SIGN_POOL, rand, fitsBlade);
+
+  if (bladeText && blade(bladeText)) {
+    return;
+  }
+
+  if (!horizontalFirst) {
+    const fallback = pickText(SIGN_POOL, rand, fitsFacade);
+    if (fallback) {
+      facade(fallback);
+    }
+  }
+};
+
+/** Rolled signs for a layer's front row, left to right; `reserved` (the beacon building) gets none. */
+const placeDecorativeSigns = (layer: CityLayer, signSeed: number, reserved: Building | null): void => {
+  const obstacles = frontObstacles(layer);
+  const front = layer.buildings.filter((building) => building.z === 0 && !building.frame).sort((a, b) => a.x - b.x);
+  const seen = new Map<number, number>();
+
+  for (const building of front) {
+    if (building === reserved) {
+      continue;
+    }
+    // ids come from the building seed; a repeated seed in the layer (rare) gets a suffix
+    const repeat = seen.get(building.seed) ?? 0;
+    seen.set(building.seed, repeat + 1);
+    const id = repeat ? `${layer.index}:${building.seed}:${repeat}` : `${layer.index}:${building.seed}`;
+    placeDecorativeSign(layer, building, id, obstacles, signStream(building, layer.index, signSeed));
+  }
 };
 
 /**
@@ -461,6 +675,8 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
   const scale = depthScale(config.z);
   const skylineHeight = REF_VIEW_HEIGHT * SKYLINE_RATIO * scale;
   const span = visibleWidthAt(config.z, aspect) * WIDTH_MARGIN;
+  // the walk covers a fixed aspect so the layout doesn't depend on the screen width; `cullLayer` trims it to `span`
+  const walkSpan = visibleWidthAt(config.z, GENERATION_ASPECT) * WIDTH_MARGIN;
   const isNearest = index === NEAREST_LAYER;
 
   // depth budget: front faces stop short of the fog plane ahead, the back row short of the layer behind
@@ -477,10 +693,10 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
   const front: Building[] = [];
   const streets: Street[] = [];
 
-  let cursor = -span / 2 - rand() * config.minW * scale;
+  let cursor = -walkSpan / 2 - rand() * config.minW * scale;
   let untilStreet = STREET_EVERY.min + Math.floor(rand() * STREET_EVERY.extra);
 
-  while (cursor < span / 2) {
+  while (cursor < walkSpan / 2) {
     const width = widthFor();
     const height = skylineHeight * config.top * (0.32 + 0.68 * Math.pow(rand(), 0.85));
     const patternRoll = rand();
@@ -518,10 +734,10 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
   const back: Building[] = [];
 
   if (backSpace >= 3 * scale) {
-    let backCursor = -span / 2 - rand() * config.minW * scale;
+    let backCursor = -walkSpan / 2 - rand() * config.minW * scale;
     let streetIndex = 0;
 
-    while (backCursor < span / 2) {
+    while (backCursor < walkSpan / 2) {
       const width = widthFor();
       // jump past any street this box would overlap
       while (streetIndex < streets.length && (streets[streetIndex]?.[0] ?? Infinity) < backCursor + width) {
@@ -578,46 +794,85 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
     }
   }
 
-  const furniture: RoofFurniture = { beacons: [], billboards: [], details: [] };
-  const signs: Sign[] = [];
-  const buildings = [...front, ...back];
+  return {
+    beacons: [],
+    billboards: [],
+    buildings: [...front, ...back],
+    config,
+    details: [],
+    index,
+    scale,
+    signs: [],
+    skylineHeight,
+    span,
+    z: config.z,
+  };
+};
 
-  for (const building of buildings) {
-    const roof = generateRoof(building, index, scale, config.side);
-    furniture.beacons.push(...roof.beacons);
-    furniture.billboards.push(...roof.billboards);
-    furniture.details.push(...roof.details);
+/** Roof furniture for every building in the layer; after the frame zone is cleared so nothing floats. */
+const furnish = (layer: CityLayer): void => {
+  for (const building of layer.buildings) {
+    const roof = generateRoof(building, layer.index, layer.scale, layer.config.side);
+    layer.beacons.push(...roof.beacons);
+    layer.billboards.push(...roof.billboards);
+    layer.details.push(...roof.details);
   }
+};
 
-  // signs hang on the front row only
-  for (const building of front) {
-    const placed = generateSigns(building, index, config, scale, skylineHeight, rand);
-    signs.push(...placed.signs);
-    furniture.details.push(...placed.brackets);
-  }
+/** Drops everything generated beyond the layer's real span (the fixed-aspect walk overshoots narrower viewports). */
+const cullLayer = (layer: CityLayer): CityLayer => {
+  const half = layer.span / 2;
+  const inside = (left: number, width: number): boolean => left + width > -half && left < half;
 
-  return { ...furniture, buildings, config, index, scale, signs, skylineHeight, span, z: config.z };
+  return {
+    ...layer,
+    beacons: layer.beacons.filter((beacon) => inside(beacon.x, 0)),
+    billboards: layer.billboards.filter((board) => inside(board.x - board.width / 2, board.width)),
+    buildings: layer.buildings.filter((building) => inside(building.x - building.width / 2, building.width)),
+    details: layer.details.filter((detail) => inside(detail.x - detail.width / 2, detail.width)),
+    signs: layer.signs.filter((sign) => inside(sign.x, sign.width)),
+  };
 };
 
 /**
- * Pure, deterministic city layout. Same seed and aspect always yield the same city.
+ * Pure, deterministic city layout. The same seeds always yield the same city: layers are generated for
+ * `GENERATION_ASPECT` and culled to the real aspect, so the screen width only decides how much of it shows.
+ * Order: skeleton (city seed) → frame clear strips and authored frame signs → roof furniture → beacon
+ * building → rolled signs (sign seed, per building) → cull.
  * No three.js imports here: the output is plain data that components turn into instanced attributes.
  */
-export const generateCity = (aspect: number, seed: number = SEED): CityLayout => {
-  const layers = LAYERS.map((config, index) => generateLayer(config, index, aspect, seed));
+export const generateCity = (aspect: number, seeds: Seeds = SEEDS): CityLayout => {
+  const generated = LAYERS.map((config, index) => generateLayer(config, index, aspect, seeds.city));
+  const nearest = generated[NEAREST_LAYER];
 
-  // one sign, preferably a framed one, gets a permanently dead glyph
-  const allSigns = layers.flatMap((layer) => layer.signs);
+  if (nearest) {
+    for (const frame of nearest.buildings.filter((building) => building.frame)) {
+      reserveFrameStrip(nearest, frame);
+      placeFrameSigns(nearest, frame, seeds.sign);
+    }
+  }
+
+  for (const layer of generated) {
+    furnish(layer);
+  }
+
+  const beacon = pickSearchlight(generated, aspect);
+
+  for (const layer of generated) {
+    placeDecorativeSigns(layer, seeds.sign, beacon?.building ?? null);
+  }
+
+  // one authored sign gets a permanently dead glyph; from the sign seed, so it holds while browsing city seeds
+  const allSigns = generated.flatMap((layer) => layer.signs);
   const candidates = allSigns.filter((sign) => sign.framed);
   const pool = candidates.length ? candidates : allSigns;
-  const victim = pool[Math.floor(mulberry32(99)() * pool.length)];
+  const victim = pool[Math.floor(mulberry32(seeds.sign + 99)() * pool.length)];
 
   if (victim) {
-    victim.dead = Math.floor(mulberry32(7)() * victim.text.length);
+    victim.dead = Math.floor(mulberry32(seeds.sign + 7)() * victim.text.length);
   }
 
   // the street sits in front of whatever the nearest layer's deepest box (frame buildings included) reaches
-  const nearest = layers[NEAREST_LAYER];
   const deepestFront = nearest
     ? Math.max(0, ...nearest.buildings.map((building) => building.z + building.depth / 2))
     : 0;
@@ -625,21 +880,24 @@ export const generateCity = (aspect: number, seed: number = SEED): CityLayout =>
 
   return {
     groundY: GROUND_Y,
-    layers,
-    searchlight: pickSearchlight(layers, aspect),
+    layers: generated.map(cullLayer),
+    searchlight: beacon?.searchlight ?? null,
     shoreZ: stallZ + STALL.pavementDepth,
     stallZ,
   };
 };
 
-const pickSearchlight = (layers: CityLayer[], aspect: number): null | Searchlight => {
+/** The searchlight's building (tallest front-row building in the central 40% of the second-nearest layer) and its placement. */
+const pickSearchlight = (
+  layers: CityLayer[],
+  aspect: number,
+): null | { building: Building; searchlight: Searchlight } => {
   const layer = layers[NEAREST_LAYER - 1];
 
   if (!layer) {
     return null;
   }
 
-  // candidates: non-frame buildings within the central 40% of the visible width at this depth
   const limit = 0.2 * visibleWidthAt(layer.z, aspect);
   let best: Building | null = null;
 
@@ -659,5 +917,8 @@ const pickSearchlight = (layers: CityLayer[], aspect: number): null | Searchligh
   // reference: radius = clamp(3% of the viewport width, 26, 56) screen px
   const radius = Math.max(26, Math.min(56, 0.03 * aspect * REF_VIEW_HEIGHT)) * layer.scale;
 
-  return { radius, roofY: best.height, x: best.x, z: layer.z + best.z + best.depth / 2 };
+  return {
+    building: best,
+    searchlight: { radius, roofY: best.height, x: best.x, z: layer.z + best.z + best.depth / 2 },
+  };
 };

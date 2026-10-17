@@ -7,6 +7,8 @@ import Beacon from "./Beacon/Beacon";
 import Beacons from "./Beacons/Beacons";
 import Billboards from "./Billboards/Billboards";
 import Buildings from "./Buildings/Buildings";
+import type { Seeds } from "./config";
+import { SEEDS } from "./config";
 import Fog from "./Fog/Fog";
 import type { CityLayout } from "./generate";
 import { generateCity } from "./generate";
@@ -75,19 +77,21 @@ const useTextAtlas = (layout: CityLayout): null | TextAtlas => {
 type CityProps = {
   /** Show the rain overlay (drops and ripples). */
   rain?: boolean;
+  /** City and sign seeds; a change regenerates the layout like an aspect change does. */
+  seeds?: Seeds;
 };
 
-const City = ({ rain = true }: CityProps) => {
+const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
   const quality = useQuality();
   const aspect = useThree((state) => state.viewport.aspect);
   const quantizedAspect = Math.max(0.5, Math.round(aspect / ASPECT_STEP) * ASPECT_STEP);
 
-  const layout = useMemo(() => generateCity(quantizedAspect), [quantizedAspect]);
+  const layout = useMemo(() => generateCity(quantizedAspect, seeds), [quantizedAspect, seeds]);
   const atlas = useTextAtlas(layout);
 
-  // keyed on aspect: a new layout remounts everything so attributes and uniforms are built once per mount
+  // keyed on aspect and seeds: a new layout remounts everything so attributes and uniforms are built once per mount
   return (
-    <group key={quantizedAspect}>
+    <group key={`${quantizedAspect}:${seeds.city}:${seeds.sign}`}>
       <Sky aspect={quantizedAspect} />
       <Ground layout={layout} />
       {layout.layers.map((layer) => (
