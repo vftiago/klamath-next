@@ -60,43 +60,88 @@ export const SIGN_POOL: readonly string[] = [
   "中華",
   "定食",
   "占い",
-  "RAMEN",
+  // "RAMEN",
   "HOTEL",
   "BAR",
-  "SUSHI",
+  // "SUSHI",
   "KARAOKE",
   "ARCADE",
   "VINYL",
-  "TATTOO",
-  "OPEN",
-  "24H",
   "NOODLES",
   "CAFE",
   "PAWN",
   "DINER",
   "LIVE",
   "JAZZ",
-  "MOTEL",
-  "CINEMA",
-  "GYOZA",
-  "TAXI",
+  // "GYOZA",
   "CLUB",
   "BOOKS",
   "LAUNDRY",
-  "PIZZA",
+  // "PIZZA",
   "GAMES",
   "REPAIR",
+];
+
+/**
+ * Words on the street stalls' neon headers (the solid-roof variants), Latin and Japanese mixed. Short: the
+ * header is a few dozen px wide, and the Japanese comes out roughly twice as large per character.
+ */
+export const STALL_SIGNS: readonly string[] = [
+  "寿司", // sushi
+  "餃子", // gyoza
+  "焼鳥", // yakitori (grilled chicken skewers)
+  "団子", // dango (rice dumplings)
+  "甘酒", // amazake (sweet rice drink)
+  "天丼", // tendon (tempura rice bowl)
+  "おでん", // oden (simmered hotpot)
+  "かき氷", // kakigori (shaved ice)
+  "カレー", // curry
+  "唐揚げ", // karaage (fried chicken)
+  "綿菓子", // wataame (cotton candy)
+  "UDON",
+  "SOBA",
+  "ODEN",
+  "BEER",
+  "SAKE",
+  // "ラーメン", // ramen
+  // "たこ焼き", // takoyaki (octopus balls)
+  // "クレープ", // crepes
+  // "たい焼き", // taiyaki (filled fish-shaped cakes)
+  // "りんご飴", // ringo ame (candy apples)
+  // "焼きそば", // yakisoba (fried noodles)
+  // "いか焼き", // ikayaki (grilled squid)
+  // "中華そば", // chuka soba (old-style ramen)
+  "SUSHI",
+  "RAMEN",
+  "GYOZA",
+  "MOCHI",
+  "DANGO",
+  "TACOS",
+  "CURRY",
+  "PIZZA",
+  "HOTDOG",
+  "CREPES",
+  "WAFFLE",
+  // "ホットドッグ", // hot dog
+  // "ポップコーン", // popcorn
+  "POPCORN",
+  // "BANH MI",
+  // "TAKOYAKI",
+  // "YAKITORI",
 ];
 
 /** Pool for the rooftop billboards: short slogans and (fictional) brands. */
 export const BILLBOARD_POOL: readonly string[] = [
   "KLAMATH",
   "ULTRA COLA",
-  "NEO AIRLINES",
-  "HYPER TAXI",
+  "OFFWORLD",
+  "HELITAXI",
   "SAKURA BANK",
   "NIGHT MARKET",
-  "NEON TOWER",
+  "MOTEL",
+  "KINOPLEX",
+  "OPEN",
+  "24H",
   "24H DINER",
   "ROBOT RAMEN",
   "夜市",

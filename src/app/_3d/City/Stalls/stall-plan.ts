@@ -94,9 +94,9 @@ export const planStalls = (count: number = STALL.variants, seed = 2027): StallPl
   const rand = mulberry32(seed);
 
   return Array.from({ length: count }, (_, k) => {
-    const bodyHeight = 40 + 12 * rand();
-    const counterHeight = 13 + 3 * rand();
-    const width = 50 + 46 * rand();
+    const bodyHeight = STALL.bodyHeight.min + STALL.bodyHeight.extra * rand();
+    const counterHeight = STALL.counterHeight.min + STALL.counterHeight.extra * rand();
+    const width = STALL.width.min + STALL.width.extra * rand();
 
     return planStall(mulberry32(seed + 17 * k + 1), width, bodyHeight, counterHeight);
   });

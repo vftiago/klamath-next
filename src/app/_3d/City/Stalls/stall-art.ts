@@ -1,4 +1,6 @@
 import { CanvasTexture, LinearFilter } from "three";
+import { resolveSignFont } from "../text-atlas";
+import type { Placement } from "./stall-geometry";
 import type { Rgb, StallPlan } from "./stall-plan";
 import { AMBER, LAVENDER } from "./stall-plan";
 
@@ -19,10 +21,17 @@ export type StallSheet = {
   lantern: SheetCell;
   /** Per plan: patrons on stools, drawn against the counter. */
   patrons: SheetCell[];
+  /** Per placement: the word on the header, for stalls whose variant has a solid roof. */
+  signs: (null | SheetCell)[];
   texture: CanvasTexture;
 };
 
 export const GLOW_CELL = 64;
+
+/** The solid roof's neon word: a header standing on the roof's front edge, sized so a short word reads, reference px. */
+export const signBoard = (plan: StallPlan) => ({ height: 1.6 * plan.awning.rise, width: 0.7 * plan.width });
+/** Margin around the word's cell so its glow isn't clipped, reference px. */
+export const SIGN_GLOW_PAD = 6;
 export const LANTERN_CELL = 24;
 export const PATRONS_CELL_HEIGHT = 28;
 
@@ -71,6 +80,47 @@ const paintPatrons =
     }
   };
 
+/**
+ * The signboard word as free-standing neon: a soft halo in the sign colour, then a bright core, centred in a
+ * cell padded by `SIGN_GLOW_PAD`; painters are y-up, so the text is flipped back.
+ */
+const paintSign =
+  (text: string, width: number, height: number, font: string, color: Rgb): Painter =>
+  (ctx) => {
+    const inner = { height: height - 2 * SIGN_GLOW_PAD, width: width - 2 * SIGN_GLOW_PAD };
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.scale(1, -1);
+    const size = 0.8 * inner.height;
+    ctx.font = `700 ${size}px ${font}`;
+    const measured = ctx.measureText(text).width;
+    const fit = Math.min(1, (0.95 * inner.width) / Math.max(1, measured));
+    ctx.font = `700 ${size * fit}px ${font}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const y = 0.04 * inner.height;
+
+    // halo: the tube's colour bled outward, drawn twice so the glow reads at the sheet's resolution
+    ctx.shadowColor = rgba(color, 1);
+    ctx.shadowBlur = 0.6 * inner.height;
+    ctx.fillStyle = rgba(color, 0.85);
+    ctx.fillText(text, 0, y);
+    ctx.shadowBlur = 0.2 * inner.height;
+    ctx.fillText(text, 0, y);
+    // core: nearly white, tinted
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = rgba(
+      [
+        Math.round(255 - (255 - color[0]) * 0.25),
+        Math.round(255 - (255 - color[1]) * 0.25),
+        Math.round(255 - (255 - color[2]) * 0.25),
+      ],
+      1,
+    );
+    ctx.fillText(text, 0, y);
+    ctx.restore();
+  };
+
 const paintLantern: Painter = (ctx) => {
   const lx = LANTERN_CELL / 2;
   const ly = LANTERN_CELL - 11;
@@ -107,11 +157,11 @@ const paintGlow =
   };
 
 /**
- * Paints the stalls' sprite details into one sheet: per-plan curtains and patrons, plus a lantern and the
- * two warm glows. The structure itself is geometry (see `stall-geometry.ts`). Touches the DOM, so build it
+ * Paints the stalls' sprite details into one sheet: per-plan curtains and patrons, per-placement header words,
+ * plus a lantern and the two warm glows. The structure itself is geometry (see `stall-geometry.ts`). Touches the DOM, so build it
  * in a state initializer.
  */
-export const createStallSheet = (plans: StallPlan[]): StallSheet => {
+export const createStallSheet = (plans: StallPlan[], placements: Placement[]): StallSheet => {
   const jobs: { height: number; paint: Painter; width: number }[] = [];
   const add = (width: number, height: number, paint: Painter): number => jobs.push({ height, paint, width }) - 1;
 
@@ -120,6 +170,16 @@ export const createStallSheet = (plans: StallPlan[]): StallSheet => {
     return add(width, plan.curtain.height, paintCurtain(plan, width, plan.curtain.height));
   });
   const patronIds = plans.map((plan) => add(plan.width, PATRONS_CELL_HEIGHT, paintPatrons(plan)));
+  const font = resolveSignFont();
+  const signIds = placements.map(({ plan, word }) => {
+    if (plan.awning.kind !== "solid" || !word) {
+      return -1;
+    }
+    const { height, width } = signBoard(plan);
+    const cellW = width + 2 * SIGN_GLOW_PAD;
+    const cellH = height + 2 * SIGN_GLOW_PAD;
+    return add(cellW, cellH, paintSign(word, cellW, cellH, font, plan.awning.sign));
+  });
   const lanternId = add(LANTERN_CELL, LANTERN_CELL, paintLantern);
   const amberId = add(GLOW_CELL, GLOW_CELL, paintGlow(AMBER));
   const lavenderId = add(GLOW_CELL, GLOW_CELL, paintGlow(LAVENDER));
@@ -174,6 +234,7 @@ export const createStallSheet = (plans: StallPlan[]): StallSheet => {
     glow: { amber: cell(amberId), lavender: cell(lavenderId) },
     lantern: cell(lanternId),
     patrons: patronIds.map(cell),
+    signs: signIds.map((id) => (id < 0 ? null : cell(id))),
     texture,
   };
 };

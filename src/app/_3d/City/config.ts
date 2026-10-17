@@ -28,16 +28,20 @@ export const GROUND_Y = -250;
  * at the reference's size and built at `scale`. Colours and the exact part layout live in `Stalls/`.
  */
 export const STALL = {
+  /** Height of the body (ground to the roof's front edge), reference px (min, extra). */
+  bodyHeight: { extra: 12, min: 30 },
   /** Gap between the nearest layer's deepest front face and the stall plane, world units. */
   clearance: 8,
   /** Stalls per cluster (min, extra). */
   cluster: { extra: 3, min: 2 },
   /** Gap between clusters (min, extra), world units. */
-  clusterGap: { extra: 170, min: 70 },
+  clusterGap: { extra: 100, min: 70 },
   /** Depth of the counter at the front of the footprint. */
   counterDepth: 10,
+  /** Height of the counter block at the front, reference px (min, extra). */
+  counterHeight: { extra: 3, min: 9 },
   /** Footprint depth (min, extra); independent of width so wide stalls don't balloon. */
-  depth: { extra: 16, min: 44 },
+  depth: { extra: 16, min: 40 },
   /**
    * Volumetric haze around each stall: `peak` is the haze added through a sphere's centre (lanterns included),
    * `radius` a multiple of the stall width, `height` the centre's height as a fraction of the body height.
@@ -53,6 +57,8 @@ export const STALL = {
   servingGap: 8,
   /** Number of painted variants. */
   variants: 10,
+  /** Stall width, reference px (min, extra). */
+  width: { extra: 24, min: 48 },
 } as const;
 
 /**

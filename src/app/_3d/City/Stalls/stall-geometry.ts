@@ -1,11 +1,12 @@
 import { mulberry32 } from "../../utils";
 import { STALL } from "../config";
 import type { CityLayout } from "../generate";
+import { STALL_SIGNS } from "../signage";
 import type { SmokeSource } from "./Smoke";
 import type { SheetCell, StallSheet } from "./stall-art";
-import { GLOW_CELL, LANTERN_CELL } from "./stall-art";
+import { GLOW_CELL, LANTERN_CELL, SIGN_GLOW_PAD, signBoard } from "./stall-art";
 import type { Rgb, StallPlan } from "./stall-plan";
-import { glowColor, INK, lerp, WHITE } from "./stall-plan";
+import { glowColor, INK, lerp } from "./stall-plan";
 
 const SEED = 2028;
 
@@ -22,10 +23,15 @@ export type StallParts = {
   smokeSources: SmokeSource[];
 };
 
-type Placement = { left: number; plan: StallPlan; variant: number };
+/** One stall on the street: a variant at an x, with its own word when the variant's roof carries a header. */
+export type Placement = { left: number; plan: StallPlan; variant: number; word: null | string };
 
-/** Clusters of stalls along the nearest layer, `STALL.clusterGap` apart; each picks a variant. */
-const placeStalls = (layout: CityLayout, plans: StallPlan[]): Placement[] => {
+/**
+ * Clusters of stalls along the nearest layer, `STALL.clusterGap` apart; each picks a variant. Words are rolled
+ * per placement (from their own stream, so they don't move the stalls) rather than per variant, so the same
+ * stall shows different words along the street.
+ */
+export const placeStalls = (layout: CityLayout, plans: StallPlan[]): Placement[] => {
   const layer = layout.layers[layout.layers.length - 1];
   const placements: Placement[] = [];
 
@@ -34,6 +40,7 @@ const placeStalls = (layout: CityLayout, plans: StallPlan[]): Placement[] => {
   }
 
   const rand = mulberry32(SEED);
+  const words = mulberry32(SEED + 1);
   const half = layer.span / 2;
   let x = -half - 60 * rand();
 
@@ -43,7 +50,9 @@ const placeStalls = (layout: CityLayout, plans: StallPlan[]): Placement[] => {
       const variant = Math.floor(rand() * plans.length);
       const plan = plans[variant];
       if (!plan) break;
-      placements.push({ left: x, plan, variant });
+      const word =
+        plan.awning.kind === "solid" ? (STALL_SIGNS[Math.floor(words() * STALL_SIGNS.length)] ?? null) : null;
+      placements.push({ left: x, plan, variant, word });
       x += (plan.width + 8 + 10 * rand()) * STALL.scale;
     }
     x += STALL.clusterGap.min + STALL.clusterGap.extra * rand();
@@ -121,7 +130,7 @@ class StallBuilder {
   }
 }
 
-const addStall = (b: StallBuilder, placement: Placement, sheet: StallSheet) => {
+const addStall = (b: StallBuilder, placement: Placement, index: number, sheet: StallSheet) => {
   const { left, plan, variant } = placement;
   const { awning, bodyHeight: l, counterHeight: r, depth: d, width: t } = plan;
   const warm = glowColor(plan);
@@ -136,7 +145,10 @@ const addStall = (b: StallBuilder, placement: Placement, sheet: StallSheet) => {
   // fixed serving gap in front of the counter, so it can never reach the counter and there is always room
   // for someone serving
   const wallDepth = Math.max(4, d - STALL.counterDepth - STALL.servingGap);
-  b.box(left, 3, 0, 0, t - 6, roofAt(wallDepth), wallDepth, lerp(warm, [120, 40, 40], 0.3), {
+  const wall = lerp(warm, [120, 40, 40], 0.3);
+  // the posts are the wall's colour in shadow rather than plain ink, so they read as part of the stall
+  const post = lerp(wall, INK, 0.55);
+  b.box(left, 3, 0, 0, t - 6, roofAt(wallDepth), wallDepth, wall, {
     rise: roofAt(0) - roofAt(wallDepth),
     topOnly: true,
   });
@@ -146,7 +158,7 @@ const addStall = (b: StallBuilder, placement: Placement, sheet: StallSheet) => {
     [2, d - 2],
     [t - 4, d - 2],
   ] as const) {
-    b.box(left, px, 0, pz, 2, roofAt(pz + 1), 2, INK);
+    b.box(left, px, 0, pz, 2, roofAt(pz + 1), 2, post);
   }
   b.box(left, 0, 0, d - STALL.counterDepth, t, r, STALL.counterDepth, lerp(INK, [60, 20, 30], 0.35));
   b.box(left, 0, r, d - STALL.counterDepth, t, 1, STALL.counterDepth, lerp(warm, INK, 0.25), { emissive: true });
@@ -159,21 +171,12 @@ const addStall = (b: StallBuilder, placement: Placement, sheet: StallSheet) => {
     });
   } else {
     b.box(left, -4, l, roofBack, t + 8, 1.5, roofDepth, lerp(INK, [70, 36, 30], 0.4), { rise: awning.rise });
-    const signW = 0.5 * t;
-    const signH = 0.6 * awning.rise;
-    b.box(left, t / 2 - signW / 2, l + 1, d + 1, signW, signH, 3, lerp(awning.sign, WHITE, 0.3), { emissive: true });
-    for (let k = 0; k < 3; k++) {
-      b.box(
-        left,
-        t / 2 - 0.35 * signW + k * signW * 0.28,
-        l + 1 + 0.2 * signH,
-        d + 4,
-        0.14 * signW,
-        0.6 * signH,
-        0.5,
-        [40, 10, 20],
-        { emissive: true },
-      );
+    // the word as free-standing neon on the roof's front edge, painted with its glow on the sheet
+    const { height: signH, width: signW } = signBoard(plan);
+    const word = sheet.signs[index];
+    if (word) {
+      const pad = SIGN_GLOW_PAD;
+      b.sprite(left, t / 2 - signW / 2 - pad, l + 1 - pad, d + 4.3, signW + 2 * pad, signH + 2 * pad, word);
     }
   }
 
@@ -216,12 +219,12 @@ const addStall = (b: StallBuilder, placement: Placement, sheet: StallSheet) => {
 };
 
 /** Builds every stall's boxes, sprites, bulbs and smoke sources for the layout; pure given the sheet. */
-export const buildStallParts = (layout: CityLayout, plans: StallPlan[], sheet: StallSheet): StallParts => {
+export const buildStallParts = (layout: CityLayout, placements: Placement[], sheet: StallSheet): StallParts => {
   const builder = new StallBuilder(layout.groundY, layout.stallZ);
 
-  for (const placement of placeStalls(layout, plans)) {
-    addStall(builder, placement, sheet);
-  }
+  placements.forEach((placement, index) => {
+    addStall(builder, placement, index, sheet);
+  });
 
   return {
     boxes: {
