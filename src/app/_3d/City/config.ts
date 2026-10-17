@@ -55,6 +55,19 @@ export const STALL = {
   variants: 10,
 } as const;
 
+/**
+ * Rooftop billboards (layers 2 and nearer, on the billboard roof roll). Sizes relative to the building
+ * width, posts in reference px.
+ */
+export const BILLBOARD = {
+  /** Board height as a fraction of its width. */
+  heightRatio: 0.24,
+  /** Post height: `base + perLayer * layer index`. */
+  post: { base: 4, perLayer: 1.5 },
+  /** Board width as a fraction of the building width (min, extra). */
+  width: { extra: 0.3, min: 0.5 },
+} as const;
+
 /** Extra width generated beyond the visible frustum so camera moves and parallax never reveal an edge. */
 export const WIDTH_MARGIN = 1.6;
 
@@ -81,8 +94,11 @@ export const SEEDS: Seeds = { city: 2024, sign: 2024 };
  * `breathing` room from any building, roof furniture or other sign in its layer's front plane.
  */
 export const SIGNAGE = {
-  /** Blade signs hang this far from the building edge; two short poles bridge the gap. */
-  bladeGap: 6,
+  /**
+   * Blade signs hang off the building edge on two short poles. The gap is `perCell` of the sign's character
+   * cell, clamped to [min, max], so small far-layer signs sit close and the big frame signs keep their reach.
+   */
+  bladeGap: { max: 6, min: 2, perCell: 0.3 },
   /** Bracket poles: distance in from the sign's top and bottom edges, and their thickness. */
   bracket: { inset: 8, thickness: 2 },
   /** Clear space kept around a blade sign (and below the frame signs). */

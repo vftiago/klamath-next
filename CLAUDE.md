@@ -135,23 +135,23 @@ src/
 
 ## Important Files
 
-| File                                       | Purpose                                                   |
-| ------------------------------------------ | --------------------------------------------------------- |
-| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation                 |
-| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type                         |
-| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type                        |
-| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)                       |
-| `src/app/layout.tsx`                       | Root layout, fonts, 3D background                         |
-| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition                           |
-| `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`              |
-| `src/app/_3d/City/config.ts`               | `CAMERA`, `LAYERS`, `STALL`, `SIGNAGE`, `SEEDS`           |
-| `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)              |
-| `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets                      |
-| `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)                    |
-| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)               |
-| `src/app/_navbar/headers.ts`               | Route headers with rarity system                          |
-| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                           |
-| `next.config.ts`                           | Turbopack/Webpack shader loader config                    |
+| File                                       | Purpose                                         |
+| ------------------------------------------ | ----------------------------------------------- |
+| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation       |
+| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type               |
+| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type              |
+| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)             |
+| `src/app/layout.tsx`                       | Root layout, fonts, 3D background               |
+| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition                 |
+| `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`    |
+| `src/app/_3d/City/config.ts`               | `CAMERA`, `LAYERS`, `STALL`, `SIGNAGE`, `SEEDS` |
+| `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)    |
+| `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets            |
+| `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)          |
+| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)     |
+| `src/app/_navbar/headers.ts`               | Route headers with rarity system                |
+| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                 |
+| `next.config.ts`                           | Turbopack/Webpack shader loader config          |
 
 ## Types
 

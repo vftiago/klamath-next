@@ -5,6 +5,7 @@ import {
   BACK_LIMIT_RATIO,
   BACK_ROW_DEPTH,
   BACK_ROW_HEIGHT,
+  BILLBOARD,
   DEPTH_FACTOR,
   DEPTH_VARIATION,
   depthScale,
@@ -278,13 +279,19 @@ const makeSign = (building: Building, placement: SignPlacement, scale: number, r
   };
 };
 
+/** Gap between a building edge and its blade sign, reference px, for a sign with this character cell (reference px). */
+const bladeGapFor = (cell: number): number => {
+  const { max, min, perCell } = SIGNAGE.bladeGap;
+  return Math.max(min, Math.min(max, Math.round(perCell * cell)));
+};
+
 /**
  * Two short poles tying a blade sign to the facade it hangs beside: thin rods at the facade plane that
  * bridge the gap from the building edge into the sign box, like a real wall-mounted blade sign.
  */
 const bracketsFor = (building: Building, sign: Sign, side: -1 | 1, scale: number): PlainBox[] => {
   const edge = building.x + (side * building.width) / 2;
-  const length = (SIGNAGE.bladeGap + 2) * scale;
+  const length = (bladeGapFor(sign.cell / scale) + 2) * scale;
   const thickness = SIGNAGE.bracket.thickness * scale;
   // the poles sit a little in from the sign's top and bottom edges
   const inset = SIGNAGE.bracket.inset * scale;
@@ -302,10 +309,11 @@ const bracketsFor = (building: Building, sign: Sign, side: -1 | 1, scale: number
   }));
 };
 
-/** World x of a blade sign's left edge when hung on `side` of the building. */
-const bladeX = (building: Building, side: -1 | 1, boxWidth: number, scale: number): number => {
+/** World x of a blade sign's left edge when hung on `side` of the building; `cell` and `boxWidth` in reference px. */
+const bladeX = (building: Building, side: -1 | 1, cell: number, boxWidth: number, scale: number): number => {
   const left = building.x - building.width / 2;
-  return side > 0 ? left + building.width + SIGNAGE.bladeGap * scale : left - (SIGNAGE.bladeGap + boxWidth) * scale;
+  const gap = bladeGapFor(cell);
+  return side > 0 ? left + building.width + gap * scale : left - (gap + boxWidth) * scale;
 };
 
 /** First pool entry, starting from a random offset, that satisfies `fits`. */
@@ -370,7 +378,7 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
         mount: "blade",
         text: record.text,
         vertical: true,
-        x: bladeX(building, side, box.width, scale),
+        x: bladeX(building, side, cell, box.width, scale),
         yFromTop,
       },
       scale,
@@ -392,7 +400,7 @@ const reserveFrameStrip = (layer: CityLayer, frame: Building): void => {
   const { scale } = layer;
   const { frame: frameKnobs } = SIGNAGE;
   const widest = signBox(frameKnobs.cell.min + frameKnobs.cell.extra, 1, true).width;
-  const stripWidth = (SIGNAGE.bladeGap + widest + SIGNAGE.breathing) * scale;
+  const stripWidth = (SIGNAGE.bladeGap.max + widest + SIGNAGE.breathing) * scale;
   const keep = SIGNAGE.trimKeep * layer.config.minW * scale;
   const side: -1 | 1 = frame.x < 0 ? 1 : -1;
   const edge = frame.x + (side * frame.width) / 2;
@@ -515,7 +523,7 @@ const placeDecorativeSign = (
           mount: "blade",
           text,
           vertical: true,
-          x: bladeX(building, side, box.width, scale),
+          x: bladeX(building, side, cell, box.width, scale),
           yFromTop,
         },
         scale,
@@ -627,10 +635,10 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
     }
   } else if (roof < 0.64 && index >= 2) {
     // billboard on two posts; the posts stand in the board's plane at the facade so they show against the sky
-    const boardW = width * (0.5 + 0.3 * r0);
-    const boardH = 0.36 * boardW;
+    const boardW = width * (BILLBOARD.width.min + BILLBOARD.width.extra * r0);
+    const boardH = BILLBOARD.heightRatio * boardW;
     const boardLeft = left + (width - boardW) / 2;
-    const postH = (4 + 1.5 * index) * scale;
+    const postH = (BILLBOARD.post.base + BILLBOARD.post.perLayer * index) * scale;
     const postW = 1.5 * scale;
     const boardZ = building.z + building.depth / 2 + 0.5 * scale;
     for (const fraction of [0.2, 0.8]) {
