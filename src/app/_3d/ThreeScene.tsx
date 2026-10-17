@@ -1,39 +1,55 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
-import { MathUtils, Vector3 } from "three";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { MathUtils, PerspectiveCamera, Vector3 } from "three";
 import { useBreakpoints } from "@/app/_shared/utils/use-breakpoints";
 import { usePrefersReducedMotion } from "@/app/_shared/utils/use-prefers-reduced-motion";
-import Barbelith from "./Barbelith/Barbelith";
-import Box from "./Box/Box";
-import Plane from "./Plane/Plane";
+import City from "./City/City";
+import { CAMERA, GROUND_Y } from "./City/config";
+import { readSeedOverrides } from "./City/seeds";
 import PostEffect from "./PostEffect/PostEffect";
+import { createStats, DebugOverlay, StatsProbe } from "./quality/DebugOverlay";
+import { qualityFor, QualityProvider } from "./quality/QualityContext";
+import { readForcedTier, useQualityTier } from "./quality/use-quality-tier";
+import { useRainPreference } from "./Rain/use-rain-preference";
+import { getSceneTime } from "./utils";
 
-const PLANE_POSITION = new Vector3(0, -192, 128);
-const BARBELITH_POSITION = new Vector3(250, 350, -500);
+// The eye sits just above the water. The current route views keep the camera level (look-at height equals
+// eye height, look-at x equals eye x) and push the horizon down with a vertical lens shift (see `LensShift`),
+// so verticals stay vertical like the flat reference illustration. Pitched and yawed views are fine too now
+// that the window grid is box-filtered; camera fine-tuning is deferred until the river exists (plan phase 8).
+const EYE_Y = GROUND_Y + 50;
 
+/** Fraction of the viewport height the horizon is shifted down by the lens shift. */
+const HORIZON_SHIFT = 0.12;
+
+/** Height of the aerial views above the ground line; the far layer's tallest buildings top out near +1600. */
+const AERIAL_Y = GROUND_Y + 1700;
+
+// TESTING: the sub-routes use pitched aerial views so the city can be inspected from above; the level,
+// lens-shifted framing of the home route is the intended look. Re-tune these before shipping.
 const CAMERA_STATES: Record<string, { lookAt: Vector3; position: Vector3 }> = {
-  // Home: default forward view
+  // Home: slightly raised and pulled back
   "/": {
-    lookAt: new Vector3(0, 0, 0),
-    position: new Vector3(0, 0, 1024),
+    lookAt: new Vector3(0, EYE_Y + 60, 0),
+    position: new Vector3(0, EYE_Y + 60, 1100),
   },
-  // About: looking at Barbelith from the side
+  // About: aerial view from the right, looking down across the layers
   "/about": {
-    lookAt: BARBELITH_POSITION.clone(),
-    position: new Vector3(400, 0, 400),
+    lookAt: new Vector3(0, GROUND_Y + 100, -600),
+    position: new Vector3(1100, AERIAL_Y - 500, 700),
   },
-  // Projects: top-down view of the plane
+  // Projects: near top-down, looking steeply down at the near and middle layers
   "/projects": {
-    lookAt: PLANE_POSITION.clone(),
-    position: new Vector3(0, 600, 128),
+    lookAt: new Vector3(0, GROUND_Y, -500),
+    position: new Vector3(0, AERIAL_Y, 500),
   },
-  // Repositories: angled view looking down at the boxes area
+  // Repositories: aerial view from the left, looking down the length of the river
   "/repositories": {
-    lookAt: new Vector3(-200, -800, 0),
-    position: new Vector3(400, -200, 800),
+    lookAt: new Vector3(0, GROUND_Y + 100, -800),
+    position: new Vector3(-1100, AERIAL_Y - 300, 900),
   },
 };
 
@@ -41,8 +57,16 @@ const DEFAULT_CAMERA_STATE = CAMERA_STATES["/"];
 
 const LERP_SPEED = 5;
 
+// Scrolling lowers the camera a little; clamped so it never dips under the river surface.
+const SCROLL_FACTOR = 1 / 6;
+const SCROLL_MIN_OFFSET = -70;
+
+/** How close (world units) the camera must be to its target before on-demand rendering may idle. */
+const SETTLED_DISTANCE = 0.5;
+
 const CameraController = () => {
   const pathname = usePathname();
+  const invalidate = useThree((state) => state.invalidate);
 
   const targetPosition = useRef(DEFAULT_CAMERA_STATE.position.clone());
   const targetLookAt = useRef(DEFAULT_CAMERA_STATE.lookAt.clone());
@@ -57,12 +81,13 @@ const CameraController = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      scrollOffset.current = -window.scrollY / 4;
+      scrollOffset.current = Math.max(SCROLL_MIN_OFFSET, -window.scrollY * SCROLL_FACTOR);
+      invalidate();
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [invalidate]);
 
   useFrame((state, delta) => {
     const camera = state.camera;
@@ -81,7 +106,50 @@ const CameraController = () => {
     currentLookAt.current.z = MathUtils.lerp(currentLookAt.current.z, targetLookAt.current.z, lerpFactor);
 
     camera.lookAt(currentLookAt.current);
+
+    // under on-demand rendering, keep rendering until the move settles
+    const targetY = targetPosition.current.y + scrollOffset.current;
+    const remaining =
+      Math.abs(camera.position.x - targetPosition.current.x) +
+      Math.abs(camera.position.y - targetY) +
+      Math.abs(camera.position.z - targetPosition.current.z) +
+      currentLookAt.current.distanceTo(targetLookAt.current);
+    if (remaining > SETTLED_DISTANCE) {
+      state.invalidate();
+    }
   });
+
+  return null;
+};
+
+/** Under on-demand rendering, keeps frames coming while the post-effect fades the scene in. */
+const FadeInKeepAlive = () => {
+  useFrame((state) => {
+    if (getSceneTime() < 4) {
+      state.invalidate();
+    }
+  });
+
+  return null;
+};
+
+/**
+ * Vertical lens shift: offsets the frustum instead of pitching the camera, so the horizon sits lower on screen
+ * while building faces stay parallel to the image plane.
+ */
+const LensShift = () => {
+  const camera = useThree((state) => state.camera);
+  const size = useThree((state) => state.size);
+
+  useLayoutEffect(() => {
+    if (!(camera instanceof PerspectiveCamera)) {
+      return;
+    }
+
+    camera.setViewOffset(size.width, size.height, 0, -HORIZON_SHIFT * size.height, size.width, size.height);
+
+    return () => camera.clearViewOffset();
+  }, [camera, size]);
 
   return null;
 };
@@ -89,44 +157,48 @@ const CameraController = () => {
 const ThreeScene = () => {
   const { isMdScreen } = useBreakpoints();
   const prefersReducedMotion = usePrefersReducedMotion();
+  const rain = useRainPreference();
+  // URL flags, read once: the scene only runs in the browser (dynamic import, ssr: false)
+  const [flags] = useState(() => ({
+    debug: new URLSearchParams(window.location.search).has("debug"),
+    forced: readForcedTier(),
+    seeds: readSeedOverrides(),
+  }));
+  const statsRef = useRef(createStats());
+  const tier = useQualityTier({ forced: flags.forced, initial: isMdScreen ? "full" : "reduced" });
+  const quality = useMemo(() => qualityFor(tier), [tier]);
 
   // the scene is continuously animated decoration — honor reduced motion by not rendering it at all
   if (prefersReducedMotion) {
-    return (
-      <div className="abstract-bg fixed -z-10 h-screen w-full">
-        <div className="dot-grid" />
-      </div>
-    );
+    return <div className="abstract-bg fixed -z-10 h-screen w-full" />;
   }
 
   return (
-    <div className="abstract-bg fixed -z-10 h-screen w-full">
-      <div className="dot-grid" />
-      <Canvas
-        camera={{
-          far: 10000,
-          fov: 45,
-          near: 1,
-          position: [0, 0, 1024],
-        }}
-        dpr={isMdScreen ? [1, 2] : 1}
-        gl={{
-          antialias: true,
-        }}
-      >
-        <CameraController />
-        <Barbelith position={[250, 350, -500]} />
-        <Plane position={[0, -192, 128]} />
-        <Box position={[400, -500, 200]}></Box>
-        <Box position={[-350, -600, -5]}></Box>
-        <Box position={[-150, -700, -150]}></Box>
-        <Box position={[-500, -900, 0]}></Box>
-        <Box position={[-100, -1200, -300]}></Box>
-        <Box position={[100, -1100, 25]}></Box>
-        <Box position={[150, -1500, -10]}></Box>
-        <PostEffect />
-      </Canvas>
-    </div>
+    <QualityProvider value={quality}>
+      <div className="abstract-bg fixed -z-10 h-screen w-full">
+        <Canvas
+          camera={{
+            far: CAMERA.far,
+            fov: CAMERA.fov,
+            near: CAMERA.near,
+            position: [0, EYE_Y + 60, 1100],
+          }}
+          dpr={[1, quality.dprMax]}
+          frameloop={quality.renderOnDemand ? "demand" : "always"}
+          gl={{
+            antialias: true,
+          }}
+        >
+          <CameraController />
+          <LensShift />
+          <FadeInKeepAlive />
+          <City rain={rain} seeds={flags.seeds} />
+          <PostEffect />
+          {flags.debug ? <StatsProbe statsRef={statsRef} /> : null}
+        </Canvas>
+      </div>
+      {flags.debug ? <DebugOverlay seeds={flags.seeds} statsRef={statsRef} /> : null}
+    </QualityProvider>
   );
 };
 

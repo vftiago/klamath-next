@@ -1,0 +1,120 @@
+import { useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useState } from "react";
+import { useQuality } from "../quality/QualityContext";
+import Rain from "../Rain/Rain";
+import Ripples from "../Rain/Ripples";
+import Beacon from "./Beacon/Beacon";
+import Beacons from "./Beacons/Beacons";
+import Billboards from "./Billboards/Billboards";
+import Buildings from "./Buildings/Buildings";
+import type { Seeds } from "./config";
+import { SEEDS, STALL } from "./config";
+import Fog from "./Fog/Fog";
+import type { CityLayout } from "./generate";
+import { generateCity } from "./generate";
+import Ground from "./Ground/Ground";
+import River from "./River/River";
+import Signs from "./Signs/Signs";
+import Sky from "./Sky/Sky";
+import Stalls from "./Stalls/Stalls";
+import type { TextAtlas } from "./text-atlas";
+import { createTextAtlas, resolveSignFont } from "./text-atlas";
+
+/** Aspect is quantized so small resizes (scrollbars, mobile URL bar) don't regenerate the city. */
+const ASPECT_STEP = 0.1;
+
+/**
+ * The stalls build their sheet and geometry once, in state initializers, so a `STALL` edit under Fast Refresh
+ * would otherwise show only after a reload. Keying them on the config remounts them when it changes; in
+ * production this is a constant.
+ */
+const STALL_KEY = JSON.stringify(STALL);
+
+/** Every character the layout's signs and billboards use. */
+const collectChars = (layout: CityLayout): string[] => {
+  const chars = new Set<string>();
+
+  for (const layer of layout.layers) {
+    for (const sign of layer.signs) {
+      for (const char of sign.text) chars.add(char);
+    }
+    for (const board of layer.billboards) {
+      for (const char of board.text) chars.add(char);
+    }
+  }
+
+  return [...chars];
+};
+
+/**
+ * Builds the text atlas for a layout once the page's fonts are ready (the condensed display face comes
+ * from next/font and may still be loading on first paint). Signs and billboards mount when it resolves.
+ */
+const useTextAtlas = (layout: CityLayout): null | TextAtlas => {
+  const [atlas, setAtlas] = useState<null | TextAtlas>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let created: null | TextAtlas = null;
+
+    const build = async () => {
+      const font = resolveSignFont();
+      await document.fonts.ready;
+      await document.fonts.load(`700 32px ${font}`).catch(() => undefined);
+
+      if (cancelled) {
+        return;
+      }
+
+      created = createTextAtlas(collectChars(layout), font);
+      setAtlas(created);
+    };
+
+    void build();
+
+    return () => {
+      cancelled = true;
+      created?.texture.dispose();
+    };
+  }, [layout]);
+
+  return atlas;
+};
+
+type CityProps = {
+  /** Show the rain overlay (drops and ripples). */
+  rain?: boolean;
+  /** City and sign seeds; a change regenerates the layout like an aspect change does. */
+  seeds?: Seeds;
+};
+
+const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
+  const quality = useQuality();
+  const aspect = useThree((state) => state.viewport.aspect);
+  const quantizedAspect = Math.max(0.5, Math.round(aspect / ASPECT_STEP) * ASPECT_STEP);
+
+  const layout = useMemo(() => generateCity(quantizedAspect, seeds), [quantizedAspect, seeds]);
+  const atlas = useTextAtlas(layout);
+
+  // keyed on aspect and seeds: a new layout remounts everything so attributes and uniforms are built once per mount
+  return (
+    <group key={`${quantizedAspect}:${seeds.city}:${seeds.sign}`}>
+      <Sky aspect={quantizedAspect} />
+      <Ground layout={layout} />
+      {layout.layers.map((layer) => (
+        <Buildings animate={quality.animate} key={layer.index} layer={layer} layout={layout} />
+      ))}
+      {atlas ? <Billboards atlas={atlas} layout={layout} /> : null}
+      {atlas ? <Signs atlas={atlas} flicker={quality.signFlicker} layout={layout} /> : null}
+      <Beacon animate={quality.animate} layout={layout} />
+      <Beacons blink={quality.animate} layout={layout} />
+      <Stalls key={STALL_KEY} layout={layout} smoke={quality.smoke} />
+      <Fog layout={layout} planes={quality.fogPlanes} />
+      <River reflectionScale={quality.reflectionScale} shoreZ={layout.shoreZ} />
+      {rain && quality.rainDrops > 0 ? <Rain drops={quality.rainDrops} /> : null}
+      {rain && quality.rainDrops > 0 ? <Ripples shoreZ={layout.shoreZ} /> : null}
+    </group>
+  );
+};
+
+export default City;
