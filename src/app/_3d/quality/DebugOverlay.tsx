@@ -4,6 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import type { RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Seeds } from "../City/config";
+import type { SeedLabels } from "../City/seeds";
 import { useQuality } from "./QualityContext";
 
 export type RenderStats = {
@@ -53,12 +54,16 @@ export const StatsProbe = ({ statsRef }: ProbeProps) => {
 };
 
 type OverlayProps = {
+  /** Seeds given as text in the URL, shown next to the integer they hashed to. */
+  seedLabels?: SeedLabels;
   seeds: Seeds;
   statsRef: RefObject<RenderStats>;
 };
 
+const seedText = (value: number, label?: string): string => (label ? `${label} (${value})` : String(value));
+
 /** Outside the canvas: a small fixed readout, shown with `?debug=1`. */
-export const DebugOverlay = ({ seeds, statsRef }: OverlayProps) => {
+export const DebugOverlay = ({ seedLabels = {}, seeds, statsRef }: OverlayProps) => {
   const quality = useQuality();
   const [snapshot, setSnapshot] = useState<RenderStats>(createStats);
 
@@ -74,7 +79,7 @@ export const DebugOverlay = ({ seeds, statsRef }: OverlayProps) => {
       <div>calls {snapshot.calls}</div>
       <div>tris {snapshot.triangles}</div>
       <div>
-        seeds {seeds.city} / {seeds.sign}
+        seeds {seedText(seeds.city, seedLabels.city)} / {seedText(seeds.sign, seedLabels.sign)}
       </div>
     </div>
   );
