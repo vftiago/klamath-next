@@ -51,7 +51,7 @@ src/
 │   │   │   ├── Billboards/          # Rooftop neon-framed boards, instanced quads
 │   │   │   ├── Beacons/             # Blinking antenna lights, one Points draw
 │   │   │   ├── signage.ts           # EDIT HERE to change sign/billboard text: FRAME_SIGNS (6 authored blade signs, with routes) + pools
-│   │   │   ├── seeds.ts             # `?seed=` (city) and `?signSeed=` (signs) URL overrides of SEEDS
+│   │   │   ├── seeds.ts             # `?seed=` (city) and `?signSeed=` (signs) URL overrides of SEEDS; integers as is, other text hashed
 │   │   │   ├── text-atlas.ts        # Character atlas (CanvasTexture, 3 variants) built from the layout's texts after fonts load
 │   │   │   ├── Signs/               # Neon text signs: blade (beside an edge, bracketed) or facade (over a windowless band)
 │   │   │   ├── Beacon/              # Rooftop searchlight: lamp, additive beam, hovering logo badge

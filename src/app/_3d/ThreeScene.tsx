@@ -162,7 +162,7 @@ const ThreeScene = () => {
   const [flags] = useState(() => ({
     debug: new URLSearchParams(window.location.search).has("debug"),
     forced: readForcedTier(),
-    seeds: readSeedOverrides(),
+    ...readSeedOverrides(),
   }));
   const statsRef = useRef(createStats());
   const tier = useQualityTier({ forced: flags.forced, initial: isMdScreen ? "full" : "reduced" });
@@ -197,7 +197,7 @@ const ThreeScene = () => {
           {flags.debug ? <StatsProbe statsRef={statsRef} /> : null}
         </Canvas>
       </div>
-      {flags.debug ? <DebugOverlay seeds={flags.seeds} statsRef={statsRef} /> : null}
+      {flags.debug ? <DebugOverlay seedLabels={flags.seedLabels} seeds={flags.seeds} statsRef={statsRef} /> : null}
     </QualityProvider>
   );
 };
