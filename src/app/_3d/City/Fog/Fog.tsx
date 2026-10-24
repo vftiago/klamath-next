@@ -17,20 +17,20 @@ type FogProps = {
 type FogPlaneProps = {
   groundY: number;
   layer: CityLayer;
-  nextZ: number;
   texture: CanvasTexture;
+  /** World z of the plane: the middle of the street ahead of the row. */
+  z: number;
 };
 
 /** The fog tile keeps the reference's aspect: a tile is 1024/200 times wider than it is tall. */
 const TILE_ASPECT = FOG_TILE_WIDTH / FOG_TILE_HEIGHT;
 
-const FogPlane = ({ groundY, layer, nextZ, texture }: FogPlaneProps) => {
+const FogPlane = ({ groundY, layer, texture, z }: FogPlaneProps) => {
   const materialRef = useRef<RawShaderMaterial>(null);
 
-  // bottom 32% of the skyline, dipping 10 reference px below the ground line, sitting in front of its layer
+  // bottom 32% of the skyline, dipping 10 reference px below the ground line
   const height = 0.32 * layer.skylineHeight;
   const bottom = groundY - 10 * layer.scale;
-  const z = layer.z + 0.35 * (nextZ - layer.z);
   const tileWidth = height * TILE_ASPECT;
   const repeat = layer.span / tileWidth;
   // reference scroll speed: 5 + 4 * layer px/s
@@ -72,7 +72,7 @@ const FogPlane = ({ groundY, layer, nextZ, texture }: FogPlaneProps) => {
   );
 };
 
-/** Drifting purple fog between the layers, one scrolling textured plane per layer that has fog. */
+/** Drifting purple fog in the streets between the rows: one scrolling textured plane per street, mid-street. */
 const Fog = ({ layout, planes = Infinity }: FogProps) => {
   // DOM work (a canvas) belongs in a state initializer, not render
   const [texture] = useState(() => createFogTexture());
@@ -81,23 +81,21 @@ const Fog = ({ layout, planes = Infinity }: FogProps) => {
     return () => texture.dispose();
   }, [texture]);
 
-  // the nearest fog layers matter most, so a reduced count drops the far ones
-  const foggy = layout.layers.filter((layer) => layer.config.fog > 0);
-  const shown = new Set(foggy.slice(Math.max(0, foggy.length - planes)).map((layer) => layer.index));
+  // the nearest streets matter most, so a reduced count drops the far ones; the nearest row has no street ahead
+  const foggy = layout.layers.filter((layer) => layer.config.fogZ !== null && layer.config.fog > 0);
+  const shown = foggy.slice(Math.max(0, foggy.length - planes));
 
   return (
     <group>
-      {layout.layers.map((layer, i) =>
-        shown.has(layer.index) ? (
-          <FogPlane
-            groundY={layout.groundY}
-            key={layer.index}
-            layer={layer}
-            nextZ={layout.layers[i + 1]?.z ?? layer.z + 100}
-            texture={texture}
-          />
-        ) : null,
-      )}
+      {shown.map((layer) => (
+        <FogPlane
+          groundY={layout.groundY}
+          key={layer.index}
+          layer={layer}
+          texture={texture}
+          z={layer.config.fogZ ?? layer.z}
+        />
+      ))}
     </group>
   );
 };

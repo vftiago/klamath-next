@@ -1,9 +1,9 @@
 /**
  * City scene configuration.
  *
- * Sizes in `LAYERS` are "reference pixels": screen pixels on a ~1500px wide viewport, taken from the
- * nanodrops reference. `generate.ts` multiplies them by each layer's depth scale so that, seen from the
- * default camera, a far building projects to the same screen size the reference drew it at.
+ * Sizes in `GRID` and `ROW_STYLE` are "reference pixels": screen pixels on a ~1500px wide viewport, taken from
+ * the nanodrops reference. `buildRows` multiplies them by each row's depth scale so that, seen from the default
+ * camera, a far building projects to the same screen size the reference drew it at (see `GRID.perspective`).
  */
 
 export const CAMERA = {
@@ -109,13 +109,13 @@ export const SIGNAGE = {
   bracket: { inset: 8, thickness: 2 },
   /** Clear space kept around a blade sign (and below the frame signs). */
   breathing: 4,
-  /** Character cell size per layer; the nearest layer adds up to `cellJitter` px. */
-  cellByLayer: [0, 7, 9, 10, 11, 18],
+  /** Character cell size at the far and near rows (geometric in between); the nearest row adds up to `cellJitter` px. */
+  cell: { far: 6, near: 18 },
   cellJitter: 6,
   /** Chance a front building gets a sign: middle layers by height, the nearest layer, the rest. The far layer gets none. */
   chance: { middleShort: 0.03, middleTall: 0.5, nearest: 0.28, other: 0.2 },
-  /** Sign brightness per layer. */
-  dimByLayer: [0.4, 0.6, 0.72, 0.82, 0.9, 1],
+  /** Sign brightness at the far and near rows. */
+  dim: { far: 0.4, near: 1 },
   /** Chance a sign's driver may stutter, drop out or brown out. */
   flakyChance: 0.55,
   /**
@@ -129,12 +129,70 @@ export const SIGNAGE = {
   trimKeep: 0.6,
 } as const;
 
-export type LayerConfig = {
-  /** Fog plane alpha between this layer and the next (phase 2). */
+/** World units per reference pixel at depth z (1 at z = 0). */
+export const depthScale = (z: number): number => (CAMERA.z - z) / CAMERA.z;
+
+/** Visible world width at depth z for the given viewport aspect. */
+export const visibleWidthAt = (z: number, aspect: number): number => aspect * REF_VIEW_HEIGHT * depthScale(z);
+
+/** A value given at the far and near ends of the city, interpolated per row by its depth `t`. */
+export type RowPair = { readonly far: number; readonly near: number };
+
+/** Linear interpolation of a far/near pair for a row's `t` (0 = far row, 1 = nearest row); for looks. */
+export const lerpRow = (pair: RowPair, t: number): number => pair.far + (pair.near - pair.far) * t;
+
+/** Geometric interpolation of a far/near pair (constant ratio per row); for sizes, which grow like the depth scale. */
+export const lerpRowGeo = (pair: RowPair, t: number): number => pair.far * Math.pow(pair.near / pair.far, t);
+
+export type GridConfig = {
+  /** Gap after each building within a row, reference px, random in [min, max]. */
+  alley: { max: number; min: number };
+  /** Depth range a row's buildings may occupy behind its street edge, reference px. */
+  band: RowPair;
+  /**
+   * Cross streets: a gap `width * (1 + rand)` every `every.min + rand * every.extra` buildings, never beside
+   * the frame buildings. Staggered per row by default; `aligned` rolls one set of world-x streets from the
+   * nearest row's walk that every other row jumps past, so the rows form blocks.
+   */
+  crossStreet: { aligned: boolean; every: { extra: number; min: number }; width: RowPair };
+  /** Building depth as a multiple of its width, random in [min, max], clamped to the band. */
+  depth: { max: number; min: number };
+  /**
+   * How much of the depth scale applies to reference sizes: 1 is the reference model (a far row is built
+   * larger in world space so it projects at its reference size from the default camera); 0 is pure world units
+   * (every row the same size, perspective alone shrinks the far ones). `scale = depthScale(z) ** perspective`.
+   */
+  perspective: number;
+  rows: number;
+  /** Furthest a building stands back from its row's street edge, as a fraction of the band. 0 = straight line. */
+  setback: number;
+  /** Inviolable gap between a row and the next one behind it, reference px. */
+  street: RowPair;
+};
+
+/**
+ * The city grid: `rows` rows of buildings, the nearest at z = 0, each owning a band of depth with a street
+ * behind it. Row z positions are derived by walking band + street back from the nearest row, so rows can
+ * never overlap and every building fits its band (`buildRows` validates `band >= depth.min * maxW`).
+ */
+export const GRID: GridConfig = {
+  alley: { max: 8, min: 0 },
+  band: { far: 60, near: 180 },
+  crossStreet: { aligned: false, every: { extra: 2, min: 3 }, width: { far: 6, near: 31 } },
+  depth: { max: 1.1, min: 0.6 },
+  perspective: 1,
+  rows: 6,
+  setback: 0.33,
+  street: { far: 20, near: 60 },
+};
+
+/** Look and sizing of a row; given at the far and near ends in `ROW_STYLE`, interpolated per row. */
+export type RowStyle = {
+  /** Fog plane alpha in the street ahead of the row. */
   fog: number;
   /** Per-window brightness scale. */
   glow: number;
-  /** Pink haze alpha toward the base of the layer. */
+  /** Pink haze alpha toward the base of the row. */
   haze: number;
   /** Probability a window is lit. */
   lit: number;
@@ -149,12 +207,11 @@ export type LayerConfig = {
   top: number;
   /** Window cell: [width, gapX, height, gapY] in reference px. */
   win: readonly [number, number, number, number];
-  /** World z of the layer; the nearest layer sits at 0. */
-  z: number;
 };
 
-export const LAYERS: readonly LayerConfig[] = [
-  {
+/** Looks (`fog`, `glow`, `haze`, `lit`, `side`, `top`) interpolate linearly; sizes (`maxW`, `minW`, `px`, `win`) geometrically. */
+export const ROW_STYLE: { far: RowStyle; near: RowStyle } = {
+  far: {
     fog: 0.5,
     glow: 0.34,
     haze: 0.3,
@@ -165,97 +222,88 @@ export const LAYERS: readonly LayerConfig[] = [
     side: 0.6,
     top: 0.9,
     win: [2, 2, 2, 3],
-    z: -2000,
   },
-  {
-    fog: 0.45,
-    glow: 0.42,
-    haze: 0.22,
-    lit: 0.2,
-    maxW: 58,
-    minW: 22,
-    px: 7,
-    side: 0.7,
-    top: 0.82,
-    win: [2, 3, 3, 4],
-    z: -1300,
-  },
-  {
-    fog: 0.4,
-    glow: 0.5,
-    haze: 0.15,
-    lit: 0.22,
-    maxW: 78,
-    minW: 30,
-    px: 11,
-    side: 0.8,
-    top: 0.72,
-    win: [3, 4, 4, 5],
-    z: -800,
-  },
-  {
-    fog: 0.34,
-    glow: 0.56,
-    haze: 0.08,
-    lit: 0.23,
-    maxW: 106,
-    minW: 42,
-    px: 17,
-    side: 0.85,
-    top: 0.62,
-    win: [3, 5, 4, 6],
-    z: -450,
-  },
-  {
-    fog: 0.26,
-    glow: 0.6,
-    haze: 0.03,
-    lit: 0.22,
-    maxW: 140,
-    minW: 60,
-    px: 25,
-    side: 0.9,
-    top: 0.54,
-    win: [4, 6, 6, 8],
-    z: -200,
-  },
-  { fog: 0, glow: 0.62, haze: 0, lit: 0.2, maxW: 180, minW: 84, px: 36, side: 1, top: 0.46, win: [5, 8, 7, 9], z: 0 },
-];
+  near: { fog: 0.2, glow: 0.62, haze: 0, lit: 0.2, maxW: 180, minW: 84, px: 36, side: 1, top: 0.46, win: [5, 8, 7, 9] },
+};
 
-export const NEAREST_LAYER = LAYERS.length - 1;
+/** One row of the grid: its interpolated style plus everything the walk derives. */
+export type LayerConfig = RowStyle & {
+  /** Depth range the row's buildings may occupy behind `z`, world units. */
+  band: number;
+  /** z of the fog plane in the street ahead of this row (toward the camera); null for the nearest row. */
+  fogZ: null | number;
+  /** 0 = far row, `GRID.rows - 1` = nearest. */
+  index: number;
+  /** World units per reference px for this row. */
+  scale: number;
+  /** Street behind the row, world units. */
+  street: number;
+  /** Depth position for interpolation: 0 = far row, 1 = nearest. */
+  t: number;
+  /** World z of the row's street edge (the front building line); the nearest row sits at 0. */
+  z: number;
+};
+
+const styleAt = (style: { far: RowStyle; near: RowStyle }, t: number): RowStyle => {
+  const { far, near } = style;
+  const lin = (key: "fog" | "glow" | "haze" | "lit" | "side" | "top") => lerpRow({ far: far[key], near: near[key] }, t);
+  const geo = (key: "maxW" | "minW" | "px") => lerpRowGeo({ far: far[key], near: near[key] }, t);
+  const win = far.win.map((value, i) => lerpRowGeo({ far: value, near: near.win[i] ?? value }, t)) as [
+    number,
+    number,
+    number,
+    number,
+  ];
+
+  return {
+    fog: lin("fog"),
+    glow: lin("glow"),
+    haze: lin("haze"),
+    lit: lin("lit"),
+    maxW: geo("maxW"),
+    minW: geo("minW"),
+    px: geo("px"),
+    side: lin("side"),
+    top: lin("top"),
+    win,
+  };
+};
 
 /**
- * Block depth. A building's depth is `width * DEPTH_FACTOR * side`, varied per building by a random factor in
- * `DEPTH_VARIATION`, then capped so its front face stays short of the fog plane in front of the layer
- * (`FRONT_LIMIT_RATIO` of the gap to the nearer layer; the nearest layer uses `NEAREST_FRONT_LIMIT`).
+ * Walks the grid from the nearest row (z = 0) back, deriving each row's scale, band, street and z, and returns
+ * the rows in index order (0 = far). Throws when a band is too shallow for the row's widest building at
+ * `GRID.depth.min`, so a bad config fails at module load rather than thinning or dropping buildings.
  */
-export const DEPTH_FACTOR = 0.85;
-export const DEPTH_VARIATION = { extra: 0.6, min: 0.7 } as const;
-export const FRONT_LIMIT_RATIO = 0.3;
-export const NEAREST_FRONT_LIMIT = 100;
+export const buildRows = (grid: GridConfig = GRID, style = ROW_STYLE): readonly LayerConfig[] => {
+  const rows: LayerConfig[] = [];
+  let z = 0;
 
-/**
- * Back row: a second, lower row of boxes behind each layer's front row, separated by a small alley and
- * reaching at most `BACK_LIMIT_RATIO` of the gap to the farther layer. Heights are `top * (min + extra * r)`.
- */
-export const BACK_LIMIT_RATIO = 0.55;
-export const BACK_ROW_HEIGHT = { extra: 0.55, min: 0.15 } as const;
-/** Back-row depth as a fraction of the space behind the front row: `min + extra * r`. */
-export const BACK_ROW_DEPTH = { extra: 0.55, min: 0.45 } as const;
-/** Alley between the rows, reference px. */
-export const ALLEY = 6;
-/** Gap the far layer's back row may use (it has no farther neighbour), world units. */
-export const FAR_LAYER_BACK_GAP = 700;
+  for (let n = 0; n < grid.rows; n++) {
+    const index = grid.rows - 1 - n;
+    const t = grid.rows > 1 ? index / (grid.rows - 1) : 1;
+    const scale = Math.pow(depthScale(z), grid.perspective);
+    const row = styleAt(style, t);
+    const band = lerpRow(grid.band, t) * scale;
+    const street = lerpRow(grid.street, t) * scale;
+    const needed = grid.depth.min * row.maxW;
 
-/**
- * Streets: a wider gap every `STREET_EVERY.min + rand * STREET_EVERY.extra` buildings, running through both
- * rows. Width in reference px grows with the layer index so far layers keep a dense silhouette.
- */
-export const STREET_EVERY = { extra: 2, min: 3 } as const;
-export const streetWidth = (index: number, r: number): number => (6 + 5 * index) * (1 + r);
+    if (band / scale < needed) {
+      throw new Error(
+        `GRID.band at row ${index} is ${(band / scale).toFixed(1)} reference px; its widest building needs ${needed.toFixed(1)} (depth.min * maxW)`,
+      );
+    }
 
-/** World units per reference pixel at depth z (1 at z = 0). */
-export const depthScale = (z: number): number => (CAMERA.z - z) / CAMERA.z;
+    // the street ahead belongs to the nearer row (walked just before); its fog plane sits mid-street
+    const nearer = rows[rows.length - 1];
+    const fogZ = nearer ? z + nearer.street / 2 : null;
 
-/** Visible world width at depth z for the given viewport aspect. */
-export const visibleWidthAt = (z: number, aspect: number): number => aspect * REF_VIEW_HEIGHT * depthScale(z);
+    rows.push({ ...row, band, fogZ, index, scale, street, t, z });
+    z -= band + street;
+  }
+
+  return rows.reverse();
+};
+
+export const ROWS = buildRows();
+
+export const NEAREST_LAYER = GRID.rows - 1;

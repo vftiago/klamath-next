@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { GLSL3 } from "three";
-import { LAYERS } from "../config";
+import { ROWS } from "../config";
 import type { CityLayout } from "../generate";
 import fragmentShader from "./ground.frag";
 import vertexShader from "./ground.vert";
@@ -9,7 +9,7 @@ type GroundProps = {
   layout: CityLayout;
 };
 
-/** The ground runs this far behind the farthest layer, so the far buildings never stand at its edge. */
+/** The ground runs this far behind the far row's band, so the far buildings never stand at its edge. */
 const BEYOND_FAR = 1000;
 
 /** As wide as the river, so pitched or trucked cameras never see past its side; the kerb matches. */
@@ -17,12 +17,13 @@ export const GROUND_WIDTH = 24000;
 
 /**
  * Dark ground under the whole city: one surface from the shoreline (the stall pavement included) back past
- * the farthest layer. Without it the river plane shows between the layers wherever a gap or a raised camera
+ * the far row. Without it the river plane shows between the layers wherever a gap or a raised camera
  * exposes the street level.
  */
 const Ground = ({ layout }: GroundProps) => {
   const nearZ = layout.shoreZ;
-  const farZ = LAYERS[0].z - BEYOND_FAR;
+  const farRow = ROWS[0];
+  const farZ = (farRow ? farRow.z - farRow.band : 0) - BEYOND_FAR;
   const depth = nearZ - farZ;
   const uniforms = useMemo(() => ({ uFarZ: { value: farZ }, uNearZ: { value: nearZ } }), [farZ, nearZ]);
 

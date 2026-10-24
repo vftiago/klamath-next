@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 import type { InstancedBufferAttribute } from "three";
 import { DynamicDrawUsage, GLSL3, Vector2 } from "three";
 import { getSceneTime } from "../../utils";
-import { SIGNAGE } from "../config";
+import { lerpRow, SIGNAGE } from "../config";
 import type { CityLayout, Sign } from "../generate";
 import type { TextAtlas } from "../text-atlas";
 import { glyphIndex } from "../text-atlas";
@@ -62,11 +62,11 @@ const NEON_SLOTS = [
 const STEADY_LEVEL = 0.95;
 
 const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes => {
-  const entries: { layerIndex: number; scale: number; sign: Sign; z: number }[] = [];
+  const entries: { dim: number; scale: number; sign: Sign; z: number }[] = [];
 
   for (const layer of layout.layers) {
     for (const sign of layer.signs) {
-      entries.push({ layerIndex: layer.index, scale: layer.scale, sign, z: layer.z });
+      entries.push({ dim: lerpRow(SIGNAGE.dim, layer.config.t), scale: layer.scale, sign, z: layer.z });
     }
   }
 
@@ -86,7 +86,7 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     state: new Float32Array(count * 2),
   };
 
-  entries.forEach(({ layerIndex, scale, sign, z }, i) => {
+  entries.forEach(({ dim, scale, sign, z }, i) => {
     attributes.offset.set([sign.x, layout.groundY + sign.y, z + sign.z], i * 3);
     attributes.size.set([sign.width, sign.height], i * 2);
     attributes.color.set(NEON_SLOTS[sign.colorSlot] ?? NEON_SLOTS[0], i * 3);
@@ -96,7 +96,7 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     attributes.glyphs0.set(glyphs.slice(0, 4), i * 4);
     attributes.glyphs1.set(glyphs.slice(4, 8), i * 4);
     attributes.glyphs2.set(glyphs.slice(8, 12), i * 4);
-    attributes.meta.set([SIGNAGE.dimByLayer[layerIndex] ?? 1, sign.dead, scale], i * 3);
+    attributes.meta.set([dim, sign.dead, scale], i * 3);
     attributes.state.set([STEADY_LEVEL, -1], i * 2);
     attributes.drivers.push({
       flaky: sign.flaky,
