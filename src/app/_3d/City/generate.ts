@@ -1,28 +1,19 @@
 import { mulberry32 } from "../utils";
 import type { Seeds } from "./config";
 import {
-  ALLEY,
-  BACK_LIMIT_RATIO,
-  BACK_ROW_DEPTH,
-  BACK_ROW_HEIGHT,
   BILLBOARD,
-  DEPTH_FACTOR,
-  DEPTH_VARIATION,
-  depthScale,
-  FAR_LAYER_BACK_GAP,
-  FRONT_LIMIT_RATIO,
   GENERATION_ASPECT,
+  GRID,
   GROUND_Y,
-  LAYERS,
-  NEAREST_FRONT_LIMIT,
+  lerpRow,
+  lerpRowGeo,
   NEAREST_LAYER,
   REF_VIEW_HEIGHT,
+  ROWS,
   SEEDS,
   SIGNAGE,
   SKYLINE_RATIO,
   STALL,
-  STREET_EVERY,
-  streetWidth,
   visibleWidthAt,
   WIDTH_MARGIN,
 } from "./config";
@@ -50,7 +41,7 @@ export type Building = {
   width: number;
   /** World x of the building's center. */
   x: number;
-  /** Box center z relative to the layer's z (0 = the layer's front row). */
+  /** Box center z relative to the row's street edge: `-(setback + depth / 2)`, never positive. */
   z: number;
 };
 
@@ -202,36 +193,30 @@ const buildingRect = (building: Building): Rect => ({
 });
 
 /**
- * Everything in a layer's front plane a blade sign could clip: front-row buildings, their roof furniture and
- * billboards, and the signs placed so far. Back rows stand behind every front face, so they never clip.
+ * Everything in a row's front plane a blade sign could clip: buildings, their roof furniture and billboards,
+ * and the signs placed so far. Setbacks are ignored (a set-back neighbour still counts), which errs safe.
  */
 const frontObstacles = (layer: CityLayer): Rect[] => {
   const rects: Rect[] = [];
 
   for (const building of layer.buildings) {
-    if (building.z === 0) {
-      rects.push(buildingRect(building));
-    }
+    rects.push(buildingRect(building));
   }
   for (const detail of layer.details) {
-    if ((detail.z ?? 0) >= 0) {
-      rects.push({
-        bottom: detail.baseY,
-        left: detail.x - detail.width / 2,
-        right: detail.x + detail.width / 2,
-        top: detail.baseY + detail.height,
-      });
-    }
+    rects.push({
+      bottom: detail.baseY,
+      left: detail.x - detail.width / 2,
+      right: detail.x + detail.width / 2,
+      top: detail.baseY + detail.height,
+    });
   }
   for (const board of layer.billboards) {
-    if (board.z >= 0) {
-      rects.push({
-        bottom: board.y - board.height / 2,
-        left: board.x - board.width / 2,
-        right: board.x + board.width / 2,
-        top: board.y + board.height / 2,
-      });
-    }
+    rects.push({
+      bottom: board.y - board.height / 2,
+      left: board.x - board.width / 2,
+      right: board.x + board.width / 2,
+      top: board.y + board.height / 2,
+    });
   }
   for (const sign of layer.signs) {
     rects.push(signRect(sign));
@@ -391,10 +376,11 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
 };
 
 /**
- * Keeps the frame signs clear before they are placed: a strip inside the frame's inner edge wide enough for
- * the widest possible blade sign, its gap and breathing room, full height. Front buildings reaching into it
- * are narrowed to its edge, or dropped when too little would remain. Independent of the sign seed, so
- * reseeding signs never changes the skeleton. Runs before roof furniture is generated, so nothing floats.
+ * Clears the frame building's footprint and the strip inside its inner edge where its blade signs hang
+ * (wide enough for the widest possible sign, its gap and breathing room), full height. Walked buildings
+ * overlapping the zone keep whichever part outside it is wider, or are dropped when too little would remain,
+ * so nothing ever stands inside the frame (its front face would z-fight the frame's facade). Independent of
+ * the sign seed, so reseeding signs never changes the skeleton. Runs before roof furniture, so nothing floats.
  */
 const reserveFrameStrip = (layer: CityLayer, frame: Building): void => {
   const { scale } = layer;
@@ -403,30 +389,32 @@ const reserveFrameStrip = (layer: CityLayer, frame: Building): void => {
   const stripWidth = (SIGNAGE.bladeGap.max + widest + SIGNAGE.breathing) * scale;
   const keep = SIGNAGE.trimKeep * layer.config.minW * scale;
   const side: -1 | 1 = frame.x < 0 ? 1 : -1;
-  const edge = frame.x + (side * frame.width) / 2;
-  const far = edge + side * stripWidth;
-  const strip: Rect = { bottom: 0, left: Math.min(edge, far), right: Math.max(edge, far), top: Infinity };
+  const outer = frame.x - (side * frame.width) / 2;
+  const far = frame.x + (side * frame.width) / 2 + side * stripWidth;
+  const zone: Rect = { bottom: 0, left: Math.min(outer, far), right: Math.max(outer, far), top: Infinity };
 
   layer.buildings = layer.buildings.filter((building) => {
-    if (building.frame || building.z !== 0) {
+    if (building.frame) {
       return true;
     }
 
     const rect = buildingRect(building);
 
-    if (!intersects(rect, strip)) {
+    if (!intersects(rect, zone)) {
       return true;
     }
 
-    const left = side > 0 ? Math.max(rect.left, far) : rect.left;
-    const right = side > 0 ? rect.right : Math.min(rect.right, far);
+    // the parts of the lot left of and right of the zone; keep the wider one
+    const leftPart = { left: rect.left, right: Math.min(rect.right, zone.left) };
+    const rightPart = { left: Math.max(rect.left, zone.right), right: rect.right };
+    const part = leftPart.right - leftPart.left >= rightPart.right - rightPart.left ? leftPart : rightPart;
 
-    if (right - left < keep) {
+    if (part.right - part.left < keep) {
       return false;
     }
 
-    building.width = right - left;
-    building.x = (left + right) / 2;
+    building.width = part.right - part.left;
+    building.x = (part.left + part.right) / 2;
     return true;
   });
 };
@@ -468,7 +456,7 @@ const placeDecorativeSign = (
   const rowPitch = (cellH + gapY) * scale;
   const widthRef = building.width / scale;
   const left = building.x - building.width / 2;
-  const baseCell = SIGNAGE.cellByLayer[index] ?? 0;
+  const baseCell = Math.round(lerpRowGeo(SIGNAGE.cell, config.t));
   const cell = nearest ? baseCell + Math.round(SIGNAGE.cellJitter * rand()) : baseCell;
   const top = 8 * scale;
   const bottomLimit = building.height - (nearest ? 72 : 14) * scale;
@@ -573,10 +561,10 @@ const placeDecorativeSign = (
   }
 };
 
-/** Rolled signs for a layer's front row, left to right; `reserved` (the beacon building) gets none. */
+/** Rolled signs for a row's buildings, left to right; `reserved` (the beacon building) gets none. */
 const placeDecorativeSigns = (layer: CityLayer, signSeed: number, reserved: Building | null): void => {
   const obstacles = frontObstacles(layer);
-  const front = layer.buildings.filter((building) => building.z === 0 && !building.frame).sort((a, b) => a.x - b.x);
+  const front = layer.buildings.filter((building) => !building.frame).sort((a, b) => a.x - b.x);
   const seen = new Map<number, number>();
 
   for (const building of front) {
@@ -605,7 +593,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
   const { height: top, rands, roof, width, x } = building;
   const [r0, r1, r2, r3] = rands;
   const left = x - width / 2;
-  const depthOf = (w: number) => Math.max(1, Math.min(building.depth, w * DEPTH_FACTOR * side));
+  const depthOf = (w: number) => Math.max(1, Math.min(building.depth, w * ROOF_DEPTH_RATIO * side));
   const box = (bx: number, baseY: number, w: number, h: number): PlainBox => ({
     baseY,
     depth: depthOf(w),
@@ -675,43 +663,94 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
   return out;
 };
 
-/** A street gap in a layer, world x range. */
+/** A cross street, world x range. */
 type Street = readonly [number, number];
 
-const generateLayer = (config: LayerConfig, index: number, aspect: number, seed: number): CityLayer => {
-  const rand = mulberry32(seed + 131 * index);
-  const scale = depthScale(config.z);
-  const skylineHeight = REF_VIEW_HEIGHT * SKYLINE_RATIO * scale;
-  const span = visibleWidthAt(config.z, aspect) * WIDTH_MARGIN;
-  // the walk covers a fixed aspect so the layout doesn't depend on the screen width; `cullLayer` trims it to `span`
-  const walkSpan = visibleWidthAt(config.z, GENERATION_ASPECT) * WIDTH_MARGIN;
-  const isNearest = index === NEAREST_LAYER;
+/** Roof furniture depth as a multiple of its width (the middle of the building depth range), flattened by `side`. */
+const ROOF_DEPTH_RATIO = (GRID.depth.min + GRID.depth.max) / 2;
 
-  // depth budget: front faces stop short of the fog plane ahead, the back row short of the layer behind
-  const gapFront = isNearest ? 0 : (LAYERS[index + 1]?.z ?? 0) - config.z;
-  const gapBack = index > 0 ? config.z - (LAYERS[index - 1]?.z ?? 0) : FAR_LAYER_BACK_GAP;
-  const frontLimit = isNearest ? NEAREST_FRONT_LIMIT : FRONT_LIMIT_RATIO * gapFront;
-  const backLimit = BACK_LIMIT_RATIO * gapBack;
+/** Buildings between cross streets, from the grid's `every` range. */
+const untilCrossStreet = (rand: () => number): number =>
+  GRID.crossStreet.every.min + Math.floor(rand() * GRID.crossStreet.every.extra);
 
-  const depthFor = (width: number, r: number, cap: number): number =>
-    Math.max(1, Math.min(cap, width * DEPTH_FACTOR * config.side * (DEPTH_VARIATION.min + DEPTH_VARIATION.extra * r)));
-  const widthFor = (): number => (config.minW + rand() * (config.maxW - config.minW)) * scale;
-  const smallGap = (): number => (rand() < 0.35 ? rand() * (5 + 3 * index) * scale : 0);
+/** A building width for the row, world units. */
+const widthFor = (config: LayerConfig, rand: () => number): number =>
+  (config.minW + rand() * (config.maxW - config.minW)) * config.scale;
 
-  const front: Building[] = [];
+/** The gap after a building within its row, world units. */
+const alleyFor = (config: LayerConfig, rand: () => number): number =>
+  (GRID.alley.min + rand() * (GRID.alley.max - GRID.alley.min)) * config.scale;
+
+/** A cross street width for the row, world units: the row's reference width times 1-2. */
+const crossStreetFor = (config: LayerConfig, rand: () => number): number =>
+  lerpRow(GRID.crossStreet.width, config.t) * (1 + rand()) * config.scale;
+
+/**
+ * Aligned cross streets: one set of world-x gaps every row jumps past, so the rows form blocks. Rolled with the
+ * nearest row's sizes over the widest walk (the far row's), from its own stream of the city seed.
+ */
+const rollCrossStreets = (nearest: LayerConfig, walkSpan: number, seed: number): Street[] => {
+  const rand = mulberry32(seed + 977);
   const streets: Street[] = [];
-
-  let cursor = -walkSpan / 2 - rand() * config.minW * scale;
-  let untilStreet = STREET_EVERY.min + Math.floor(rand() * STREET_EVERY.extra);
+  let cursor = -walkSpan / 2 - rand() * nearest.minW * nearest.scale;
+  let untilStreet = untilCrossStreet(rand);
 
   while (cursor < walkSpan / 2) {
-    const width = widthFor();
+    cursor += widthFor(nearest, rand) + alleyFor(nearest, rand);
+
+    if (--untilStreet <= 0) {
+      const width = crossStreetFor(nearest, rand);
+      streets.push([cursor, cursor + width]);
+      cursor += width;
+      untilStreet = untilCrossStreet(rand);
+    }
+  }
+
+  return streets;
+};
+
+/**
+ * One row: a walk of buildings along x, each `depth = width * ratio` clamped to the row's band and stood back
+ * from the street edge by a random setback that still fits, with an alley after it and a cross street every
+ * few buildings (rolled here, or jumped past when `shared` streets are given). Nothing is ever thin or dropped:
+ * `buildRows` guarantees the band holds the widest building at the minimum ratio.
+ */
+const generateLayer = (config: LayerConfig, aspect: number, seed: number, shared: null | Street[]): CityLayer => {
+  const { band, index, scale, z } = config;
+  const rand = mulberry32(seed + 131 * index);
+  const skylineHeight = REF_VIEW_HEIGHT * SKYLINE_RATIO * scale;
+  const span = visibleWidthAt(z, aspect) * WIDTH_MARGIN;
+  // the walk covers a fixed aspect so the layout doesn't depend on the screen width; `cullLayer` trims it to `span`
+  const walkSpan = visibleWidthAt(z, GENERATION_ASPECT) * WIDTH_MARGIN;
+  const isNearest = index === NEAREST_LAYER;
+
+  const buildings: Building[] = [];
+  let cursor = -walkSpan / 2 - rand() * config.minW * scale;
+  let untilStreet = untilCrossStreet(rand);
+  let streetIndex = 0;
+
+  while (cursor < walkSpan / 2) {
+    const width = widthFor(config, rand);
+
+    if (shared) {
+      // jump past any shared cross street this lot would overlap
+      while (streetIndex < shared.length && (shared[streetIndex]?.[0] ?? Infinity) < cursor + width) {
+        const street = shared[streetIndex];
+        if (street && street[1] > cursor) {
+          cursor = street[1];
+        }
+        streetIndex++;
+      }
+    }
+
     const height = skylineHeight * config.top * (0.32 + 0.68 * Math.pow(rand(), 0.85));
+    const depth = Math.min(band, width * (GRID.depth.min + rand() * (GRID.depth.max - GRID.depth.min)));
+    const setback = rand() * Math.min(GRID.setback * band, band - depth);
     const patternRoll = rand();
 
-    front.push({
+    buildings.push({
       blank: null,
-      depth: depthFor(width, rand(), 2 * frontLimit),
+      depth,
       frame: false,
       height,
       pattern: patternRoll < 0.62 ? 0 : patternRoll < 0.82 ? 1 : 2,
@@ -720,75 +759,30 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
       seed: Math.floor(rand() * 10000),
       width,
       x: cursor + width / 2,
-      z: 0,
+      z: -(setback + depth / 2),
     });
 
-    cursor += width;
+    cursor += width + alleyFor(config, rand);
 
-    if (--untilStreet <= 0) {
-      const street = streetWidth(index, rand()) * scale;
-      streets.push([cursor, cursor + street]);
-      cursor += street;
-      untilStreet = STREET_EVERY.min + Math.floor(rand() * STREET_EVERY.extra);
-    } else {
-      cursor += smallGap();
-    }
-  }
-
-  // Back row: lower boxes behind the front row's deepest face, skipping the streets so they run through.
-  const frontBack = Math.max(0, ...front.map((building) => building.depth / 2));
-  const backStart = frontBack + ALLEY * scale;
-  const backSpace = backLimit - backStart;
-  const back: Building[] = [];
-
-  if (backSpace >= 3 * scale) {
-    let backCursor = -walkSpan / 2 - rand() * config.minW * scale;
-    let streetIndex = 0;
-
-    while (backCursor < walkSpan / 2) {
-      const width = widthFor();
-      // jump past any street this box would overlap
-      while (streetIndex < streets.length && (streets[streetIndex]?.[0] ?? Infinity) < backCursor + width) {
-        const street = streets[streetIndex];
-        if (street && street[1] > backCursor) {
-          backCursor = street[1];
-        }
-        streetIndex++;
-      }
-      // back-row depth fills the space behind the front row rather than following the box width
-      const depth = backSpace * (BACK_ROW_DEPTH.min + BACK_ROW_DEPTH.extra * rand());
-      const patternRoll = rand();
-
-      back.push({
-        blank: null,
-        depth,
-        frame: false,
-        height: skylineHeight * config.top * (BACK_ROW_HEIGHT.min + BACK_ROW_HEIGHT.extra * Math.pow(rand(), 0.85)),
-        pattern: patternRoll < 0.62 ? 0 : patternRoll < 0.82 ? 1 : 2,
-        rands: [rand(), rand(), rand(), rand()],
-        roof: rand(),
-        seed: Math.floor(rand() * 10000),
-        width,
-        x: backCursor + width / 2,
-        z: -(backStart + depth / 2),
-      });
-
-      backCursor += width + smallGap();
+    if (!shared && --untilStreet <= 0) {
+      cursor += crossStreetFor(config, rand);
+      untilStreet = untilCrossStreet(rand);
     }
   }
 
   if (isNearest) {
     // Two full-height "frame" buildings at the viewport edges, mostly off-screen, matching the reference.
-    const visible = visibleWidthAt(config.z, aspect);
+    const visible = visibleWidthAt(z, aspect);
     const frameWidth = (config.px + Math.max(70, Math.min(210, 0.11 * visible))) * scale;
     const frameHeight = skylineHeight + 60 * scale;
+    const frameDepth = Math.min(band, frameWidth * GRID.depth.max);
 
     for (const side of [-1, 1] as const) {
       const innerEdge = side * (visible / 2 - (frameWidth - config.px * scale));
 
-      front.push({
+      buildings.push({
         blank: null,
-        depth: Math.max(1, Math.min(2 * frontLimit, frameWidth * DEPTH_FACTOR * config.side)),
+        depth: frameDepth,
         frame: true,
         height: frameHeight,
         pattern: 0,
@@ -797,7 +791,7 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
         seed: 7000 + (side + 1),
         width: frameWidth,
         x: innerEdge + (side * frameWidth) / 2,
-        z: 0,
+        z: -frameDepth / 2,
       });
     }
   }
@@ -805,7 +799,7 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
   return {
     beacons: [],
     billboards: [],
-    buildings: [...front, ...back],
+    buildings,
     config,
     details: [],
     index,
@@ -813,7 +807,7 @@ const generateLayer = (config: LayerConfig, index: number, aspect: number, seed:
     signs: [],
     skylineHeight,
     span,
-    z: config.z,
+    z,
   };
 };
 
@@ -850,7 +844,13 @@ const cullLayer = (layer: CityLayer): CityLayer => {
  * No three.js imports here: the output is plain data that components turn into instanced attributes.
  */
 export const generateCity = (aspect: number, seeds: Seeds = SEEDS): CityLayout => {
-  const generated = LAYERS.map((config, index) => generateLayer(config, index, aspect, seeds.city));
+  const nearestRow = ROWS[NEAREST_LAYER];
+  const farRow = ROWS[0];
+  const shared =
+    GRID.crossStreet.aligned && nearestRow && farRow
+      ? rollCrossStreets(nearestRow, visibleWidthAt(farRow.z, GENERATION_ASPECT) * WIDTH_MARGIN, seeds.city)
+      : null;
+  const generated = ROWS.map((config) => generateLayer(config, aspect, seeds.city, shared));
   const nearest = generated[NEAREST_LAYER];
 
   if (nearest) {
@@ -880,11 +880,8 @@ export const generateCity = (aspect: number, seeds: Seeds = SEEDS): CityLayout =
     victim.dead = Math.floor(mulberry32(seeds.sign + 7)() * victim.text.length);
   }
 
-  // the street sits in front of whatever the nearest layer's deepest box (frame buildings included) reaches
-  const deepestFront = nearest
-    ? Math.max(0, ...nearest.buildings.map((building) => building.z + building.depth / 2))
-    : 0;
-  const stallZ = deepestFront + STALL.clearance;
+  // every building stands behind its row's street edge, so the stall line is straight: just in front of z = 0
+  const stallZ = STALL.clearance;
 
   return {
     groundY: GROUND_Y,
@@ -910,7 +907,7 @@ const pickSearchlight = (
   let best: Building | null = null;
 
   for (const building of layer.buildings) {
-    if (building.frame || building.z !== 0 || Math.abs(building.x) > limit) {
+    if (building.frame || Math.abs(building.x) > limit) {
       continue;
     }
     if (!best || building.height > best.height) {
