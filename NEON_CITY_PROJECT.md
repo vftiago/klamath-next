@@ -42,9 +42,11 @@ Each step is its own commit, so any of them can be cherry-picked onto the baseli
 
 ## Open questions
 
-- Layered city with depth (experiments branch) vs. a real block grid (`.tasks/city-depth-experiments.md`,
-  part B). The grid fixes the far layers' giant world scale from above; the layered version keeps the
-  reference look from the front at a fraction of the work.
+- Decided (2026-10-24): the city is a row grid (`.tasks/city-grid.md`): rows own a band and a street, z is
+  derived by walking them, the per-layer renderer stays. The world it builds is consistent (same window size
+  everywhere, narrower and much taller towers at the back); what is open is composition, the height gradient
+  (`ROW_STYLE.top`) against the aerial camera heights. Building in plain world units instead of scaled
+  reference px is its own plan (`.tasks/city-full-3d.md`), with the front view kept intact by construction.
 - Lens: a narrower FOV with the camera pulled back would calm the perspective at the frame edges (and
   show less of building sides) without changing what's in frame; it also compresses depth.
 - Whether the people and the stall rebuild are worth their cost in the front view, which is the view
@@ -72,4 +74,4 @@ Each step is its own commit, so any of them can be cherry-picked onto the baseli
 - `CLAUDE.md`: directory map, patterns, and the constraints the code follows.
 - `SCENE_ANCHORING.md`: what is viewport-anchored (frame buildings, searchlight) and why.
 - `.tasks/` (gitignored): `neon-city-scene.md` (the original build plan and reference spec),
-  `city-depth-experiments.md`, `people.md`, `scene-tuning-menu.md`.
+  `city-grid.md` (the row grid: model, knobs, follow-ups), `people.md`, `scene-tuning-menu.md`.
