@@ -45,7 +45,7 @@ src/
 │   │   ├── utils.ts                 # getSceneTime (wrapped scene clock), mulberry32 seeded PRNG
 │   │   ├── City/                    # Neon city scene (plan: .tasks/neon-city-scene.md, gitignored)
 │   │   │   ├── City.tsx             # Generates the layout per viewport aspect, mounts the layers
-│   │   │   ├── config.ts            # Camera constants, GRID + ROW_STYLE (rows derived by buildRows), sizing knobs
+│   │   │   ├── config.ts            # Camera constants, GRID (DEFAULT_GRID + overrides) + ROW_STYLE (rows derived by buildRows), sizing knobs
 │   │   │   ├── generate.ts          # Pure seeded layout generator (no three.js imports)
 │   │   │   ├── Buildings/           # One instanced draw per row; windows and roof boxes in one shader
 │   │   │   ├── Billboards/          # Rooftop neon-framed boards, instanced quads
@@ -123,7 +123,7 @@ src/
 - Skipped entirely for `prefers-reduced-motion`; quality tier starts at `reduced` below `md` (DPR 1) and `full` above (DPR ≤ 2), then a frame-time probe steps down while the 75th-percentile frame exceeds the tier's budget; `?quality=<tier>` forces one, `?debug=1` shows frame ms and draw calls
 - Shader uniforms are declared via a memoized `uniforms` prop and mutated through `materialRef` in `useFrame`
 - City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; the whole city group is remounted by key when the quantized viewport aspect or the seeds change. Rows are walked for a fixed `GENERATION_ASPECT` and culled to the real one, so every width shows a window onto the same city
-- City grid: `GRID` in `config.ts` describes rows of buildings; `buildRows` walks z from the nearest row back (`band` + `street` per row, so rows never overlap) and interpolates `ROW_STYLE` far/near pairs by depth `t` (looks linearly, sizes geometrically). Each building's depth is `width × GRID.depth` clamped to its row's band, stood back from the street edge by a random `setback`; `buildRows` throws at load if a band can't hold the widest building at `depth.min`, so nothing is ever thin or dropped. `perspective` picks reference-px sizing (1, the illustration look) vs world units (0); `crossStreet.aligned` makes the per-row cross streets one shared set (blocks). Stalls and fog anchor to row edges, not building faces
+- City grid: `GRID` in `config.ts` describes rows of buildings (it spreads `DEFAULT_GRID`, the reference values, and tuning goes in `GRID` as overrides); `buildRows` walks z from the nearest row back (`band` + `street` per row, so rows never overlap) and interpolates `ROW_STYLE` far/near pairs by depth `t` (looks linearly, sizes geometrically). Each building's depth is `width × GRID.depth` clamped to its row's band, stood back from the street edge by a random `setback`; `buildRows` throws at load if a band can't hold the widest building at `depth.min`, so nothing is ever thin or dropped. `perspective` picks reference-px sizing (1, the illustration look) vs world units (0); `crossStreet.aligned` makes the per-row cross streets one shared set (blocks). Stalls and fog anchor to row edges, not building faces
 - Signage has its own seed: the skeleton comes from `seeds.city`, each building's sign from its own PRNG (`building.seed` mixed with `seeds.sign`), so reseeding signs never moves a building. The six frame signs are authored (`FRAME_SIGNS`); the generator clears a strip beside each frame for them. Rolled blade signs are placed only with `SIGNAGE.breathing` room from every building, roof detail, billboard and sign in their layer's front plane, else they fall back to the other side, a facade sign, or nothing
 - City shaders are GLSL ES 3.0 (`glslVersion={GLSL3}`, `in`/`out`, `flat` per-instance varyings) and box-filter procedural detail against `fwidth` so thin patterns don't alias
 - DOM-backed textures (e.g. the fog tile canvas) are created in `useState` initializers and disposed in effect cleanups
@@ -136,23 +136,23 @@ src/
 
 ## Important Files
 
-| File                                       | Purpose                                                    |
-| ------------------------------------------ | ---------------------------------------------------------- |
-| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation                  |
-| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type                          |
-| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type                         |
-| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)                        |
-| `src/app/layout.tsx`                       | Root layout, fonts, 3D background                          |
-| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition                            |
-| `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`               |
-| `src/app/_3d/City/config.ts`               | `CAMERA`, `GRID`, `ROW_STYLE`, `STALL`, `SIGNAGE`, `SEEDS` |
-| `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)               |
-| `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets                       |
-| `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)                     |
-| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)                |
-| `src/app/_navbar/headers.ts`               | Route headers with rarity system                           |
-| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                            |
-| `next.config.ts`                           | Turbopack/Webpack shader loader config                     |
+| File                                       | Purpose                                                                     |
+| ------------------------------------------ | --------------------------------------------------------------------------- |
+| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation                                   |
+| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type                                           |
+| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type                                          |
+| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)                                         |
+| `src/app/layout.tsx`                       | Root layout, fonts, 3D background                                           |
+| `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition                                             |
+| `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`                                |
+| `src/app/_3d/City/config.ts`               | `CAMERA`, `DEFAULT_GRID` / `GRID`, `ROW_STYLE`, `STALL`, `SIGNAGE`, `SEEDS` |
+| `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)                                |
+| `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets                                        |
+| `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)                                      |
+| `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)                                 |
+| `src/app/_navbar/headers.ts`               | Route headers with rarity system                                            |
+| `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                                             |
+| `next.config.ts`                           | Turbopack/Webpack shader loader config                                      |
 
 ## Types
 
