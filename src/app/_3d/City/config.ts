@@ -35,7 +35,7 @@ export const STALL = {
   /** Height of the body (ground to the roof's front edge), reference px (min, extra). */
   bodyHeight: { extra: 12, min: 30 },
   /** Gap between the nearest layer's deepest front face and the stall plane, world units. */
-  clearance: 8,
+  clearance: 42,
   /** Stalls per cluster (min, extra). */
   cluster: { extra: 3, min: 2 },
   /** Gap between clusters (min, extra), world units. */
@@ -199,6 +199,11 @@ export const DEFAULT_GRID: GridConfig = {
  */
 export const GRID: GridConfig = {
   ...DEFAULT_GRID,
+  alley: { max: 0, min: 0 },
+  crossStreet: { aligned: false, every: { extra: 2, min: 5 }, width: { far: 6, near: 8 } },
+  rows: 8,
+  setback: 0,
+  street: { far: 255, near: 20 },
 };
 
 /** Look and sizing of a row; given at the far and near ends in `ROW_STYLE`, interpolated per row. */
