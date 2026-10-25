@@ -10,7 +10,11 @@ export const CAMERA = {
   far: 10000,
   fov: 45,
   near: 1,
-  /** Default camera distance from the nearest layer (z = 0). */
+  /**
+   * Distance of the home camera from the nearest row's street edge (z = 0). Every reference-px size, depth
+   * scale and frustum estimate is anchored to it, and `ThreeScene` places the home camera here, so the
+   * generated city projects at reference size from where it is actually viewed. Keep them one number.
+   */
   z: 1024,
 } as const;
 

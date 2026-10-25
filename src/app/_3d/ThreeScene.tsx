@@ -34,7 +34,7 @@ const CAMERA_STATES: Record<string, { lookAt: Vector3; position: Vector3 }> = {
   // Home: slightly raised and pulled back
   "/": {
     lookAt: new Vector3(0, EYE_Y + 60, 0),
-    position: new Vector3(0, EYE_Y + 60, 1100),
+    position: new Vector3(0, EYE_Y + 60, CAMERA.z),
   },
   // About: aerial view from the right, looking down across the layers
   "/about": {
@@ -181,7 +181,8 @@ const ThreeScene = () => {
             far: CAMERA.far,
             fov: CAMERA.fov,
             near: CAMERA.near,
-            position: [0, EYE_Y + 60, 1100],
+            // start at the home view so a load on `/` holds still instead of sliding into place
+            position: DEFAULT_CAMERA_STATE.position.toArray(),
           }}
           dpr={[1, quality.dprMax]}
           frameloop={quality.renderOnDemand ? "demand" : "always"}
