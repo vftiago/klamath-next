@@ -178,8 +178,11 @@ export type GridConfig = {
  * The city grid: `rows` rows of buildings, the nearest at z = 0, each owning a band of depth with a street
  * behind it. Row z positions are derived by walking band + street back from the nearest row, so rows can
  * never overlap and every building fits its band (`buildRows` validates `band >= depth.min * maxW`).
+ *
+ * These are the reference values the grid was introduced with (`f8ca8e4`). Leave them as they are and tune
+ * `GRID` below instead, so the defaults are always there to compare against or go back to.
  */
-export const GRID: GridConfig = {
+export const DEFAULT_GRID: GridConfig = {
   alley: { max: 8, min: 0 },
   band: { far: 60, near: 180 },
   crossStreet: { aligned: false, every: { extra: 2, min: 3 }, width: { far: 6, near: 31 } },
@@ -188,6 +191,14 @@ export const GRID: GridConfig = {
   rows: 6,
   setback: 0.33,
   street: { far: 20, near: 60 },
+};
+
+/**
+ * The grid the city is generated with: `DEFAULT_GRID` plus any overrides. Override a nested field by spreading
+ * its default, e.g. `street: { ...DEFAULT_GRID.street, near: 40 }`.
+ */
+export const GRID: GridConfig = {
+  ...DEFAULT_GRID,
 };
 
 /** Look and sizing of a row; given at the far and near ends in `ROW_STYLE`, interpolated per row. */
