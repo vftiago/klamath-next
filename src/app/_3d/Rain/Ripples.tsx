@@ -2,7 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import type { InstancedBufferAttribute, RawShaderMaterial } from "three";
 import { DynamicDrawUsage, GLSL3 } from "three";
-import { CAMERA, GROUND_Y, REF_VIEW_HEIGHT } from "../City/config";
+import { depthScale, GROUND_Y, REF_VIEW_HEIGHT } from "../City/config";
 import { getSceneTime } from "../utils";
 import fragmentShader from "./ripple.frag";
 import vertexShader from "./ripple.vert";
@@ -63,7 +63,7 @@ const Ripples = ({ rate = 180, shoreZ }: RipplesProps) => {
       // nearer landings are bigger, longer-lived and brighter, as in the reference's depth ramp
       const depth = Math.pow(Math.random(), 0.8);
       const z = shoreZ + 10 + (DEPTH_NEAR - shoreZ - 10) * depth;
-      const s = (CAMERA.z - z) / 1024;
+      const s = depthScale(z);
       const halfWidth = 0.7 * aspect * REF_VIEW_HEIGHT * s;
       const tintRoll = Math.random();
 
