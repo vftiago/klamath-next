@@ -6,23 +6,26 @@ uniform sampler2D uAtlas;
 uniform vec2 uAtlasGrid;
 
 in vec2 vLocal;
-flat in vec3 vSize;
+flat in vec4 vSize;
 flat in vec3 vColor;
+flat in vec3 vBacking;
 flat in vec4 vLayer;
 flat in vec4 vGlyphs0;
 flat in vec4 vGlyphs1;
 flat in vec4 vGlyphs2;
+flat in vec4 vShine;
 
 out vec4 fragColor;
 
 const float ATLAS_VARIANTS = 3.0;
 // must match GLYPH_PITCH in generate.ts
 const float GLYPH_PITCH = 1.18;
+const vec3 UNLIT_DARK = vec3(36.0, 26.0, 48.0) / 255.0;
+// border halo reach either side of the tube, in character cells (the text's atlas halo is also a cell fraction)
+const float BORDER_HALO_CELLS = 0.28;
 const float VARIANT_HALO = 0.0;
 const float VARIANT_CORE = 1.0;
 
-const vec3 BASE_FAR = vec3(26.0, 4.0, 51.0) / 255.0;
-const vec3 BASE_NEAR = vec3(5.0, 1.0, 15.0) / 255.0;
 
 // signed distance from p (board coords) to a `size` rounded rect with corner radius r, negative inside
 float roundedBox(vec2 p, vec2 size, float r) {
@@ -58,27 +61,42 @@ void main(void) {
   float v = vLocal.y;
   float w = vSize.x;
   float h = vSize.y;
-  float r = vLayer.x;
   float px = vLayer.y;
   int count = int(vLayer.z + 0.5);
+  float cell = vLayer.w;
 
   // distance inside the rounded board; nothing outside it
   float edge = -roundedBox(vec2(u, v), vec2(w, h), vSize.z);
   if (edge < 0.0) discard;
 
-  // board: base wall color lifted 5% toward white
-  vec3 color = mix(mix(BASE_FAR, BASE_NEAR, r), vec3(1.0), 0.05);
+  vec3 color = vBacking;
 
-  // neon frame: 1 px stroke inset 1 px, with a soft inner glow standing in for the reference's shadow blur
-  float frameAlpha = 0.18 + 0.3 * r;
-  float stroke = segCoverage(edge - px, px, max(fw.x, fw.y));
-  float glow = 1.0 - smoothstep(px, 6.0 * px, edge);
-  color = mix(color, vColor, frameAlpha * 0.45 * glow);
-  color = mix(color, vColor, frameAlpha * stroke);
+  vec3 coreColor = mix(vColor, vec3(1.0), 0.6);
+  vec3 unlitColor = mix(vColor, UNLIT_DARK, 0.72);
+  float coreShine = vShine.x;
+  float haloShine = vShine.y;
+  float textShine = vShine.z;
+  // the row's dim factor, from the billboard type's `dim` pair
+  float brightness = vShine.w;
+
+  // neon tube frame, the same rule as the signs: inset by min(2 px, m / 2) or enough to keep the tube inside,
+  // a dark tube under a soft halo either side and a bright core; m is the board margin (half of h - cell) and
+  // d the signed distance to the tube's centre line
+  float m = 0.5 * (h - cell);
+  float tubeW = min(vSize.w, m);
+  float inset = max(min(2.0 * px, 0.5 * m), 0.5 * tubeW);
+  float d = edge - inset;
+  float tube = segCoverage(d + 0.5 * tubeW, tubeW, max(fw.x, fw.y));
+  // the halo shrinks with the board like the slogan's, and never reaches past the margin
+  float haloReach = min(BORDER_HALO_CELLS * cell, m);
+  // a tube thinner than a pixel glows less, and no tube glows not at all
+  float halo = pow(1.0 - smoothstep(0.0, haloReach, abs(d)), 2.0) * min(1.0, tubeW / px);
+  color = mix(color, unlitColor, tube * brightness);
+  color = mix(color, vColor, min(1.0, haloShine * brightness * halo));
+  color = mix(color, coreColor, min(1.0, coreShine * brightness * tube));
 
   // the slogan at the size the generator built the board around, centered
   if (count > 0) {
-    float cell = vLayer.w;
     float pitch = GLYPH_PITCH * cell;
     float x0 = (w - (float(count - 1) * pitch + cell)) * 0.5;
     float pad = 0.5 * cell;
@@ -86,8 +104,6 @@ void main(void) {
     float vTop = h - v;
     float rowTop = (h - cell) * 0.5;
     int k = int(floor((u - x0) / pitch));
-    vec3 coreColor = mix(vColor, vec3(1.0), 0.6);
-    float brightness = 0.45 + 0.5 * r;
 
     for (int n = -1; n <= 1; n++) {
       int kk = k + n;
@@ -98,8 +114,8 @@ void main(void) {
       if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0) continue;
 
       float glyph = glyphAt(kk);
-      color = mix(color, vColor, brightness * atlas(glyph, VARIANT_HALO, p));
-      color = mix(color, coreColor, brightness * atlas(glyph, VARIANT_CORE, p));
+      color = mix(color, vColor, min(1.0, textShine * brightness * atlas(glyph, VARIANT_HALO, p)));
+      color = mix(color, coreColor, min(1.0, textShine * brightness * atlas(glyph, VARIANT_CORE, p)));
     }
   }
 

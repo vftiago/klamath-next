@@ -85,16 +85,49 @@ export type Seeds = {
 /** Committed seeds. `?seed=<n>` and `?signSeed=<n>` override them for a session (see `seeds.ts`). */
 export const SEEDS: Seeds = { city: 2024, sign: 2024 };
 
-/** Letter size of a sign type: the row's `SIGNAGE.cell` times a factor rolled in [min, max] per sign. */
+/** Letter size of a sign type: the row's `cell` times a factor rolled in [min, max] per sign. */
 export type CellScale = { max: number; min: number };
 
+/** Neon brightness multipliers (1 = the reference look): the border's halo and core, and the text. */
+export type Brightness = { borderCore: number; borderHalo: number; text: number };
+
+/** A colour as 0-255 RGB. */
+export type Rgb = readonly [number, number, number];
+
+/** The knobs every sign type has. `SIGN_BASE` holds the defaults; each `SIGNAGE` type block spreads it and overrides. */
+export type SignStyle = {
+  /** Box background at the far and near rows, linear in between. */
+  backing: { far: Rgb; near: Rgb };
+  /** Border tube width, reference px; never wider than the box margin. 0 removes the border, halo included. */
+  borderWidth: number;
+  brightness: Brightness;
+  /** Base letter size at the far and near rows, reference px, geometric in between. */
+  cell: RowPair;
+  cellScale: CellScale;
+  /** Brightness at the far and near rows, linear in between. */
+  dim: RowPair;
+  /** Corner radius of the box, reference px. */
+  radius: number;
+};
+
+/** Defaults every sign type inherits (`SIGNAGE.<type>` spreads this, then overrides what differs). */
+export const SIGN_BASE: SignStyle = {
+  backing: { far: [16, 3, 30], near: [8, 3, 16] },
+  borderWidth: 1,
+  brightness: { borderCore: 0.4, borderHalo: 0.2, text: 1 },
+  cell: { far: 6, near: 18 },
+  cellScale: { max: 1.2, min: 1 },
+  dim: { far: 0.6, near: 1 },
+  radius: 0,
+};
+
 /**
- * Signage: the shared knobs (`cell`, the base letter size per row; `chance`; `dim`; `flakyChance`) and one block
- * per sign type. Every type scales the row's `cell` by its own `cellScale`; the horizontal types (facade,
- * billboard) also bound their box by `width`, a fraction of the building width; every box has a corner
- * `radius`; the rest of each block is the type's own. Reference px unless noted. Text lives in `signage.ts`. The six frame signs are authored and always
- * placed; every other sign is rolled per building and only placed where it has `blade.breathing` room from any
- * building, roof furniture or other sign in its layer's front plane.
+ * Signage: one block per sign type, each `SIGN_BASE` plus overrides and the type's own knobs (the horizontal
+ * types, facade and billboard, bound their box by `width`, a fraction of the building width), and the two
+ * knobs about rolling signs at all (`chance`, `flakyChance`). Reference px unless noted. Text lives in
+ * `signage.ts`. The six frame signs are authored and always placed; every other sign is rolled per building and
+ * only placed where it has `blade.breathing` room from any building, roof furniture or other sign in its
+ * layer's front plane.
  */
 export const SIGNAGE = {
   /**
@@ -106,9 +139,13 @@ export const SIGNAGE = {
    * [min, max].
    */
   billboard: {
+    ...SIGN_BASE,
+    // backing: { far: [37, 17, 61], near: [18, 14, 27] },
+    // borderWidth: 1,
     cellScale: { max: 1, min: 1 },
+    // dim: { far: 0.45, near: 0.95 },
     grow: 1.2,
-    post: { max: 8, min: 2, perHeight: 0.2 },
+    post: { max: 4, min: 2, perHeight: 0.2 },
     radius: 0,
     width: { max: 0.9, min: 0.7 },
   },
@@ -119,26 +156,21 @@ export const SIGNAGE = {
    * `breathing` the clear space kept around the sign (and below the frame signs).
    */
   blade: {
+    ...SIGN_BASE,
     bracket: { inset: 8, thickness: 2 },
     breathing: 4,
-    cellScale: { max: 1.33, min: 1 },
+    cellScale: { max: 1.2, min: 1 },
     gap: { max: 6, min: 2, perCell: 0.3 },
-    radius: 4,
   },
-  /** Base letter size at the far and near rows (geometric in between); each sign type scales it by its `cellScale`. */
-  cell: { far: 6, near: 18 },
   /** Chance a front building gets a rolled sign: middle layers by height, the nearest layer, the rest. The far layer gets none. */
   chance: { middleShort: 0.03, middleTall: 0.5, nearest: 0.28, other: 0.2 },
-  /** Sign brightness at the far and near rows. */
-  dim: { far: 0.4, near: 1 },
   /**
    * Facade signs: rolled horizontal signs flat on the facade over a windowless band. `chance` is the chance a
    * rolled sign is tried flat first rather than as a blade; `width` the share of the facade the word must span.
    */
   facade: {
-    cellScale: { max: 1.33, min: 1 },
+    ...SIGN_BASE,
     chance: 0.4,
-    radius: 4,
     width: { max: 0.9, min: 0.55 },
   },
   /** Chance a sign's driver may stutter, drop out or brown out. */
@@ -150,10 +182,10 @@ export const SIGNAGE = {
    * the layer's `minW` remains.
    */
   frame: {
+    ...SIGN_BASE,
     bottomMargin: 90,
     cellScale: { max: 1.55, min: 1.2 },
     gap: { extra: 16, min: 10 },
-    radius: 4,
     top: { extra: 30, min: 90 },
     trimKeep: 0.6,
   },
