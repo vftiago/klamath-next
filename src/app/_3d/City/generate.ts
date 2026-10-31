@@ -69,6 +69,8 @@ export type Beacon = {
 
 /** Rooftop billboard: a vertical board with a neon frame and text bars; `y` is its center, ground-relative. */
 export type Billboard = {
+  /** Character cell size, world units; the board is `signBox` around the text at this size. */
+  cell: number;
   /** Neon color slot (0-4), weighted pink/cyan/lime like the signs. */
   colorSlot: number;
   height: number;
@@ -586,10 +588,44 @@ const billboardPostFor = (boardHeight: number): number => {
 };
 
 /**
+ * Slogan and letter size for a billboard on a roof `roofWidth` wide (reference px) in a row at depth `t`. The
+ * slogan is picked evenly by `roll` among the pool entries whose one-line board at the row's base letter size
+ * is within `BILLBOARD.width.max` of the roof, preferring those reaching `BILLBOARD.width.min`; its letters
+ * then grow until the board reaches `width.max`, up to the row's cap. Null when nothing fits.
+ */
+const fitBillboard = (t: number, roofWidth: number, roll: number): null | { cell: number; text: string } => {
+  const rowCell = lerpRowGeo(SIGNAGE.cell, t);
+  const baseCell = Math.round(rowCell * BILLBOARD.cellScale.min);
+  const maxWidth = roofWidth * BILLBOARD.width.max;
+  const fitting = BILLBOARD_POOL.map((text) => ({ count: [...text].length, text }))
+    .filter(({ count }) => count <= MAX_TEXT_CHARS)
+    .map((entry) => ({ ...entry, width: signBox(baseCell, entry.count, false).width }))
+    .filter(({ width }) => width <= maxWidth);
+  const filling = fitting.filter(({ width }) => width >= BILLBOARD.width.min * roofWidth);
+  const options = filling.length > 0 ? filling : fitting;
+  const pick = options[Math.floor(roll * options.length)];
+
+  if (!pick) {
+    return null;
+  }
+
+  // the letter size whose box (margins ~0.3 cell a side) reaches the width cap, clamped to [base, cap]; the
+  // margin rounds on its own, so step back until the real box is within the cap (the base size always is)
+  const spanning = maxWidth / (pick.count * GLYPH_PITCH + 0.6);
+  const cap = Math.round(rowCell * BILLBOARD.cellScale.max);
+  let cell = Math.floor(Math.max(baseCell, Math.min(cap, spanning)));
+  while (cell > baseCell && signBox(cell, pick.count, false).width > maxWidth) {
+    cell--;
+  }
+
+  return { cell, text: pick.text };
+};
+
+/**
  * Roof furniture per the reference's roof-type roll. Sizes are reference px scaled to the layer.
  * Each building's four `rands` drive the variations so the result is stable for a given layout.
  */
-const generateRoof = (building: Building, index: number, scale: number, side: number): RoofFurniture => {
+const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig): RoofFurniture => {
   const out: RoofFurniture = { beacons: [], billboards: [], details: [] };
 
   if (building.frame) {
@@ -599,6 +635,8 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
   const { height: top, rands, roof, width, x } = building;
   const [r0, r1, r2, r3] = rands;
   const left = x - width / 2;
+  // billboard roll: the slogan is chosen first, since a roof too narrow for every slogan gets other furniture
+  const board = roof >= 0.48 && roof < 0.64 && index >= 2 ? fitBillboard(t, width / scale, r3) : null;
   const depthOf = (w: number) => Math.max(1, Math.min(building.depth, w * ROOF_DEPTH_RATIO * side));
   const box = (bx: number, baseY: number, w: number, h: number): PlainBox => ({
     baseY,
@@ -627,28 +665,35 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
     if (r2 < 0.7) {
       out.beacons.push({ phase: r3 * Math.PI * 2, x: mastX, y: top + mastH, z: building.z });
     }
-  } else if (roof < 0.64 && index >= 2) {
-    // billboard on two posts; the posts stand in the board's plane at the facade so they show against the sky
-    const boardW = width * (BILLBOARD.width.min + BILLBOARD.width.extra * r0);
-    const boardH = BILLBOARD.heightRatio * boardW;
-    const boardLeft = left + (width - boardW) / 2;
-    const postH = billboardPostFor(boardH / scale) * scale;
+  } else if (board) {
+    // billboard built around its slogan, centered on the roof, on two posts; the posts stand in the board's
+    // plane at the facade so they show against the sky, over the part of the board above the roof (in case
+    // `BILLBOARD.width.max` lets it overhang)
+    const { cell, text } = board;
+    const boardRef = signBox(cell, [...text].length, false);
+    const boardW = boardRef.width * scale;
+    const boardH = boardRef.height * scale;
+    const boardLeft = x - boardW / 2;
+    const footLeft = Math.max(boardLeft, left);
+    const footW = Math.min(boardLeft + boardW, left + width) - footLeft;
+    const postH = billboardPostFor(boardRef.height) * scale;
     const postW = 1.5 * scale;
     const boardZ = building.z + building.depth / 2 + 0.5 * scale;
     for (const fraction of [0.2, 0.8]) {
       out.details.push({
-        ...box(boardLeft + fraction * boardW - postW / 2, top, postW, postH + 2 * scale),
+        ...box(footLeft + fraction * footW - postW / 2, top, postW, postH + 2 * scale),
         depth: postW,
         pattern: BRACKET_PATTERN,
         z: boardZ - postW / 2,
       });
     }
     out.billboards.push({
+      cell: cell * scale,
       colorSlot: Math.floor(r1 * 5),
       height: boardH,
-      text: BILLBOARD_POOL[Math.floor(r3 * BILLBOARD_POOL.length)] ?? "",
+      text,
       width: boardW,
-      x: boardLeft + boardW / 2,
+      x,
       y: top + postH + boardH / 2,
       z: boardZ,
     });
@@ -820,7 +865,7 @@ const generateLayer = (config: LayerConfig, aspect: number, seed: number, shared
 /** Roof furniture for every building in the layer; after the frame zone is cleared so nothing floats. */
 const furnish = (layer: CityLayer): void => {
   for (const building of layer.buildings) {
-    const roof = generateRoof(building, layer.index, layer.scale, layer.config.side);
+    const roof = generateRoof(building, layer.config);
     layer.beacons.push(...roof.beacons);
     layer.billboards.push(...roof.billboards);
     layer.details.push(...roof.details);
