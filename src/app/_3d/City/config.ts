@@ -113,12 +113,12 @@ export type SignStyle = {
 /** Defaults every sign type inherits (`SIGNAGE.<type>` spreads this, then overrides what differs). */
 export const SIGN_BASE: SignStyle = {
   backing: { far: [16, 3, 30], near: [8, 3, 16] },
-  borderWidth: 1,
-  brightness: { borderCore: 0.4, borderHalo: 0.2, text: 1 },
+  borderWidth: 0.3,
+  brightness: { borderCore: 0.3, borderHalo: 0.2, text: 1 },
   cell: { far: 6, near: 18 },
   cellScale: { max: 1.2, min: 1 },
-  dim: { far: 0.6, near: 1 },
-  radius: 0,
+  dim: { far: 0.3, near: 1 },
+  radius: 2,
 };
 
 /**
