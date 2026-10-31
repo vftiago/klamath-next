@@ -8,7 +8,7 @@ uniform vec2 uAtlasGrid;
 in vec2 vLocal;
 flat in vec2 vSize;
 flat in vec3 vColor;
-flat in vec3 vLayer;
+flat in vec4 vLayer;
 flat in vec4 vGlyphs0;
 flat in vec4 vGlyphs1;
 flat in vec4 vGlyphs2;
@@ -16,6 +16,8 @@ flat in vec4 vGlyphs2;
 out vec4 fragColor;
 
 const float ATLAS_VARIANTS = 3.0;
+// must match GLYPH_PITCH in generate.ts
+const float GLYPH_PITCH = 1.18;
 const float VARIANT_HALO = 0.0;
 const float VARIANT_CORE = 1.0;
 
@@ -63,10 +65,10 @@ void main(void) {
   color = mix(color, vColor, frameAlpha * 0.45 * glow);
   color = mix(color, vColor, frameAlpha * stroke);
 
-  // the slogan, centered: cells shrink so the whole word fits inside 90% of the board
+  // the slogan at the size the generator built the board around, centered
   if (count > 0) {
-    float cell = min(0.55 * h, (0.9 * w) / float(count));
-    float pitch = cell;
+    float cell = vLayer.w;
+    float pitch = GLYPH_PITCH * cell;
     float x0 = (w - float(count) * pitch) * 0.5;
     float pad = 0.5 * cell;
     float box = cell + 2.0 * pad;

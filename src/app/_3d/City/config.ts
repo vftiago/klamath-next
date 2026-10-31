@@ -66,19 +66,26 @@ export const STALL = {
 } as const;
 
 /**
- * Rooftop billboards (layers 2 and nearer, on the billboard roof roll). Sizes relative to the building
- * width, post clamps in reference px.
+ * Rooftop billboards (layers 2 and nearer, on the billboard roof roll). Like a facade sign, a board is built
+ * around its slogan at the row's letter size, so the text always fills it; the slogan is chosen among those
+ * whose board fits the roof. Reference px unless noted.
  */
 export const BILLBOARD = {
-  /** Board height as a fraction of its width. */
-  heightRatio: 0.24,
+  /**
+   * Letter size relative to the row's `SIGNAGE.cell`: the slogan is chosen at `min` among those whose board fits
+   * `width.max`, then its letters grow to reach it, up to `max`, so short slogans on wide roofs read as hoardings.
+   */
+  cellScale: { max: 1.6, min: 1 },
   /**
    * The board stands on two posts whose height is `perHeight` of the board's height, clamped to [min, max],
    * so small far-layer boards sit close to the roof and big near ones keep their stilts (like blade sign poles).
    */
   post: { max: 8, min: 2, perHeight: 0.2 },
-  /** Board width as a fraction of the building width (min, extra). */
-  width: { extra: 0.3, min: 0.5 },
+  /**
+   * Board width as a fraction of the building width: never wider than `max` (above 1 overhangs the roof), and
+   * slogans reaching at least `min` are preferred.
+   */
+  width: { max: 0.9, min: 0.5 },
 } as const;
 
 /** Extra width generated beyond the visible frustum so camera moves and parallax never reveal an edge. */

@@ -6,8 +6,8 @@ in vec3 position;
 in vec3 aOffset;
 in vec2 aSize;
 in vec3 aColor;
-// layer depth 0 (far) .. 1 (near), world units per reference pixel, character count
-in vec3 aLayer;
+// layer depth 0 (far) .. 1 (near), world units per reference pixel, character count, character cell (world units)
+in vec4 aLayer;
 in vec4 aGlyphs0;
 in vec4 aGlyphs1;
 in vec4 aGlyphs2;
@@ -19,7 +19,7 @@ uniform mat4 viewMatrix;
 out vec2 vLocal;
 flat out vec2 vSize;
 flat out vec3 vColor;
-flat out vec3 vLayer;
+flat out vec4 vLayer;
 flat out vec4 vGlyphs0;
 flat out vec4 vGlyphs1;
 flat out vec4 vGlyphs2;
