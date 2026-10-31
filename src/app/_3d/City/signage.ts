@@ -24,42 +24,42 @@ export type FrameSign = {
  * slots, with these words. An empty slot stays empty. The routes mirror the home page's links for now.
  */
 export const FRAME_SIGNS: readonly FrameSign[] = [
-  { href: "/projects", id: "frame-left-0", slot: "left-0", text: "ラーメン" },
+  { href: "/projects", id: "frame-left-0", slot: "left-0", text: "ラーメン" }, // ramen
   { href: "/repositories", id: "frame-left-1", slot: "left-1", text: "KARAOKE" },
-  { href: "/about", id: "frame-left-2", slot: "left-2", text: "居酒屋" },
+  { href: "/about", id: "frame-left-2", slot: "left-2", text: "居酒屋" }, // izakaya (pub)
   { href: "https://dev.to/vftiago", id: "frame-right-0", slot: "right-0", text: "HOTEL" },
-  { href: "https://www.linkedin.com/in/vftiago/", id: "frame-right-1", slot: "right-1", text: "寿司" },
+  { href: "https://www.linkedin.com/in/vftiago/", id: "frame-right-1", slot: "right-1", text: "寿司" }, // sushi
   { href: "https://github.com/vftiago", id: "frame-right-2", slot: "right-2", text: "ARCADE" },
 ];
 
 /** Pool for the smaller signs hung on buildings across the layers. Shop words, mixed Japanese and English. */
 export const SIGN_POOL: readonly string[] = [
-  "ラーメン",
-  "居酒屋",
-  "カラオケ",
-  "寿司",
-  "薬局",
-  "質屋",
-  "喫茶店",
-  "銭湯",
-  "焼肉",
-  "弁当",
-  "映画館",
-  "眼鏡",
-  "花屋",
-  "歯科",
-  "ホテル",
-  "パチンコ",
-  "古着",
-  "餃子",
-  "天ぷら",
-  "理髪店",
-  "本屋",
-  "うどん",
-  "蕎麦",
-  "中華",
-  "定食",
-  "占い",
+  "ラーメン", // ramen
+  "居酒屋", // izakaya (pub)
+  "カラオケ", // karaoke
+  "寿司", // sushi
+  "薬局", // pharmacy
+  "質屋", // pawn shop
+  "喫茶店", // kissaten (coffee house)
+  "銭湯", // sento (public bath)
+  "焼肉", // yakiniku (grilled meat)
+  "弁当", // bento
+  "映画館", // cinema
+  "眼鏡", // glasses (optician)
+  "花屋", // florist
+  "歯科", // dentist
+  "ホテル", // hotel
+  "パチンコ", // pachinko
+  "古着", // second-hand clothes
+  "餃子", // gyoza
+  "天ぷら", // tempura
+  "理髪店", // barber
+  "本屋", // bookshop
+  "うどん", // udon
+  "蕎麦", // soba
+  "中華", // Chinese food
+  "定食", // teishoku (set meal)
+  "占い", // fortune telling
   // "RAMEN",
   "HOTEL",
   "BAR",
@@ -144,11 +144,11 @@ export const BILLBOARD_POOL: readonly string[] = [
   "24H",
   "24H DINER",
   "ROBOT RAMEN",
-  "夜市",
-  "未来へ",
-  "新発売",
-  "宇宙旅行",
-  "電脳都市",
-  "銀河鉄道",
-  "今夜開催",
+  "夜市", // night market
+  "未来へ", // to the future
+  "新発売", // new release
+  "宇宙旅行", // space travel
+  "電脳都市", // cyber city
+  "銀河鉄道", // galactic railway
+  "今夜開催", // held tonight
 ];
