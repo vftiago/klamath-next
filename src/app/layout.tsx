@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import { Barlow_Condensed, Electrolize, Roboto_Condensed } from "next/font/google";
+import { Barlow_Condensed, Electrolize, Orbitron, Roboto_Condensed } from "next/font/google";
 import DynamicThreeScene from "./_3d/DynamicThreeScene";
 import "./globals.css";
 
@@ -23,6 +23,9 @@ const robotoCondensed = Roboto_Condensed({
   weight: ["300"],
 });
 
+// the neon signs' Latin face; only drawn into the text atlas, which waits for it, so not preloaded
+const orbitron = Orbitron({ preload: false, subsets: ["latin"], variable: "--font-orbitron", weight: ["700"] });
+
 export const metadata: Metadata = {
   description: "Software Engineer",
   title: {
@@ -39,7 +42,7 @@ const RootLayout = ({
   return (
     <html lang="en">
       <body
-        className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${electrolize.variable} font-roboto-condensed antialiased`}
+        className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${electrolize.variable} ${orbitron.variable} font-roboto-condensed antialiased`}
       >
         <DynamicThreeScene />
         <div className="flex min-h-[100dvh]">{children}</div>

@@ -1,5 +1,8 @@
 import { CanvasTexture, LinearFilter } from "three";
 
+/** CJK ideographs, kana and full-width forms: drawn by the fallback stack, centred on an ideograph's body. */
+const CJK = /[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/;
+
 /** Atlas cell in px: the character cell plus a half-cell pad each side so halos don't clip. */
 export const ATLAS_CELL = 64;
 export const CHAR_CELL = 32;
@@ -18,15 +21,19 @@ export type TextAtlas = {
 /** Index of a character in the atlas, 0 (the first cell, always a blank) when unknown. */
 export const glyphIndex = (atlas: TextAtlas, char: string): number => atlas.index.get(char) ?? 0;
 
-/**
- * The CSS font stack for signage: the site's condensed display face (from next/font's CSS variable) for
- * Latin, with CJK system fonts behind it. Read at atlas build time, in the browser.
- */
-export const resolveSignFont = (): string => {
-  const variable = getComputedStyle(document.documentElement).getPropertyValue("--font-barlow-condensed").trim();
-  const site = variable ? `${variable}, ` : "";
-  return `${site}"Barlow Condensed", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans CJK JP", "Droid Sans Fallback", sans-serif`;
+const CJK_FALLBACK = `"Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans CJK JP", "Droid Sans Fallback", sans-serif`;
+
+/** A next/font face (its CSS variable, read from the document) ahead of the CJK system stack. */
+const stackFor = (variable: string, family: string): string => {
+  const loaded = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+  return `${loaded ? `${loaded}, ` : ""}"${family}", ${CJK_FALLBACK}`;
 };
+
+/** The site's condensed display face with CJK fallbacks: the beacon badge and the stall headers. Browser only. */
+export const resolveSignFont = (): string => stackFor("--font-barlow-condensed", "Barlow Condensed");
+
+/** The neon signs' and billboards' Latin face (Orbitron, loaded in `app/layout.tsx`) with CJK fallbacks. Browser only. */
+export const resolveAtlasFont = (): string => stackFor("--font-orbitron", "Orbitron");
 
 /**
  * Renders every character once into a grid of 16 columns, three variant bands tall, all in white: the
@@ -50,12 +57,23 @@ export const createTextAtlas = (chars: Iterable<string>, fontFamily: string): Te
     const pad = (ATLAS_CELL - CHAR_CELL) / 2;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    ctx.font = `700 ${CHAR_CELL}px ${fontFamily}`;
+
+    // "middle" anchors the em square's centre, and where a face's capitals (or an ideograph's body) sit in
+    // that square varies, so measure a reference glyph per script and shift its class so the glyph's own
+    // centre lands on the cell centre; positive = the glyph's centre is above the anchor, so draw lower
+    const centreOffset = (reference: string): number => {
+      const metrics = ctx.measureText(reference);
+      return (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
+    };
+    const latinOffset = centreOffset("H");
+    const cjkOffset = centreOffset("国");
 
     const draw = (char: string, cell: number, variant: number, style: { alpha: number; blur: number }) => {
       const col = cell % ATLAS_COLUMNS;
       const row = Math.floor(cell / ATLAS_COLUMNS);
       const cx = col * ATLAS_CELL + pad + CHAR_CELL / 2;
-      const cy = (variant * rows + row) * ATLAS_CELL + pad + CHAR_CELL / 2;
+      const cy = (variant * rows + row) * ATLAS_CELL + pad + CHAR_CELL / 2 + (CJK.test(char) ? cjkOffset : latinOffset);
 
       ctx.save();
       ctx.font = `700 ${CHAR_CELL}px ${fontFamily}`;
