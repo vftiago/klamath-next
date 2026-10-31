@@ -67,13 +67,16 @@ export const STALL = {
 
 /**
  * Rooftop billboards (layers 2 and nearer, on the billboard roof roll). Sizes relative to the building
- * width, posts in reference px.
+ * width, post clamps in reference px.
  */
 export const BILLBOARD = {
   /** Board height as a fraction of its width. */
   heightRatio: 0.24,
-  /** Post height: `base + perLayer * layer index`. */
-  post: { base: 4, perLayer: 1.5 },
+  /**
+   * The board stands on two posts whose height is `perHeight` of the board's height, clamped to [min, max],
+   * so small far-layer boards sit close to the roof and big near ones keep their stilts (like blade sign poles).
+   */
+  post: { max: 8, min: 2, perHeight: 0.2 },
   /** Board width as a fraction of the building width (min, extra). */
   width: { extra: 0.3, min: 0.5 },
 } as const;

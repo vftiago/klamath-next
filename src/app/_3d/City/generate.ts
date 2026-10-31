@@ -579,6 +579,12 @@ const placeDecorativeSigns = (layer: CityLayer, signSeed: number, reserved: Buil
   }
 };
 
+/** Height of a billboard's posts, reference px, for a board this tall (reference px). */
+const billboardPostFor = (boardHeight: number): number => {
+  const { max, min, perHeight } = BILLBOARD.post;
+  return Math.max(min, Math.min(max, perHeight * boardHeight));
+};
+
 /**
  * Roof furniture per the reference's roof-type roll. Sizes are reference px scaled to the layer.
  * Each building's four `rands` drive the variations so the result is stable for a given layout.
@@ -626,7 +632,7 @@ const generateRoof = (building: Building, index: number, scale: number, side: nu
     const boardW = width * (BILLBOARD.width.min + BILLBOARD.width.extra * r0);
     const boardH = BILLBOARD.heightRatio * boardW;
     const boardLeft = left + (width - boardW) / 2;
-    const postH = (BILLBOARD.post.base + BILLBOARD.post.perLayer * index) * scale;
+    const postH = billboardPostFor(boardH / scale) * scale;
     const postW = 1.5 * scale;
     const boardZ = building.z + building.depth / 2 + 0.5 * scale;
     for (const fraction of [0.2, 0.8]) {
