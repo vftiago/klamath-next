@@ -1,10 +1,11 @@
 // GLSL ES 3.0 (three prepends `#version 300 es`).
-// Unit plane (position in [-0.5, 0.5]^2) scaled per instance by aSize and centered at aOffset.
+// Unit plane (position in [-0.5, 0.5]^2) scaled per instance by aSize.xy and centered at aOffset.
 precision highp float;
 
 in vec3 position;
 in vec3 aOffset;
-in vec2 aSize;
+// board width, height, corner radius (world units)
+in vec3 aSize;
 in vec3 aColor;
 // layer depth 0 (far) .. 1 (near), world units per reference pixel, character count, character cell (world units)
 in vec4 aLayer;
@@ -17,7 +18,7 @@ uniform mat4 viewMatrix;
 
 // board coords from the bottom-left corner, world units
 out vec2 vLocal;
-flat out vec2 vSize;
+flat out vec3 vSize;
 flat out vec3 vColor;
 flat out vec4 vLayer;
 flat out vec4 vGlyphs0;
@@ -27,7 +28,7 @@ flat out vec4 vGlyphs2;
 void main(void) {
   vec3 world = aOffset + vec3(position.x * aSize.x, position.y * aSize.y, 0.0);
 
-  vLocal = (position.xy + 0.5) * aSize;
+  vLocal = (position.xy + 0.5) * aSize.xy;
   vSize = aSize;
   vColor = aColor;
   vLayer = aLayer;

@@ -79,7 +79,7 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     glyphs1: new Float32Array(count * 4),
     glyphs2: new Float32Array(count * 4),
     ids: entries.map(({ sign }) => sign.id),
-    meta: new Float32Array(count * 3),
+    meta: new Float32Array(count * 4),
     offset: new Float32Array(count * 3),
     params: new Float32Array(count * 4),
     size: new Float32Array(count * 2),
@@ -96,7 +96,7 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     attributes.glyphs0.set(glyphs.slice(0, 4), i * 4);
     attributes.glyphs1.set(glyphs.slice(4, 8), i * 4);
     attributes.glyphs2.set(glyphs.slice(8, 12), i * 4);
-    attributes.meta.set([dim, sign.dead, scale], i * 3);
+    attributes.meta.set([dim, sign.dead, scale, sign.radius], i * 4);
     attributes.state.set([STEADY_LEVEL, -1], i * 2);
     attributes.drivers.push({
       flaky: sign.flaky,
@@ -201,7 +201,7 @@ const Signs = ({ atlas, flicker = true, layout }: SignsProps) => {
         <instancedBufferAttribute args={[attributes.glyphs0, 4]} attach="attributes-aGlyphs0" />
         <instancedBufferAttribute args={[attributes.glyphs1, 4]} attach="attributes-aGlyphs1" />
         <instancedBufferAttribute args={[attributes.glyphs2, 4]} attach="attributes-aGlyphs2" />
-        <instancedBufferAttribute args={[attributes.meta, 3]} attach="attributes-aMeta" />
+        <instancedBufferAttribute args={[attributes.meta, 4]} attach="attributes-aMeta" />
         <instancedBufferAttribute
           args={[attributes.state, 2]}
           attach="attributes-aState"

@@ -12,8 +12,8 @@ in vec4 aParams;
 in vec4 aGlyphs0;
 in vec4 aGlyphs1;
 in vec4 aGlyphs2;
-// dim, dead character index, world units per reference px
-in vec3 aMeta;
+// dim, dead character index, world units per reference px, corner radius (world units)
+in vec4 aMeta;
 // level, off character index (dynamic)
 in vec2 aState;
 
@@ -27,7 +27,7 @@ flat out vec4 vParams;
 flat out vec4 vGlyphs0;
 flat out vec4 vGlyphs1;
 flat out vec4 vGlyphs2;
-flat out vec3 vMeta;
+flat out vec4 vMeta;
 flat out vec2 vState;
 
 void main(void) {

@@ -45,14 +45,14 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): BillboardAttribu
     glyphs2: new Float32Array(count * 4),
     layer: new Float32Array(count * 4),
     offset: new Float32Array(count * 3),
-    size: new Float32Array(count * 2),
+    size: new Float32Array(count * 3),
   };
 
   let i = 0;
   for (const layer of layout.layers) {
     for (const board of layer.billboards) {
       attributes.offset.set([board.x, layout.groundY + board.y, layer.z + board.z], i * 3);
-      attributes.size.set([board.width, board.height], i * 2);
+      attributes.size.set([board.width, board.height, board.radius], i * 3);
       attributes.color.set(NEON_SLOTS[board.colorSlot] ?? NEON_SLOTS[0], i * 3);
       const chars = [...board.text].slice(0, MAX_CHARS);
       attributes.layer.set([layer.index / NEAREST_LAYER, layer.scale, chars.length, board.cell], i * 4);
@@ -83,7 +83,7 @@ const Billboards = ({ atlas, layout }: BillboardsProps) => {
     <instancedMesh args={[undefined, undefined, attributes.count]} frustumCulled={false}>
       <planeGeometry args={[1, 1]}>
         <instancedBufferAttribute args={[attributes.offset, 3]} attach="attributes-aOffset" />
-        <instancedBufferAttribute args={[attributes.size, 2]} attach="attributes-aSize" />
+        <instancedBufferAttribute args={[attributes.size, 3]} attach="attributes-aSize" />
         <instancedBufferAttribute args={[attributes.color, 3]} attach="attributes-aColor" />
         <instancedBufferAttribute args={[attributes.layer, 4]} attach="attributes-aLayer" />
         <instancedBufferAttribute args={[attributes.glyphs0, 4]} attach="attributes-aGlyphs0" />

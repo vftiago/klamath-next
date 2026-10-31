@@ -65,29 +65,6 @@ export const STALL = {
   width: { extra: 24, min: 48 },
 } as const;
 
-/**
- * Rooftop billboards (layers 2 and nearer, on the billboard roof roll). Like a facade sign, a board is built
- * around its slogan at the row's letter size, so the text always fills it; the slogan is chosen among those
- * whose board fits the roof. Reference px unless noted.
- */
-export const BILLBOARD = {
-  /**
-   * Letter size relative to the row's `SIGNAGE.cell`: the slogan is chosen at `min` among those whose board fits
-   * `width.max`, then its letters grow to reach it, up to `max`, so short slogans on wide roofs read as hoardings.
-   */
-  cellScale: { max: 1.6, min: 1 },
-  /**
-   * The board stands on two posts whose height is `perHeight` of the board's height, clamped to [min, max],
-   * so small far-layer boards sit close to the roof and big near ones keep their stilts (like blade sign poles).
-   */
-  post: { max: 8, min: 2, perHeight: 0.2 },
-  /**
-   * Board width as a fraction of the building width: never wider than `max` (above 1 overhangs the roof), and
-   * slogans reaching at least `min` are preferred.
-   */
-  width: { max: 0.9, min: 0.5 },
-} as const;
-
 /** Extra width generated beyond the visible frustum so camera moves and parallax never reveal an edge. */
 export const WIDTH_MARGIN = 1.6;
 
@@ -108,39 +85,78 @@ export type Seeds = {
 /** Committed seeds. `?seed=<n>` and `?signSeed=<n>` override them for a session (see `seeds.ts`). */
 export const SEEDS: Seeds = { city: 2024, sign: 2024 };
 
+/** Letter size of a sign type: the row's `SIGNAGE.cell` times a factor rolled in [min, max] per sign. */
+export type CellScale = { max: number; min: number };
+
 /**
- * Neon signs: placement odds and sizes, reference px unless noted. Text lives in `signage.ts`. The six frame
- * signs are authored and always placed; every other sign is rolled per building and only placed where it has
- * `breathing` room from any building, roof furniture or other sign in its layer's front plane.
+ * Signage: the shared knobs (`cell`, the base letter size per row; `chance`; `dim`; `flakyChance`) and one block
+ * per sign type. Every type scales the row's `cell` by its own `cellScale`; the horizontal types (facade,
+ * billboard) also bound their box by `width`, a fraction of the building width; every box has a corner
+ * `radius`; the rest of each block is the type's own. Reference px unless noted. Text lives in `signage.ts`. The six frame signs are authored and always
+ * placed; every other sign is rolled per building and only placed where it has `blade.breathing` room from any
+ * building, roof furniture or other sign in its layer's front plane.
  */
 export const SIGNAGE = {
   /**
-   * Blade signs hang off the building edge on two short poles. The gap is `perCell` of the sign's character
-   * cell, clamped to [min, max], so small far-layer signs sit close and the big frame signs keep their reach.
+   * Billboards: rooftop boards (layers 2 and nearer, on the billboard roof roll) built around a slogan like a
+   * facade sign. The slogan is picked among those whose board is within `width.max` of the roof, preferring
+   * those reaching `width.min`; a roof too narrow for every slogan gets other furniture. Its letters then grow
+   * until the board reaches `width.max`, up to `grow` times the rolled cell (1 = no growth), so short slogans
+   * on wide roofs read as hoardings. The board stands on two posts `perHeight` of its height tall, clamped to
+   * [min, max].
    */
-  bladeGap: { max: 6, min: 2, perCell: 0.3 },
-  /** Bracket poles: distance in from the sign's top and bottom edges, and their thickness. */
-  bracket: { inset: 8, thickness: 2 },
-  /** Clear space kept around a blade sign (and below the frame signs). */
-  breathing: 4,
-  /** Character cell size at the far and near rows (geometric in between); the nearest row adds up to `cellJitter` px. */
+  billboard: {
+    cellScale: { max: 1, min: 1 },
+    grow: 1.2,
+    post: { max: 8, min: 2, perHeight: 0.2 },
+    radius: 0,
+    width: { max: 0.9, min: 0.7 },
+  },
+  /**
+   * Blade signs: rolled vertical signs hung beside a building edge on two short poles. `gap` is the distance
+   * from the edge, `perCell` of the character cell clamped to [min, max], so small far-layer signs sit close
+   * and the big frame signs keep their reach; `bracket` is the poles' inset from the sign's ends and thickness;
+   * `breathing` the clear space kept around the sign (and below the frame signs).
+   */
+  blade: {
+    bracket: { inset: 8, thickness: 2 },
+    breathing: 4,
+    cellScale: { max: 1.33, min: 1 },
+    gap: { max: 6, min: 2, perCell: 0.3 },
+    radius: 4,
+  },
+  /** Base letter size at the far and near rows (geometric in between); each sign type scales it by its `cellScale`. */
   cell: { far: 6, near: 18 },
-  cellJitter: 6,
-  /** Chance a front building gets a sign: middle layers by height, the nearest layer, the rest. The far layer gets none. */
+  /** Chance a front building gets a rolled sign: middle layers by height, the nearest layer, the rest. The far layer gets none. */
   chance: { middleShort: 0.03, middleTall: 0.5, nearest: 0.28, other: 0.2 },
   /** Sign brightness at the far and near rows. */
   dim: { far: 0.4, near: 1 },
+  /**
+   * Facade signs: rolled horizontal signs flat on the facade over a windowless band. `chance` is the chance a
+   * rolled sign is tried flat first rather than as a blade; `width` the share of the facade the word must span.
+   */
+  facade: {
+    cellScale: { max: 1.33, min: 1 },
+    chance: 0.4,
+    radius: 4,
+    width: { max: 0.9, min: 0.55 },
+  },
   /** Chance a sign's driver may stutter, drop out or brown out. */
   flakyChance: 0.55,
   /**
-   * Frame signs: cell size (min, extra), the first sign's distance below the roof (min, extra), the gap
-   * between signs (min, extra), and the space kept above the frame building's foot.
+   * Frame signs: the six authored blade signs on the frame buildings. `top` is the first sign's distance below
+   * the roof (min, extra), `gap` the space between signs (min, extra), `bottomMargin` the space kept above the
+   * frame building's foot; a building narrowed to clear the signs' strip is dropped if less than `trimKeep` of
+   * the layer's `minW` remains.
    */
-  frame: { bottomMargin: 90, cell: { extra: 6, min: 22 }, gap: { extra: 16, min: 10 }, top: { extra: 30, min: 90 } },
-  /** Chance a sign is tried flat on the facade first (when a word spans 55-100% of it) rather than as a blade. */
-  horizontalChance: 0.4,
-  /** A building narrowed to clear a frame sign is dropped if less than this fraction of the layer's `minW` remains. */
-  trimKeep: 0.6,
+  frame: {
+    bottomMargin: 90,
+    cellScale: { max: 1.55, min: 1.2 },
+    gap: { extra: 16, min: 10 },
+    radius: 4,
+    top: { extra: 30, min: 90 },
+    trimKeep: 0.6,
+  },
 } as const;
 
 /** World units per reference pixel at depth z (1 at z = 0). */

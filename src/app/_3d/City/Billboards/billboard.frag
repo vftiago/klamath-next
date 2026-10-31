@@ -6,7 +6,7 @@ uniform sampler2D uAtlas;
 uniform vec2 uAtlasGrid;
 
 in vec2 vLocal;
-flat in vec2 vSize;
+flat in vec3 vSize;
 flat in vec3 vColor;
 flat in vec4 vLayer;
 flat in vec4 vGlyphs0;
@@ -23,6 +23,14 @@ const float VARIANT_CORE = 1.0;
 
 const vec3 BASE_FAR = vec3(26.0, 4.0, 51.0) / 255.0;
 const vec3 BASE_NEAR = vec3(5.0, 1.0, 15.0) / 255.0;
+
+// signed distance from p (board coords) to a `size` rounded rect with corner radius r, negative inside
+float roundedBox(vec2 p, vec2 size, float r) {
+  vec2 ext = 0.5 * size;
+  r = min(r, min(ext.x, ext.y));
+  vec2 q = abs(p - ext) - (ext - r);
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
 
 // fraction of a pixel footprint of width fw, centered at x, inside [0, len]
 float segCoverage(float x, float len, float fw) {
@@ -54,12 +62,15 @@ void main(void) {
   float px = vLayer.y;
   int count = int(vLayer.z + 0.5);
 
+  // distance inside the rounded board; nothing outside it
+  float edge = -roundedBox(vec2(u, v), vec2(w, h), vSize.z);
+  if (edge < 0.0) discard;
+
   // board: base wall color lifted 5% toward white
   vec3 color = mix(mix(BASE_FAR, BASE_NEAR, r), vec3(1.0), 0.05);
 
   // neon frame: 1 px stroke inset 1 px, with a soft inner glow standing in for the reference's shadow blur
   float frameAlpha = 0.18 + 0.3 * r;
-  float edge = min(min(u, w - u), min(v, h - v));
   float stroke = segCoverage(edge - px, px, max(fw.x, fw.y));
   float glow = 1.0 - smoothstep(px, 6.0 * px, edge);
   color = mix(color, vColor, frameAlpha * 0.45 * glow);
@@ -69,7 +80,7 @@ void main(void) {
   if (count > 0) {
     float cell = vLayer.w;
     float pitch = GLYPH_PITCH * cell;
-    float x0 = (w - float(count) * pitch) * 0.5;
+    float x0 = (w - (float(count - 1) * pitch + cell)) * 0.5;
     float pad = 0.5 * cell;
     float box = cell + 2.0 * pad;
     float vTop = h - v;
