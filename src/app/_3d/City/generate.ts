@@ -1,5 +1,5 @@
 import { mulberry32 } from "../utils";
-import type { CellScale, Seeds } from "./config";
+import type { Brightness, Rgb, Seeds, SignStyle } from "./config";
 import {
   GENERATION_ASPECT,
   GRID,
@@ -68,10 +68,18 @@ export type Beacon = {
 
 /** Rooftop billboard: a vertical board with a neon frame and text bars; `y` is its center, ground-relative. */
 export type Billboard = {
+  /** Board background at the board's depth, 0-1 RGB. */
+  backing: Rgb;
+  /** Border tube width, world units. */
+  borderWidth: number;
+  /** Neon brightness of the frame and the slogan. */
+  brightness: Brightness;
   /** Character cell size, world units; the board is `signBox` around the text at this size. */
   cell: number;
   /** Neon color slot (0-4), weighted pink/cyan/lime like the signs. */
   colorSlot: number;
+  /** Brightness factor for the board's depth. */
+  dim: number;
   height: number;
   /** Corner radius of the board, world units. */
   radius: number;
@@ -88,12 +96,20 @@ export type SignMount = "blade" | "facade";
 
 /** A neon sign. Position is the box's bottom-left corner, ground-relative y. */
 export type Sign = {
+  /** Box background at the sign's depth, 0-1 RGB. */
+  backing: Rgb;
+  /** Border tube width, world units. */
+  borderWidth: number;
+  /** Neon brightness of the border and the text. */
+  brightness: Brightness;
   /** Character cell size, world units. */
   cell: number;
   /** Neon color slot (0-4), weighted pink/cyan/lime. */
   colorSlot: number;
   /** Index of a permanently dark character, or -1. */
   dead: number;
+  /** Brightness factor for the sign's depth. */
+  dim: number;
   /** Whether the sign's driver may stutter, drop out or brown out. */
   flaky: boolean;
   /** True for the big blade signs on the edge frame buildings. */
@@ -170,9 +186,15 @@ const mix = (a: number, b: number): number => (Math.imul(a + 1, 0x9e3779b1) ^ Ma
 const signStream = (building: Building, layerIndex: number, signSeed: number): (() => number) =>
   mulberry32(mix(building.seed + layerIndex * 10007, signSeed));
 
-/** A sign type's letter size in a row at depth `t`: the row's base cell times a factor at `roll` within its `cellScale`. */
-const cellFor = (scale: CellScale, t: number, roll: number): number =>
-  Math.round(lerpRowGeo(SIGNAGE.cell, t) * (scale.min + (scale.max - scale.min) * roll));
+/** A sign type's box background at depth `t`, as 0-1 RGB. */
+const backingAt = ({ backing }: SignStyle, t: number): Rgb => {
+  const channel = (c: 0 | 1 | 2): number => lerpRow({ far: backing.far[c], near: backing.near[c] }, t) / 255;
+  return [channel(0), channel(1), channel(2)];
+};
+
+/** A sign type's letter size in a row at depth `t`: its `cell` at that depth times a factor at `roll` within its `cellScale`. */
+const cellFor = ({ cell, cellScale }: SignStyle, t: number, roll: number): number =>
+  Math.round(lerpRowGeo(cell, t) * (cellScale.min + (cellScale.max - cellScale.min) * roll));
 
 const signBox = (cell: number, count: number, vertical: boolean) => {
   const margin = Math.max(3, Math.round(0.3 * cell));
@@ -241,8 +263,8 @@ type SignPlacement = {
   href?: string;
   id: string;
   mount: SignMount;
-  /** Corner radius of the box, reference px. */
-  radius: number;
+  /** The sign type's style (brightness, dim, radius). */
+  style: SignStyle;
   text: string;
   vertical: boolean;
   /** Box left edge, world x. */
@@ -251,14 +273,19 @@ type SignPlacement = {
   yFromTop: number;
 };
 
-const makeSign = (building: Building, placement: SignPlacement, scale: number, rand: () => number): Sign => {
-  const { cell, framed, href, id, mount, radius, text, vertical, x, yFromTop } = placement;
+const makeSign = (building: Building, placement: SignPlacement, layer: CityLayer, rand: () => number): Sign => {
+  const { cell, framed, href, id, mount, style, text, vertical, x, yFromTop } = placement;
+  const { scale } = layer;
   const box = signBox(cell, text.length, vertical);
 
   return {
+    backing: backingAt(style, layer.config.t),
+    borderWidth: style.borderWidth * scale,
+    brightness: style.brightness,
     cell: cell * scale,
     colorSlot: Math.floor(rand() * 5),
     dead: -1,
+    dim: lerpRow(style.dim, layer.config.t),
     flaky: rand() < SIGNAGE.flakyChance,
     framed,
     height: box.height * scale,
@@ -267,7 +294,7 @@ const makeSign = (building: Building, placement: SignPlacement, scale: number, r
     margin: box.margin * scale,
     mount,
     phase: rand() * Math.PI * 2,
-    radius: radius * scale,
+    radius: style.radius * scale,
     text,
     vertical,
     width: box.width * scale,
@@ -350,7 +377,7 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
   }
 
   const first = frame.top.min + frame.top.extra * rand();
-  let cells = records.map(() => cellFor(frame.cellScale, layer.config.t, rand()));
+  let cells = records.map(() => cellFor(frame, layer.config.t, rand()));
   const gaps = records.slice(1).map(() => frame.gap.min + frame.gap.extra * rand());
   const available = building.height / scale - frame.bottomMargin - first;
   const columnHeight = (sizes: number[]): number =>
@@ -374,13 +401,13 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
         href: record.href,
         id: record.id,
         mount: "blade",
-        radius: frame.radius,
+        style: frame,
         text: record.text,
         vertical: true,
         x: bladeX(building, side, cell, box.width, scale),
         yFromTop,
       },
-      scale,
+      layer,
       rand,
     );
     layer.signs.push(sign);
@@ -398,7 +425,7 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
  */
 const reserveFrameStrip = (layer: CityLayer, frame: Building): void => {
   const { scale } = layer;
-  const widest = signBox(cellFor(SIGNAGE.frame.cellScale, layer.config.t, 1), 1, true).width;
+  const widest = signBox(cellFor(SIGNAGE.frame, layer.config.t, 1), 1, true).width;
   const stripWidth = (SIGNAGE.blade.gap.max + widest + SIGNAGE.blade.breathing) * scale;
   const keep = SIGNAGE.frame.trimKeep * layer.config.minW * scale;
   const side: -1 | 1 = frame.x < 0 ? 1 : -1;
@@ -471,8 +498,8 @@ const placeDecorativeSign = (
   const left = building.x - building.width / 2;
   // one size roll serves whichever mount the sign ends up with
   const sizeRoll = rand();
-  const facadeCell = cellFor(SIGNAGE.facade.cellScale, config.t, sizeRoll);
-  const bladeCell = cellFor(SIGNAGE.blade.cellScale, config.t, sizeRoll);
+  const facadeCell = cellFor(SIGNAGE.facade, config.t, sizeRoll);
+  const bladeCell = cellFor(SIGNAGE.blade, config.t, sizeRoll);
   const top = 8 * scale;
   const bottomLimit = building.height - (nearest ? 72 : 14) * scale;
   const breathing = SIGNAGE.blade.breathing * scale;
@@ -502,8 +529,18 @@ const placeDecorativeSign = (
     const x = left + (building.width - box.width * scale) / 2;
     const sign = makeSign(
       building,
-      { cell, framed: false, id, mount: "facade", radius: SIGNAGE.facade.radius, text, vertical: false, x, yFromTop },
-      scale,
+      {
+        cell,
+        framed: false,
+        id,
+        mount: "facade",
+        style: SIGNAGE.facade,
+        text,
+        vertical: false,
+        x,
+        yFromTop,
+      },
+      layer,
       rand,
     );
     layer.signs.push(sign);
@@ -528,13 +565,13 @@ const placeDecorativeSign = (
           framed: false,
           id,
           mount: "blade",
-          radius: SIGNAGE.blade.radius,
+          style: SIGNAGE.blade,
           text,
           vertical: true,
           x: bladeX(building, side, cell, box.width, scale),
           yFromTop,
         },
-        scale,
+        layer,
         rand,
       );
       const edge = building.x + (side * building.width) / 2;
@@ -618,8 +655,8 @@ const fitBillboard = (
   sizeRoll: number,
   roll: number,
 ): null | { cell: number; text: string } => {
-  const { cellScale, grow, width } = SIGNAGE.billboard;
-  const cell = cellFor(cellScale, t, sizeRoll);
+  const { grow, width } = SIGNAGE.billboard;
+  const cell = cellFor(SIGNAGE.billboard, t, sizeRoll);
   const maxWidth = width.max * roofWidth;
   const fitting = BILLBOARD_POOL.map((text) => ({ count: [...text].length, text }))
     .filter(({ count }) => count <= MAX_TEXT_CHARS)
@@ -702,17 +739,24 @@ const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig
     const postH = billboardPostFor(boardRef.height) * scale;
     const postW = 1.5 * scale;
     const boardZ = building.z + building.depth / 2 + 0.5 * scale;
+    // the posts' front face sits a quarter px behind the board plane: they run 2 px up behind the board, and a
+    // coplanar face there would z-fight it
+    const postFront = boardZ - 0.25 * scale;
     for (const fraction of [0.2, 0.8]) {
       out.details.push({
         ...box(footLeft + fraction * footW - postW / 2, top, postW, postH + 2 * scale),
         depth: postW,
         pattern: BRACKET_PATTERN,
-        z: boardZ - postW / 2,
+        z: postFront - postW / 2,
       });
     }
     out.billboards.push({
+      backing: backingAt(SIGNAGE.billboard, t),
+      borderWidth: SIGNAGE.billboard.borderWidth * scale,
+      brightness: SIGNAGE.billboard.brightness,
       cell: cell * scale,
       colorSlot: Math.floor(r1 * 5),
+      dim: lerpRow(SIGNAGE.billboard.dim, t),
       height: boardH,
       radius: SIGNAGE.billboard.radius * scale,
       text,

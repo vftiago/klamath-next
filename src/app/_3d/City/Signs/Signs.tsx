@@ -3,7 +3,6 @@ import { useMemo, useRef } from "react";
 import type { InstancedBufferAttribute } from "three";
 import { DynamicDrawUsage, GLSL3, Vector2 } from "three";
 import { getSceneTime } from "../../utils";
-import { lerpRow, SIGNAGE } from "../config";
 import type { CityLayout, Sign } from "../generate";
 import type { TextAtlas } from "../text-atlas";
 import { glyphIndex } from "../text-atlas";
@@ -35,6 +34,7 @@ type SignDriver = {
 };
 
 type SignAttributes = {
+  backing: Float32Array;
   color: Float32Array;
   count: number;
   drivers: SignDriver[];
@@ -46,6 +46,8 @@ type SignAttributes = {
   meta: Float32Array;
   offset: Float32Array;
   params: Float32Array;
+  /** Border core, border halo and text brightness, and the border width, per instance. */
+  shine: Float32Array;
   size: Float32Array;
   state: Float32Array;
 };
@@ -62,16 +64,17 @@ const NEON_SLOTS = [
 const STEADY_LEVEL = 0.95;
 
 const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes => {
-  const entries: { dim: number; scale: number; sign: Sign; z: number }[] = [];
+  const entries: { scale: number; sign: Sign; z: number }[] = [];
 
   for (const layer of layout.layers) {
     for (const sign of layer.signs) {
-      entries.push({ dim: lerpRow(SIGNAGE.dim, layer.config.t), scale: layer.scale, sign, z: layer.z });
+      entries.push({ scale: layer.scale, sign, z: layer.z });
     }
   }
 
   const count = entries.length;
   const attributes: SignAttributes = {
+    backing: new Float32Array(count * 3),
     color: new Float32Array(count * 3),
     count,
     drivers: [],
@@ -82,21 +85,25 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     meta: new Float32Array(count * 4),
     offset: new Float32Array(count * 3),
     params: new Float32Array(count * 4),
+    shine: new Float32Array(count * 4),
     size: new Float32Array(count * 2),
     state: new Float32Array(count * 2),
   };
 
-  entries.forEach(({ dim, scale, sign, z }, i) => {
+  entries.forEach(({ scale, sign, z }, i) => {
     attributes.offset.set([sign.x, layout.groundY + sign.y, z + sign.z], i * 3);
     attributes.size.set([sign.width, sign.height], i * 2);
     attributes.color.set(NEON_SLOTS[sign.colorSlot] ?? NEON_SLOTS[0], i * 3);
+    attributes.backing.set(sign.backing, i * 3);
     const chars = [...sign.text].slice(0, MAX_CHARS);
     attributes.params.set([sign.cell, sign.margin, sign.vertical ? 1 : 0, chars.length], i * 4);
     const glyphs = Array.from({ length: MAX_CHARS }, (_, c) => (chars[c] ? glyphIndex(atlas, chars[c]) : 0));
     attributes.glyphs0.set(glyphs.slice(0, 4), i * 4);
     attributes.glyphs1.set(glyphs.slice(4, 8), i * 4);
     attributes.glyphs2.set(glyphs.slice(8, 12), i * 4);
-    attributes.meta.set([dim, sign.dead, scale, sign.radius], i * 4);
+    attributes.meta.set([sign.dim, sign.dead, scale, sign.radius], i * 4);
+    const { borderCore, borderHalo, text } = sign.brightness;
+    attributes.shine.set([borderCore, borderHalo, text, sign.borderWidth], i * 4);
     attributes.state.set([STEADY_LEVEL, -1], i * 2);
     attributes.drivers.push({
       flaky: sign.flaky,
@@ -197,11 +204,13 @@ const Signs = ({ atlas, flicker = true, layout }: SignsProps) => {
         <instancedBufferAttribute args={[attributes.offset, 3]} attach="attributes-aOffset" />
         <instancedBufferAttribute args={[attributes.size, 2]} attach="attributes-aSize" />
         <instancedBufferAttribute args={[attributes.color, 3]} attach="attributes-aColor" />
+        <instancedBufferAttribute args={[attributes.backing, 3]} attach="attributes-aBacking" />
         <instancedBufferAttribute args={[attributes.params, 4]} attach="attributes-aParams" />
         <instancedBufferAttribute args={[attributes.glyphs0, 4]} attach="attributes-aGlyphs0" />
         <instancedBufferAttribute args={[attributes.glyphs1, 4]} attach="attributes-aGlyphs1" />
         <instancedBufferAttribute args={[attributes.glyphs2, 4]} attach="attributes-aGlyphs2" />
         <instancedBufferAttribute args={[attributes.meta, 4]} attach="attributes-aMeta" />
+        <instancedBufferAttribute args={[attributes.shine, 4]} attach="attributes-aShine" />
         <instancedBufferAttribute
           args={[attributes.state, 2]}
           attach="attributes-aState"

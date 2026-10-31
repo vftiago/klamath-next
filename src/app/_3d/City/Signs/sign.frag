@@ -8,12 +8,14 @@ uniform vec2 uAtlasGrid;
 in vec2 vLocal;
 flat in vec2 vSize;
 flat in vec3 vColor;
+flat in vec3 vBacking;
 flat in vec4 vParams;
 flat in vec4 vGlyphs0;
 flat in vec4 vGlyphs1;
 flat in vec4 vGlyphs2;
 flat in vec4 vMeta;
 flat in vec2 vState;
+flat in vec4 vShine;
 
 out vec4 fragColor;
 
@@ -22,8 +24,9 @@ const float VARIANT_HALO = 0.0;
 const float VARIANT_CORE = 1.0;
 const float VARIANT_UNLIT = 2.0;
 const float GLYPH_PITCH = 1.18;
+// border halo reach either side of the tube, in character cells (the text's atlas halo is also a cell fraction)
+const float BORDER_HALO_CELLS = 0.28;
 
-const vec3 BACKING = vec3(8.0, 3.0, 16.0) / 255.0;
 const vec3 UNLIT_DARK = vec3(36.0, 26.0, 48.0) / 255.0;
 
 // signed distance from p (box coords) to a `size` rounded rect with corner radius r, negative inside
@@ -79,18 +82,27 @@ void main(void) {
   // nothing outside the rounded box
   if (roundedBox(vec2(u, vTop), vec2(w, h), radius) > 0.0) discard;
 
-  vec3 color = BACKING;
+  vec3 color = vBacking;
+  vec3 unlitColor = mix(vColor, UNLIT_DARK, 0.72);
+  vec3 coreColor = mix(vColor, vec3(1.0), 0.7);
+  float coreShine = vShine.x;
+  float haloShine = vShine.y;
+  float textShine = vShine.z;
 
-  // double neon frame on a rect inset by min(2 px, m / 2), concentric with the box: a wide faint stroke and a
-  // thin bright one; d is the distance inside that rect
-  float inset = min(2.0 * px, 0.5 * m);
+  // neon tube frame concentric with the box, inset by min(2 px, m / 2) or enough to keep the tube inside, lit
+  // like the text: a dark tube when unlit, a soft halo falling off either side of it, and a bright core; d is
+  // the signed distance to the tube's centre line, positive inside
+  float tubeW = min(vShine.w, m);
+  float inset = max(min(2.0 * px, 0.5 * m), 0.5 * tubeW);
   float d = -roundedBox(vec2(u - inset, vTop - inset), vec2(w, h) - 2.0 * inset, max(0.0, radius - inset));
-  float wide = min(5.0 * px, m);
-  float thin = cell < 10.0 * px ? 0.8 * px : 1.2 * px;
-  float covWide = segCoverage(d + 0.5 * wide, wide, fwMax);
-  float covThin = segCoverage(d + 0.5 * thin, thin, fwMax);
-  color = mix(color, vColor, 0.12 * i * covWide);
-  color = mix(color, vColor, (0.2 + 0.6 * i) * dim * covThin);
+  // the halo shrinks with the sign like the text's, and never reaches past the margin into the letters
+  float haloReach = min(BORDER_HALO_CELLS * cell, m);
+  float tube = segCoverage(d + 0.5 * tubeW, tubeW, fwMax);
+  // a tube thinner than a pixel glows less, and no tube glows not at all
+  float halo = pow(1.0 - smoothstep(0.0, haloReach, abs(d)), 2.0) * min(1.0, tubeW / px);
+  color = mix(color, unlitColor, tube * dim);
+  color = mix(color, vColor, min(1.0, haloShine * i * halo));
+  color = mix(color, coreColor, min(1.0, coreShine * i * tube));
 
   // character cells run along the sign; each atlas cell is padded by half a cell so halos overlap
   float pitch = GLYPH_PITCH * cell;
@@ -99,9 +111,6 @@ void main(void) {
   float along = vertical ? vTop - m : u - m;
   float across = vertical ? u - m : vTop - m;
   int k = int(floor(along / pitch));
-
-  vec3 unlitColor = mix(vColor, UNLIT_DARK, 0.72);
-  vec3 coreColor = mix(vColor, vec3(1.0), 0.7);
 
   for (int n = -1; n <= 1; n++) {
     int kk = k + n;
@@ -125,8 +134,8 @@ void main(void) {
 
     float haloA = atlas(glyph, VARIANT_HALO, p);
     float coreA = atlas(glyph, VARIANT_CORE, p);
-    color = mix(color, vColor, f * haloA);
-    color = mix(color, coreColor, f * coreA);
+    color = mix(color, vColor, min(1.0, textShine * f * haloA));
+    color = mix(color, coreColor, min(1.0, textShine * f * coreA));
   }
 
   fragColor = vec4(color, 1.0);
