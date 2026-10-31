@@ -12,7 +12,7 @@ flat in vec4 vParams;
 flat in vec4 vGlyphs0;
 flat in vec4 vGlyphs1;
 flat in vec4 vGlyphs2;
-flat in vec3 vMeta;
+flat in vec4 vMeta;
 flat in vec2 vState;
 
 out vec4 fragColor;
@@ -25,6 +25,14 @@ const float GLYPH_PITCH = 1.18;
 
 const vec3 BACKING = vec3(8.0, 3.0, 16.0) / 255.0;
 const vec3 UNLIT_DARK = vec3(36.0, 26.0, 48.0) / 255.0;
+
+// signed distance from p (box coords) to a `size` rounded rect with corner radius r, negative inside
+float roundedBox(vec2 p, vec2 size, float r) {
+  vec2 ext = 0.5 * size;
+  r = min(r, min(ext.x, ext.y));
+  vec2 q = abs(p - ext) - (ext - r);
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
 
 float segCoverage(float x, float len, float fw) {
   float lo = max(x - 0.5 * fw, 0.0);
@@ -61,17 +69,22 @@ void main(void) {
   float dim = vMeta.x;
   int dead = int(vMeta.y);
   float px = vMeta.z;
+  float radius = vMeta.w;
   float level = vState.x;
   int offGlyph = int(vState.y);
 
   // brightness after the layer's dim factor
   float i = level * dim;
 
+  // nothing outside the rounded box
+  if (roundedBox(vec2(u, vTop), vec2(w, h), radius) > 0.0) discard;
+
   vec3 color = BACKING;
 
-  // double neon frame on a rect inset by min(2 px, m / 2): a wide faint stroke and a thin bright one
+  // double neon frame on a rect inset by min(2 px, m / 2), concentric with the box: a wide faint stroke and a
+  // thin bright one; d is the distance inside that rect
   float inset = min(2.0 * px, 0.5 * m);
-  float d = min(min(u - inset, w - inset - u), min(vTop - inset, h - inset - vTop));
+  float d = -roundedBox(vec2(u - inset, vTop - inset), vec2(w, h) - 2.0 * inset, max(0.0, radius - inset));
   float wide = min(5.0 * px, m);
   float thin = cell < 10.0 * px ? 0.8 * px : 1.2 * px;
   float covWide = segCoverage(d + 0.5 * wide, wide, fwMax);

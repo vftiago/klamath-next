@@ -1,7 +1,6 @@
 import { mulberry32 } from "../utils";
-import type { Seeds } from "./config";
+import type { CellScale, Seeds } from "./config";
 import {
-  BILLBOARD,
   GENERATION_ASPECT,
   GRID,
   GROUND_Y,
@@ -74,6 +73,8 @@ export type Billboard = {
   /** Neon color slot (0-4), weighted pink/cyan/lime like the signs. */
   colorSlot: number;
   height: number;
+  /** Corner radius of the board, world units. */
+  radius: number;
   text: string;
   width: number;
   x: number;
@@ -106,6 +107,8 @@ export type Sign = {
   margin: number;
   mount: SignMount;
   phase: number;
+  /** Corner radius of the box, world units. */
+  radius: number;
   text: string;
   vertical: boolean;
   width: number;
@@ -167,9 +170,14 @@ const mix = (a: number, b: number): number => (Math.imul(a + 1, 0x9e3779b1) ^ Ma
 const signStream = (building: Building, layerIndex: number, signSeed: number): (() => number) =>
   mulberry32(mix(building.seed + layerIndex * 10007, signSeed));
 
+/** A sign type's letter size in a row at depth `t`: the row's base cell times a factor at `roll` within its `cellScale`. */
+const cellFor = (scale: CellScale, t: number, roll: number): number =>
+  Math.round(lerpRowGeo(SIGNAGE.cell, t) * (scale.min + (scale.max - scale.min) * roll));
+
 const signBox = (cell: number, count: number, vertical: boolean) => {
   const margin = Math.max(3, Math.round(0.3 * cell));
-  const run = count * GLYPH_PITCH * cell + 2 * margin;
+  // characters sit one pitch apart but are one cell long, so the run ends a margin after the last one
+  const run = ((count - 1) * GLYPH_PITCH + 1) * cell + 2 * margin;
   const across = cell + 2 * margin;
   return { height: vertical ? run : across, margin, width: vertical ? across : run };
 };
@@ -233,6 +241,8 @@ type SignPlacement = {
   href?: string;
   id: string;
   mount: SignMount;
+  /** Corner radius of the box, reference px. */
+  radius: number;
   text: string;
   vertical: boolean;
   /** Box left edge, world x. */
@@ -242,7 +252,7 @@ type SignPlacement = {
 };
 
 const makeSign = (building: Building, placement: SignPlacement, scale: number, rand: () => number): Sign => {
-  const { cell, framed, href, id, mount, text, vertical, x, yFromTop } = placement;
+  const { cell, framed, href, id, mount, radius, text, vertical, x, yFromTop } = placement;
   const box = signBox(cell, text.length, vertical);
 
   return {
@@ -257,6 +267,7 @@ const makeSign = (building: Building, placement: SignPlacement, scale: number, r
     margin: box.margin * scale,
     mount,
     phase: rand() * Math.PI * 2,
+    radius: radius * scale,
     text,
     vertical,
     width: box.width * scale,
@@ -268,7 +279,7 @@ const makeSign = (building: Building, placement: SignPlacement, scale: number, r
 
 /** Gap between a building edge and its blade sign, reference px, for a sign with this character cell (reference px). */
 const bladeGapFor = (cell: number): number => {
-  const { max, min, perCell } = SIGNAGE.bladeGap;
+  const { max, min, perCell } = SIGNAGE.blade.gap;
   return Math.max(min, Math.min(max, Math.round(perCell * cell)));
 };
 
@@ -279,9 +290,9 @@ const bladeGapFor = (cell: number): number => {
 const bracketsFor = (building: Building, sign: Sign, side: -1 | 1, scale: number): PlainBox[] => {
   const edge = building.x + (side * building.width) / 2;
   const length = (bladeGapFor(sign.cell / scale) + 2) * scale;
-  const thickness = SIGNAGE.bracket.thickness * scale;
+  const thickness = SIGNAGE.blade.bracket.thickness * scale;
   // the poles sit a little in from the sign's top and bottom edges
-  const inset = SIGNAGE.bracket.inset * scale;
+  const inset = SIGNAGE.blade.bracket.inset * scale;
   const x = edge + (side * length) / 2;
 
   return [sign.y + sign.height - inset - thickness, sign.y + inset].map((baseY) => ({
@@ -339,7 +350,7 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
   }
 
   const first = frame.top.min + frame.top.extra * rand();
-  let cells = records.map(() => frame.cell.min + Math.round(frame.cell.extra * rand()));
+  let cells = records.map(() => cellFor(frame.cellScale, layer.config.t, rand()));
   const gaps = records.slice(1).map(() => frame.gap.min + frame.gap.extra * rand());
   const available = building.height / scale - frame.bottomMargin - first;
   const columnHeight = (sizes: number[]): number =>
@@ -363,6 +374,7 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
         href: record.href,
         id: record.id,
         mount: "blade",
+        radius: frame.radius,
         text: record.text,
         vertical: true,
         x: bladeX(building, side, cell, box.width, scale),
@@ -386,10 +398,9 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
  */
 const reserveFrameStrip = (layer: CityLayer, frame: Building): void => {
   const { scale } = layer;
-  const { frame: frameKnobs } = SIGNAGE;
-  const widest = signBox(frameKnobs.cell.min + frameKnobs.cell.extra, 1, true).width;
-  const stripWidth = (SIGNAGE.bladeGap.max + widest + SIGNAGE.breathing) * scale;
-  const keep = SIGNAGE.trimKeep * layer.config.minW * scale;
+  const widest = signBox(cellFor(SIGNAGE.frame.cellScale, layer.config.t, 1), 1, true).width;
+  const stripWidth = (SIGNAGE.blade.gap.max + widest + SIGNAGE.blade.breathing) * scale;
+  const keep = SIGNAGE.frame.trimKeep * layer.config.minW * scale;
   const side: -1 | 1 = frame.x < 0 ? 1 : -1;
   const outer = frame.x - (side * frame.width) / 2;
   const far = frame.x + (side * frame.width) / 2 + side * stripWidth;
@@ -458,17 +469,21 @@ const placeDecorativeSign = (
   const rowPitch = (cellH + gapY) * scale;
   const widthRef = building.width / scale;
   const left = building.x - building.width / 2;
-  const baseCell = Math.round(lerpRowGeo(SIGNAGE.cell, config.t));
-  const cell = nearest ? baseCell + Math.round(SIGNAGE.cellJitter * rand()) : baseCell;
+  // one size roll serves whichever mount the sign ends up with
+  const sizeRoll = rand();
+  const facadeCell = cellFor(SIGNAGE.facade.cellScale, config.t, sizeRoll);
+  const bladeCell = cellFor(SIGNAGE.blade.cellScale, config.t, sizeRoll);
   const top = 8 * scale;
   const bottomLimit = building.height - (nearest ? 72 : 14) * scale;
-  const breathing = SIGNAGE.breathing * scale;
+  const breathing = SIGNAGE.blade.breathing * scale;
 
   const fitsFacade = (text: string): boolean => {
-    const box = signBox(cell, text.length, false);
-    return box.width <= widthRef - 8 && box.width >= 0.55 * widthRef && box.height * scale <= bottomLimit - top;
+    const box = signBox(facadeCell, text.length, false);
+    const { max, min } = SIGNAGE.facade.width;
+    return box.width <= max * widthRef && box.width >= min * widthRef && box.height * scale <= bottomLimit - top;
   };
-  const fitsBlade = (text: string): boolean => signBox(cell, text.length, true).height * scale <= bottomLimit - top;
+  const fitsBlade = (text: string): boolean =>
+    signBox(bladeCell, text.length, true).height * scale <= bottomLimit - top;
 
   // a random height below the roof, snapped to the window rows
   const snapY = (boxH: number): number => {
@@ -480,13 +495,14 @@ const placeDecorativeSign = (
   };
 
   const facade = (text: string): void => {
+    const cell = facadeCell;
     const box = signBox(cell, text.length, false);
     const boxH = box.height * scale;
     const yFromTop = snapY(boxH);
     const x = left + (building.width - box.width * scale) / 2;
     const sign = makeSign(
       building,
-      { cell, framed: false, id, mount: "facade", text, vertical: false, x, yFromTop },
+      { cell, framed: false, id, mount: "facade", radius: SIGNAGE.facade.radius, text, vertical: false, x, yFromTop },
       scale,
       rand,
     );
@@ -497,6 +513,7 @@ const placeDecorativeSign = (
   };
 
   const blade = (text: string): boolean => {
+    const cell = bladeCell;
     const box = signBox(cell, text.length, true);
     const yFromTop = snapY(box.height * scale);
     const first: -1 | 1 = rand() < 0.5 ? -1 : 1;
@@ -511,6 +528,7 @@ const placeDecorativeSign = (
           framed: false,
           id,
           mount: "blade",
+          radius: SIGNAGE.blade.radius,
           text,
           vertical: true,
           x: bladeX(building, side, cell, box.width, scale),
@@ -541,7 +559,7 @@ const placeDecorativeSign = (
     return false;
   };
 
-  const horizontalFirst = rand() < SIGNAGE.horizontalChance;
+  const horizontalFirst = rand() < SIGNAGE.facade.chance;
   const facadeText = horizontalFirst ? pickText(SIGN_POOL, rand, fitsFacade) : null;
 
   if (facadeText) {
@@ -583,25 +601,31 @@ const placeDecorativeSigns = (layer: CityLayer, signSeed: number, reserved: Buil
 
 /** Height of a billboard's posts, reference px, for a board this tall (reference px). */
 const billboardPostFor = (boardHeight: number): number => {
-  const { max, min, perHeight } = BILLBOARD.post;
+  const { max, min, perHeight } = SIGNAGE.billboard.post;
   return Math.max(min, Math.min(max, perHeight * boardHeight));
 };
 
 /**
- * Slogan and letter size for a billboard on a roof `roofWidth` wide (reference px) in a row at depth `t`. The
- * slogan is picked evenly by `roll` among the pool entries whose one-line board at the row's base letter size
- * is within `BILLBOARD.width.max` of the roof, preferring those reaching `BILLBOARD.width.min`; its letters
- * then grow until the board reaches `width.max`, up to the row's cap. Null when nothing fits.
+ * Slogan and letter size for a billboard on a roof `roofWidth` wide (reference px) in a row at depth `t`.
+ * Letters start at the billboard cell at `sizeRoll`; the slogan is picked evenly by `roll` among the pool
+ * entries whose one-line board is within `width.max` of the roof, preferring those reaching `width.min`; the
+ * letters then grow until the board reaches `width.max`, up to `grow` times the rolled cell. Null when nothing
+ * fits.
  */
-const fitBillboard = (t: number, roofWidth: number, roll: number): null | { cell: number; text: string } => {
-  const rowCell = lerpRowGeo(SIGNAGE.cell, t);
-  const baseCell = Math.round(rowCell * BILLBOARD.cellScale.min);
-  const maxWidth = roofWidth * BILLBOARD.width.max;
+const fitBillboard = (
+  t: number,
+  roofWidth: number,
+  sizeRoll: number,
+  roll: number,
+): null | { cell: number; text: string } => {
+  const { cellScale, grow, width } = SIGNAGE.billboard;
+  const cell = cellFor(cellScale, t, sizeRoll);
+  const maxWidth = width.max * roofWidth;
   const fitting = BILLBOARD_POOL.map((text) => ({ count: [...text].length, text }))
     .filter(({ count }) => count <= MAX_TEXT_CHARS)
-    .map((entry) => ({ ...entry, width: signBox(baseCell, entry.count, false).width }))
-    .filter(({ width }) => width <= maxWidth);
-  const filling = fitting.filter(({ width }) => width >= BILLBOARD.width.min * roofWidth);
+    .map((entry) => ({ ...entry, width: signBox(cell, entry.count, false).width }))
+    .filter((entry) => entry.width <= maxWidth);
+  const filling = fitting.filter((entry) => entry.width >= width.min * roofWidth);
   const options = filling.length > 0 ? filling : fitting;
   const pick = options[Math.floor(roll * options.length)];
 
@@ -609,16 +633,15 @@ const fitBillboard = (t: number, roofWidth: number, roll: number): null | { cell
     return null;
   }
 
-  // the letter size whose box (margins ~0.3 cell a side) reaches the width cap, clamped to [base, cap]; the
-  // margin rounds on its own, so step back until the real box is within the cap (the base size always is)
-  const spanning = maxWidth / (pick.count * GLYPH_PITCH + 0.6);
-  const cap = Math.round(rowCell * BILLBOARD.cellScale.max);
-  let cell = Math.floor(Math.max(baseCell, Math.min(cap, spanning)));
-  while (cell > baseCell && signBox(cell, pick.count, false).width > maxWidth) {
-    cell--;
+  // the letter size whose box (margins ~0.3 cell a side) reaches the width cap, clamped to [cell, cell * grow];
+  // the margin rounds on its own, so step back until the real box is within the cap (the rolled cell always is)
+  const spanning = maxWidth / ((pick.count - 1) * GLYPH_PITCH + 1 + 0.6);
+  let grown = Math.floor(Math.max(cell, Math.min(Math.round(cell * grow), spanning)));
+  while (grown > cell && signBox(grown, pick.count, false).width > maxWidth) {
+    grown--;
   }
 
-  return { cell, text: pick.text };
+  return { cell: grown, text: pick.text };
 };
 
 /**
@@ -636,7 +659,7 @@ const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig
   const [r0, r1, r2, r3] = rands;
   const left = x - width / 2;
   // billboard roll: the slogan is chosen first, since a roof too narrow for every slogan gets other furniture
-  const board = roof >= 0.48 && roof < 0.64 && index >= 2 ? fitBillboard(t, width / scale, r3) : null;
+  const board = roof >= 0.48 && roof < 0.64 && index >= 2 ? fitBillboard(t, width / scale, r0, r3) : null;
   const depthOf = (w: number) => Math.max(1, Math.min(building.depth, w * ROOF_DEPTH_RATIO * side));
   const box = (bx: number, baseY: number, w: number, h: number): PlainBox => ({
     baseY,
@@ -668,7 +691,7 @@ const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig
   } else if (board) {
     // billboard built around its slogan, centered on the roof, on two posts; the posts stand in the board's
     // plane at the facade so they show against the sky, over the part of the board above the roof (in case
-    // `BILLBOARD.width.max` lets it overhang)
+    // `SIGNAGE.billboard.width.max` lets it overhang)
     const { cell, text } = board;
     const boardRef = signBox(cell, [...text].length, false);
     const boardW = boardRef.width * scale;
@@ -691,6 +714,7 @@ const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig
       cell: cell * scale,
       colorSlot: Math.floor(r1 * 5),
       height: boardH,
+      radius: SIGNAGE.billboard.radius * scale,
       text,
       width: boardW,
       x,
