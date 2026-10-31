@@ -18,7 +18,7 @@ import Signs from "./Signs/Signs";
 import Sky from "./Sky/Sky";
 import Stalls from "./Stalls/Stalls";
 import type { TextAtlas } from "./text-atlas";
-import { createTextAtlas, resolveSignFont } from "./text-atlas";
+import { createTextAtlas, resolveAtlasFont } from "./text-atlas";
 
 /** Aspect is quantized so small resizes (scrollbars, mobile URL bar) don't regenerate the city. */
 const ASPECT_STEP = 0.1;
@@ -58,7 +58,7 @@ const useTextAtlas = (layout: CityLayout): null | TextAtlas => {
     let created: null | TextAtlas = null;
 
     const build = async () => {
-      const font = resolveSignFont();
+      const font = resolveAtlasFont();
       await document.fonts.ready;
       await document.fonts.load(`700 32px ${font}`).catch(() => undefined);
 
