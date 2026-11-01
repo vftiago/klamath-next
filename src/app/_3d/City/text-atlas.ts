@@ -1,4 +1,5 @@
 import { CanvasTexture, LinearFilter } from "three";
+import { LOGO_GLYPHS } from "./logos";
 
 /** CJK ideographs, kana and full-width forms: drawn by the fallback stack, centred on an ideograph's body. */
 const CJK = /[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/;
@@ -9,6 +10,8 @@ export const CHAR_CELL = 32;
 export const ATLAS_COLUMNS = 16;
 /** Variant bands: 0 = lit stroke with its wide halo, 1 = the thin bright core, 2 = unlit dim. */
 export const ATLAS_VARIANTS = 3;
+/** Side of the square a logo glyph is fitted in, px: a touch over the Latin cap height so marks read as big as words. */
+const LOGO_SIZE = 0.8 * CHAR_CELL;
 
 export type TextAtlas = {
   columns: number;
@@ -72,20 +75,33 @@ export const createTextAtlas = (chars: Iterable<string>, fontFamily: string): Te
     const draw = (char: string, cell: number, variant: number, style: { alpha: number; blur: number }) => {
       const col = cell % ATLAS_COLUMNS;
       const row = Math.floor(cell / ATLAS_COLUMNS);
+      const logo = LOGO_GLYPHS.get(char);
+      const offset = logo ? 0 : CJK.test(char) ? cjkOffset : latinOffset;
       const cx = col * ATLAS_CELL + pad + CHAR_CELL / 2;
-      const cy = (variant * rows + row) * ATLAS_CELL + pad + CHAR_CELL / 2 + (CJK.test(char) ? cjkOffset : latinOffset);
+      const cy = (variant * rows + row) * ATLAS_CELL + pad + CHAR_CELL / 2 + offset;
 
       ctx.save();
-      ctx.font = `700 ${CHAR_CELL}px ${fontFamily}`;
-      // squeeze wide characters into the cell
-      const width = ctx.measureText(char).width;
-      const squeeze = Math.min(1, (CHAR_CELL * 0.95) / Math.max(1, width));
       ctx.translate(cx, cy);
-      ctx.scale(squeeze, 1);
       ctx.shadowColor = "rgba(255, 255, 255, 1)";
       ctx.shadowBlur = style.blur;
       ctx.fillStyle = `rgba(255, 255, 255, ${style.alpha})`;
-      ctx.fillText(char, 0, 0);
+
+      if (logo) {
+        // a logo is a path in its own coordinates: fit its visual bounds in a square centred on the cell
+        const [x, y, width, height] = logo.bounds;
+        const fit = LOGO_SIZE / Math.max(width, height);
+        ctx.scale(fit, fit);
+        ctx.translate(-(x + width / 2), -(y + height / 2));
+        ctx.fill(new Path2D(logo.path));
+      } else {
+        ctx.font = `700 ${CHAR_CELL}px ${fontFamily}`;
+        // squeeze wide characters into the cell
+        const width = ctx.measureText(char).width;
+        const squeeze = Math.min(1, (CHAR_CELL * 0.95) / Math.max(1, width));
+        ctx.scale(squeeze, 1);
+        ctx.fillText(char, 0, 0);
+      }
+
       ctx.restore();
     };
 

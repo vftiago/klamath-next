@@ -51,6 +51,7 @@ src/
 │   │   │   ├── Billboards/          # Rooftop neon-framed boards, instanced quads
 │   │   │   ├── Beacons/             # Blinking antenna lights, one Points draw
 │   │   │   ├── signage.ts           # EDIT HERE to change sign/billboard text: FRAME_SIGNS (6 authored blade signs, with routes) + pools
+│   │   │   ├── logos.ts             # LOGO glyphs (PUA chars → SVG paths) drawn into the atlas, so a sign can show a mark instead of a word
 │   │   │   ├── seeds.ts             # `?seed=` (city), `?signSeed=` (signs) and `?stallSeed=` (stalls) URL overrides of SEEDS; integers as is, other text hashed
 │   │   │   ├── text-atlas.ts        # Character atlas (CanvasTexture, 3 variants) built from the layout's texts after fonts load
 │   │   │   ├── Signs/               # Neon text signs: blade (beside an edge, bracketed) or facade (over a windowless band)
@@ -130,7 +131,7 @@ src/
 - Frame order: `useFrame` priorities are 0 (uniform updates), 0.5 (river reflection render), 1 (`PostEffect`, which renders the main scene and the CRT quad); new passes slot in between
 - Additive light (beam, badge) uses `AdditiveBlending` with alpha 1 in the shader: three's additive mode is `src * alpha + dst`, so alpha 0 adds nothing
 - Dynamic `BufferAttribute`s are written through the attribute's own `.array` inside `useFrame`; writing into the memoized source array trips `react-hooks/immutability`
-- Signage text is real words from `City/signage.ts`; Latin on signs and billboards uses Orbitron (`next/font`, `--font-orbitron`, not preloaded; the badge and stall headers keep the site's condensed face), CJK falls back to system fonts. The atlas is built in an effect after `document.fonts.ready`, so signs and billboards mount a beat after the buildings
+- Signage text is real words from `City/signage.ts`, or a `LOGO` character from `City/logos.ts` (a Private Use Area char the atlas draws from an SVG path, one cell square); Latin on signs and billboards uses Orbitron (`next/font`, `--font-orbitron`, not preloaded; the badge and stall headers keep the site's condensed face), CJK falls back to system fonts. The atlas is built in an effect after `document.fonts.ready`, so signs and billboards mount a beat after the buildings
 - The post-effect keeps scene alpha; with the sky plane the frame is opaque, and the CSS `.abstract-bg` night-sky gradient is the fallback for loading, fade-in, reduced motion and no-WebGL states
 - The repo's compiler-grade react-hooks lint forbids render-phase impurity (`Math.random`, ref reads, setState-in-effect) — randomness goes in event handlers, frame callbacks, or key-based remounts
 

@@ -1,8 +1,11 @@
+import { LOGO } from "./logos";
+
 /**
  * Everything written on the city's neon signs and billboards. Edit here to customize.
  *
  * Rules: real words only, at most `MAX_TEXT_CHARS` characters (spaces count), uppercase Latin reads best in
- * neon. Japanese is drawn with the viewer's system CJK font. Vertical signs stack one character per cell.
+ * neon. Japanese is drawn with the viewer's system CJK font. Vertical signs stack one character per cell. A
+ * `LOGO` character (see `logos.ts`) is a one-cell mark drawn in place of a word.
  */
 
 export const MAX_TEXT_CHARS = 12;
@@ -24,12 +27,12 @@ export type FrameSign = {
  * slots, with these words. An empty slot stays empty. The routes mirror the home page's links for now.
  */
 export const FRAME_SIGNS: readonly FrameSign[] = [
-  { href: "/projects", id: "frame-left-0", slot: "left-0", text: "ラーメン" }, // ramen
-  { href: "/repositories", id: "frame-left-1", slot: "left-1", text: "KARAOKE" },
-  { href: "/about", id: "frame-left-2", slot: "left-2", text: "居酒屋" }, // izakaya (pub)
-  { href: "https://dev.to/vftiago", id: "frame-right-0", slot: "right-0", text: "HOTEL" },
-  { href: "https://www.linkedin.com/in/vftiago/", id: "frame-right-1", slot: "right-1", text: "寿司" }, // sushi
-  { href: "https://github.com/vftiago", id: "frame-right-2", slot: "right-2", text: "ARCADE" },
+  { href: "/about", id: "frame-left-0", slot: "left-0", text: "ABOUT" },
+  { href: "/projects", id: "frame-left-1", slot: "left-1", text: "居酒屋" }, // izakaya (pub)
+  { href: "/repositories", id: "frame-left-2", slot: "left-2", text: "ラーメン" }, // ramen
+  { href: "https://dev.to/vftiago", id: "frame-right-0", slot: "right-0", text: LOGO.devto },
+  { href: "https://www.linkedin.com/in/vftiago/", id: "frame-right-1", slot: "right-1", text: LOGO.linkedin },
+  { href: "https://github.com/vftiago", id: "frame-right-2", slot: "right-2", text: LOGO.github },
 ];
 
 /** Pool for the smaller signs hung on buildings across the layers. Shop words, mixed Japanese and English. */
