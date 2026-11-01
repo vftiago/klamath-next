@@ -79,7 +79,8 @@ export const DebugOverlay = ({ seedLabels = {}, seeds, statsRef }: OverlayProps)
       <div>calls {snapshot.calls}</div>
       <div>tris {snapshot.triangles}</div>
       <div>
-        seeds {seedText(seeds.city, seedLabels.city)} / {seedText(seeds.sign, seedLabels.sign)}
+        seeds {seedText(seeds.city, seedLabels.city)} / {seedText(seeds.sign, seedLabels.sign)} /{" "}
+        {seedText(seeds.stall, seedLabels.stall)}
       </div>
     </div>
   );

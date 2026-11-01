@@ -2,7 +2,7 @@ import type { Seeds } from "./config";
 import { SEEDS } from "./config";
 
 /** Which query values were given as text, for the debug overlay; the hashed integers are what the city uses. */
-export type SeedLabels = { city?: string; sign?: string };
+export type SeedLabels = { city?: string; sign?: string; stall?: string };
 
 export type SeedOverrides = { seedLabels: SeedLabels; seeds: Seeds };
 
@@ -26,15 +26,15 @@ export const hashSeed = (text: string): number => {
 };
 
 /**
- * `?seed=<value>` overrides the city seed and `?signSeed=<value>` the sign seed for this page load, so a layout
- * can be browsed or pinned without editing `config.ts`. An integer is used as is (so numeric URLs keep their
+ * `?seed=<value>` overrides the city seed, `?signSeed=<value>` the sign seed and `?stallSeed=<value>` the stall
+ * seed for this page load, so a layout can be browsed or pinned without editing `config.ts`. An integer is used as is (so numeric URLs keep their
  * cities); any other text is hashed with `hashSeed`; blank values are ignored. Browser only.
  */
 export const readSeedOverrides = (): SeedOverrides => {
   const params = new URLSearchParams(window.location.search);
   const seedLabels: SeedLabels = {};
 
-  const read = (key: "city" | "sign", param: string, fallback: number): number => {
+  const read = (key: keyof Seeds, param: string, fallback: number): number => {
     const value = params.get(param)?.trim() ?? "";
 
     if (value === "") {
@@ -53,6 +53,10 @@ export const readSeedOverrides = (): SeedOverrides => {
 
   return {
     seedLabels,
-    seeds: { city: read("city", "seed", SEEDS.city), sign: read("sign", "signSeed", SEEDS.sign) },
+    seeds: {
+      city: read("city", "seed", SEEDS.city),
+      sign: read("sign", "signSeed", SEEDS.sign),
+      stall: read("stall", "stallSeed", SEEDS.stall),
+    },
   };
 };

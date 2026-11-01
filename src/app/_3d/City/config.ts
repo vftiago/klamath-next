@@ -80,10 +80,15 @@ export type Seeds = {
   city: number;
   /** Decorative neon signs, rolled per building; independent of `city`. */
   sign: number;
+  /** Street stalls: their variants, placement and header words; independent of `city` and `sign`. */
+  stall: number;
 };
 
-/** Committed seeds. `?seed=<n>` and `?signSeed=<n>` override them for a session (see `seeds.ts`). */
-export const SEEDS: Seeds = { city: 2024, sign: 2024 };
+/**
+ * Committed seeds. `?seed=<n>`, `?signSeed=<n>` and `?stallSeed=<n>` override them for a session (see
+ * `seeds.ts`).
+ */
+export const SEEDS: Seeds = { city: 2024, sign: 2024, stall: 2027 };
 
 /** Letter size of a sign type: the row's `cell` times a factor rolled in [min, max] per sign. */
 export type CellScale = { max: number; min: number };

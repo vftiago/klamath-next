@@ -90,7 +90,7 @@ const planStall = (rand: () => number, width: number, bodyHeight: number, counte
 };
 
 /** `count` stall variants for the seed; the same sequence the painted sheet used, so layouts are stable. */
-export const planStalls = (count: number = STALL.variants, seed = 2027): StallPlan[] => {
+export const planStalls = (count: number, seed: number): StallPlan[] => {
   const rand = mulberry32(seed);
 
   return Array.from({ length: count }, (_, k) => {

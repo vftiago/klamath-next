@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DoubleSide, GLSL3 } from "three";
+import { STALL } from "../config";
 import type { CityLayout } from "../generate";
 import { GROUND_WIDTH } from "../Ground/Ground";
 import Smoke from "./Smoke";
@@ -17,6 +18,8 @@ import StallGlow from "./StallGlow";
 
 type StallsProps = {
   layout: CityLayout;
+  /** Stall seed (`SEEDS.stall`): variants, placement and words. The parent keys on it, so a change remounts. */
+  seed: number;
   /** Emit smoke; false lets the existing particles fade out. */
   smoke?: boolean;
 };
@@ -24,12 +27,12 @@ type StallsProps = {
 type Variants = { placements: Placement[]; plans: StallPlan[]; sheet: StallSheet };
 
 /** Street level: the kerb at the water, the stalls on the ground plane, and their smoke. */
-const Stalls = ({ layout, smoke = true }: StallsProps) => {
+const Stalls = ({ layout, seed, smoke = true }: StallsProps) => {
   // plans and placements are pure, but the sheet painted from them is DOM work: all three belong in a state
   // initializer (the component remounts with the layout, so the placements never go stale)
   const [{ placements, sheet }] = useState<Variants>(() => {
-    const plans = planStalls();
-    const placed = placeStalls(layout, plans);
+    const plans = planStalls(STALL.variants, seed);
+    const placed = placeStalls(layout, plans, seed);
     return { placements: placed, plans, sheet: createStallSheet(plans, placed) };
   });
   const parts = useMemo(() => buildStallParts(layout, placements, sheet), [layout, placements, sheet]);
