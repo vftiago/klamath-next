@@ -37,9 +37,9 @@ export const STALL = {
   /** Gap between the nearest layer's deepest front face and the stall plane, world units. */
   clearance: 42,
   /** Stalls per cluster (min, extra). */
-  cluster: { extra: 3, min: 2 },
+  cluster: { extra: 2, min: 1 },
   /** Gap between clusters (min, extra), world units. */
-  clusterGap: { extra: 100, min: 70 },
+  clusterGap: { extra: 32, min: 24 },
   /** Depth of the counter at the front of the footprint. */
   counterDepth: 10,
   /** Height of the counter block at the front, reference px (min, extra). */
@@ -88,7 +88,7 @@ export type Seeds = {
  * Committed seeds. `?seed=<n>`, `?signSeed=<n>` and `?stallSeed=<n>` override them for a session (see
  * `seeds.ts`).
  */
-export const SEEDS: Seeds = { city: 2024, sign: 2024, stall: 2027 };
+export const SEEDS: Seeds = { city: 2024, sign: 2024, stall: 16 };
 
 /** Letter size of a sign type: the row's `cell` times a factor rolled in [min, max] per sign. */
 export type CellScale = { max: number; min: number };
