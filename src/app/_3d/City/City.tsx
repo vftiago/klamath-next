@@ -84,7 +84,7 @@ const useTextAtlas = (layout: CityLayout): null | TextAtlas => {
 type CityProps = {
   /** Show the rain overlay (drops and ripples). */
   rain?: boolean;
-  /** City and sign seeds; a change regenerates the layout like an aspect change does. */
+  /** City, sign and stall seeds; a city or sign change regenerates the layout like an aspect change does. */
   seeds?: Seeds;
 };
 
@@ -96,7 +96,8 @@ const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
   const layout = useMemo(() => generateCity(quantizedAspect, seeds), [quantizedAspect, seeds]);
   const atlas = useTextAtlas(layout);
 
-  // keyed on aspect and seeds: a new layout remounts everything so attributes and uniforms are built once per mount
+  // keyed on aspect and the layout seeds: a new layout remounts everything so attributes and uniforms are built
+  // once per mount; the stall seed only remounts the stalls, so the street can be rerolled under the same city
   return (
     <group key={`${quantizedAspect}:${seeds.city}:${seeds.sign}`}>
       <Sky aspect={quantizedAspect} />
@@ -108,7 +109,7 @@ const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
       {atlas ? <Signs atlas={atlas} flicker={quality.signFlicker} layout={layout} /> : null}
       <Beacon animate={quality.animate} layout={layout} />
       <Beacons blink={quality.animate} layout={layout} />
-      <Stalls key={STALL_KEY} layout={layout} smoke={quality.smoke} />
+      <Stalls key={`${STALL_KEY}:${seeds.stall}`} layout={layout} seed={seeds.stall} smoke={quality.smoke} />
       <Fog layout={layout} planes={quality.fogPlanes} />
       <River reflectionScale={quality.reflectionScale} shoreZ={layout.shoreZ} />
       {rain && quality.rainDrops > 0 ? <Rain drops={quality.rainDrops} /> : null}

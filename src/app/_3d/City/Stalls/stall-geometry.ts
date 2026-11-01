@@ -8,8 +8,6 @@ import { GLOW_CELL, LANTERN_CELL, SIGN_GLOW_PAD, signBoard } from "./stall-art";
 import type { Rgb, StallPlan } from "./stall-plan";
 import { glowColor, INK, lerp } from "./stall-plan";
 
-const SEED = 2028;
-
 /** Lantern light: the paper's colour, centred on the paper (this far below the cell's top). */
 const LANTERN_LIGHT: Rgb = [255, 110, 70];
 const LANTERN_LIGHT_Y = 11;
@@ -29,9 +27,10 @@ export type Placement = { left: number; plan: StallPlan; variant: number; word: 
 /**
  * Clusters of stalls along the nearest layer, `STALL.clusterGap` apart; each picks a variant. Words are rolled
  * per placement (from their own stream, so they don't move the stalls) rather than per variant, so the same
- * stall shows different words along the street.
+ * stall shows different words along the street. `seed` is the stall seed the plans were rolled from; placement
+ * and words take the streams after it.
  */
-export const placeStalls = (layout: CityLayout, plans: StallPlan[]): Placement[] => {
+export const placeStalls = (layout: CityLayout, plans: StallPlan[], seed: number): Placement[] => {
   const layer = layout.layers[layout.layers.length - 1];
   const placements: Placement[] = [];
 
@@ -39,8 +38,8 @@ export const placeStalls = (layout: CityLayout, plans: StallPlan[]): Placement[]
     return placements;
   }
 
-  const rand = mulberry32(SEED);
-  const words = mulberry32(SEED + 1);
+  const rand = mulberry32(seed + 1);
+  const words = mulberry32(seed + 2);
   const half = layer.span / 2;
   let x = -half - 60 * rand();
 
