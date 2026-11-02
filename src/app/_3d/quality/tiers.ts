@@ -13,8 +13,8 @@ export type QualityKnobs = {
   dprMax: number;
   /** Number of scrolling fog planes, nearest layers first. */
   fogPlanes: number;
-  /** Instanced rain drops, 0 = rain unavailable regardless of the toggle. */
-  rainDrops: number;
+  /** Share of `RAIN.drops` (Rain/config.ts) drawn, 0 = rain unavailable regardless of the toggle. */
+  rainDensity: number;
   /** Render-target scale for the river reflection, 0 = skip the pass (flat tinted water). */
   reflectionScale: number;
   /** Render only on demand (camera moves, scroll) instead of every frame. */
@@ -31,7 +31,7 @@ export const QUALITY_TIERS: Record<QualityTier, QualityKnobs> = {
     budgetMs: 18,
     dprMax: 2,
     fogPlanes: 5,
-    rainDrops: 480,
+    rainDensity: 1,
     reflectionScale: 0.5,
     renderOnDemand: false,
     signFlicker: true,
@@ -42,7 +42,7 @@ export const QUALITY_TIERS: Record<QualityTier, QualityKnobs> = {
     budgetMs: Infinity,
     dprMax: 1,
     fogPlanes: 0,
-    rainDrops: 0,
+    rainDensity: 0,
     reflectionScale: 0,
     renderOnDemand: true,
     signFlicker: false,
@@ -53,7 +53,7 @@ export const QUALITY_TIERS: Record<QualityTier, QualityKnobs> = {
     budgetMs: 22,
     dprMax: 1,
     fogPlanes: 3,
-    rainDrops: 200,
+    rainDensity: 0.4,
     reflectionScale: 0.33,
     renderOnDemand: false,
     signFlicker: true,
@@ -64,7 +64,7 @@ export const QUALITY_TIERS: Record<QualityTier, QualityKnobs> = {
     budgetMs: Infinity,
     dprMax: 1,
     fogPlanes: 1,
-    rainDrops: 0,
+    rainDensity: 0,
     reflectionScale: 0,
     renderOnDemand: true,
     signFlicker: false,

@@ -4,11 +4,12 @@ import type { RawShaderMaterial } from "three";
 import { GLSL3, Vector2, Vector3 } from "three";
 import { CAMERA, GROUND_Y, REF_VIEW_HEIGHT } from "../City/config";
 import { getSceneTime } from "../utils";
+import { RAIN, windSlope } from "./config";
 import fragmentShader from "./rain.frag";
 import vertexShader from "./rain.vert";
 
 type RainProps = {
-  /** Number of drops; the reference caps at 480 and scales with viewport width. */
+  /** Number of drops: `RAIN.drops` scaled by the quality tier's `rainDensity`. */
   drops?: number;
 };
 
@@ -35,8 +36,9 @@ const buildSeeds = (count: number): Float32Array => {
 /**
  * Rain as instanced line quads whose motion lives entirely in the vertex shader: fall speed, length,
  * drift, wind sway, fade-in and tint all derive from per-drop seeds and the time, as in the reference.
+ * The wind comes from `RAIN.wind` (see `./config`).
  */
-const Rain = ({ drops = 480 }: RainProps) => {
+const Rain = ({ drops = RAIN.drops }: RainProps) => {
   const materialRef = useRef<RawShaderMaterial>(null);
   const aspect = useThree((state) => state.viewport.aspect);
 
@@ -47,7 +49,7 @@ const Rain = ({ drops = 480 }: RainProps) => {
       uGround: { value: GROUND_Y },
       uTime: { value: 0 },
       uView: { value: new Vector3(aspect * REF_VIEW_HEIGHT, REF_VIEW_HEIGHT, CAMERA.z) },
-      uWeather: { value: new Vector2(0.3, 1) },
+      uWeather: { value: new Vector2(windSlope(RAIN.wind, 0), 1) },
     }),
     [aspect],
   );
@@ -61,11 +63,10 @@ const Rain = ({ drops = 480 }: RainProps) => {
 
     const t = getSceneTime();
     materialUniforms.uTime.value = t;
-    // reference: slow wind sway and a 29 s intensity pulse
-    const wind = 0.3 + 0.06 * Math.sin((t * Math.PI * 2) / 17) + 0.02 * Math.sin((t * Math.PI * 2) / 6.3);
+    // reference: a 29 s intensity pulse
     const pulse = 0.8 + 0.2 * Math.sin((t * Math.PI * 2) / 29);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Three.js uniforms are loosely typed
-    materialUniforms.uWeather.value.set(wind, pulse);
+    materialUniforms.uWeather.value.set(windSlope(RAIN.wind, t), pulse);
   });
 
   return (

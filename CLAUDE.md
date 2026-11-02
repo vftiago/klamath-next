@@ -60,7 +60,7 @@ src/
 │   │   │   ├── Fog/                 # One scrolling fog plane per street between rows (CanvasTexture tile)
 │   │   │   ├── River/               # Water plane; mirrored-camera reflection pass (priority 0.5) into a half-res target
 │   │   │   └── Sky/                 # Night sky gradient plane
-│   │   ├── Rain/                    # Rain overlay: shader-driven drops, ripple pool, persisted on/off preference
+│   │   ├── Rain/                    # Rain overlay: shader-driven drops, ripple pool, persisted on/off preference; config.ts: DEFAULT_RAIN (reference) / RAIN (drops, wind)
 │   │   ├── quality/                 # Tiers (full / reduced / static / off), frame-time probe, context, ?debug=1 overlay
 │   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
 │   │   └── PostEffect/              # Screen post-processing
@@ -143,6 +143,7 @@ src/
 | `src/app/_3d/City/config.ts`               | `CAMERA`, `DEFAULT_GRID` / `GRID`, `ROW_STYLE`, `STALL`, `SIGN_BASE` / `SIGNAGE`, `SEEDS` |
 | `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)                                              |
 | `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets                                                      |
+| `src/app/_3d/Rain/config.ts`               | `DEFAULT_RAIN` (reference) / `RAIN` (in use): drop count and wind                         |
 | `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)                                                    |
 | `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)                                               |
 | `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                                                           |
@@ -249,7 +250,7 @@ RootLayout (fonts, 3D background, analytics)
 - **Neon city** is fully procedural and seeded: no assets besides `public/logo.svg` (used for the beacon badge). Text, palette, `GRID` and `ROW_STYLE` are the tuning surface (`signage.ts`, `config.ts`, shader constants)
 - **Legacy scene** (`_3d/legacy/`): `Box`, `Plane`, `Barbelith` are deprecated and unmounted, kept until the city is approved, then removed in an isolated commit. They tree-shake out of the bundle
 - **Post-processing** shader with CRT-style scanlines, noise, vignette; render target sized to CSS size × DPR
-- **Quality tiers**: `useQuality()` exposes the knobs (`animate`, `signFlicker`, `smoke`, `fogPlanes`, `reflectionScale`, `rainDrops`, `renderOnDemand`); `static` renders on demand (`frameloop="demand"`, invalidated by camera moves, scroll and the fade-in); the verified tier is kept in `sessionStorage` (`klamath:quality`)
+- **Quality tiers**: `useQuality()` exposes the knobs (`animate`, `signFlicker`, `smoke`, `fogPlanes`, `reflectionScale`, `rainDensity`, `renderOnDemand`); `static` renders on demand (`frameloop="demand"`, invalidated by camera moves, scroll and the fade-in); the verified tier is kept in `sessionStorage` (`klamath:quality`)
 - **Rain toggle**: `useRainPreference` (localStorage `klamath:rain` + a window event) defaults to on unless `prefers-reduced-motion`; `City` mounts `Rain` and `Ripples` only while enabled
 - **Error boundaries** wrap data-fetching components; retry uses `router.refresh()`; `global-error.tsx` covers the root layout
 - **Catch-all route** for custom 404
