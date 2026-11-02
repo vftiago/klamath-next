@@ -1,6 +1,7 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 import { useQuality } from "../quality/QualityContext";
+import { RAIN } from "../Rain/config";
 import Rain from "../Rain/Rain";
 import Ripples from "../Rain/Ripples";
 import Beacon from "./Beacon/Beacon";
@@ -90,6 +91,7 @@ type CityProps = {
 
 const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
   const quality = useQuality();
+  const rainDrops = Math.round(RAIN.drops * quality.rainDensity);
   const aspect = useThree((state) => state.viewport.aspect);
   const quantizedAspect = Math.max(0.5, Math.round(aspect / ASPECT_STEP) * ASPECT_STEP);
 
@@ -112,8 +114,8 @@ const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
       <Stalls key={`${STALL_KEY}:${seeds.stall}`} layout={layout} seed={seeds.stall} smoke={quality.smoke} />
       <Fog layout={layout} planes={quality.fogPlanes} />
       <River reflectionScale={quality.reflectionScale} shoreZ={layout.shoreZ} />
-      {rain && quality.rainDrops > 0 ? <Rain drops={quality.rainDrops} /> : null}
-      {rain && quality.rainDrops > 0 ? <Ripples shoreZ={layout.shoreZ} /> : null}
+      {rain && rainDrops > 0 ? <Rain drops={rainDrops} /> : null}
+      {rain && rainDrops > 0 ? <Ripples shoreZ={layout.shoreZ} /> : null}
     </group>
   );
 };
