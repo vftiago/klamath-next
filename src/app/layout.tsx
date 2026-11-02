@@ -1,19 +1,13 @@
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import { Barlow_Condensed, Electrolize, Orbitron, Roboto_Condensed } from "next/font/google";
+import { Barlow_Condensed, Orbitron, Roboto_Condensed } from "next/font/google";
 import DynamicThreeScene from "./_3d/DynamicThreeScene";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
   subsets: ["latin"],
   variable: "--font-barlow-condensed",
-  weight: ["400"],
-});
-
-const electrolize = Electrolize({
-  subsets: ["latin"],
-  variable: "--font-electrolize-face",
   weight: ["400"],
 });
 
@@ -42,7 +36,7 @@ const RootLayout = ({
   return (
     <html lang="en">
       <body
-        className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${electrolize.variable} ${orbitron.variable} font-roboto-condensed antialiased`}
+        className={`${barlowCondensed.variable} ${robotoCondensed.variable} ${orbitron.variable} font-roboto-condensed antialiased`}
       >
         <DynamicThreeScene />
         <div className="flex min-h-[100dvh]">{children}</div>
