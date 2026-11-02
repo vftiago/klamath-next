@@ -115,6 +115,12 @@ export type SignStyle = {
   radius: number;
 };
 
+/** The look knobs: what the shader reads per sign besides its text and box, so a hover style can swap them live. */
+export type SignLookStyle = Pick<SignStyle, "backing" | "borderWidth" | "brightness" | "dim" | "radius">;
+
+/** A look applied while a sign is hovered; `steady` holds its flicker driver at full brightness meanwhile. */
+export type SignHoverStyle = SignLookStyle & { steady: boolean };
+
 /** Defaults every sign type inherits (`SIGNAGE.<type>` spreads this, then overrides what differs). */
 export const SIGN_BASE: SignStyle = {
   backing: { far: [16, 3, 30], near: [8, 3, 16] },
@@ -195,6 +201,18 @@ export const SIGNAGE = {
     top: { extra: 30, min: 90 },
     trimKeep: 0.6,
   },
+  /**
+   * Frame signs while hovered: the look knobs swapped in live for the sign under the pointer (its box and
+   * letters stay put). Brighter and steadier than `frame`, so the six linked blades read as buttons.
+   */
+  frameHover: {
+    ...SIGN_BASE,
+    backing: { far: [40, 10, 70], near: [28, 8, 52] },
+    borderWidth: 1,
+    brightness: { borderCore: 1, borderHalo: 0.4, text: 1.2 },
+    radius: 4,
+    steady: true,
+  } satisfies SignHoverStyle,
 } as const;
 
 /** World units per reference pixel at depth z (1 at z = 0). */
