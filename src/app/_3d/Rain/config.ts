@@ -16,12 +16,21 @@ export type Wind = {
 export type RainConfig = {
   /** Drops at full quality; lower tiers draw their `rainDensity` share of them. */
   drops: number;
+  /**
+   * Ripples per drop landing on the water: 1 is one ring per landing (realistic), lower thins them out.
+   * The landing rate comes from the drop count and the fall model (`landings.ts`).
+   */
+  ripples: number;
   wind: Wind;
 };
 
-/** The reference rain: 480 drops in a light breeze to the right, swaying over 17 s and 6.3 s. */
+/**
+ * The reference rain: 480 drops in a light breeze to the right, swaying over 17 s and 6.3 s. Its ripples are
+ * the reference's fixed 180/s, which at 480 drops is about a third of the ~510 landings/s on the water.
+ */
 export const DEFAULT_RAIN: RainConfig = {
   drops: 480,
+  ripples: 0.355,
   wind: {
     direction: "right",
     strength: 0.3,
@@ -32,10 +41,11 @@ export const DEFAULT_RAIN: RainConfig = {
   },
 };
 
-/** The rain in use: `DEFAULT_RAIN` with tuning overrides. A denser downpour driven hard to the left. */
+/** The rain in use: `DEFAULT_RAIN` with tuning overrides. A denser downpour driven hard to the left, a ring per landing. */
 export const RAIN: RainConfig = {
   ...DEFAULT_RAIN,
   drops: 1080,
+  ripples: 1,
   wind: { ...DEFAULT_RAIN.wind, direction: "left", strength: 1 },
 };
 
