@@ -7,7 +7,6 @@ Pull published posts from the `posts` GitHub repository and render them at `/pos
 The klamath-next codebase already has:
 
 - GitHub GraphQL API setup via Octokit (`src/api/octokit-api.ts`)
-- Navbar headers for `/posts` defined
 - Reusable layout components (`DataPageLayout`, `GlassPanel`, etc.)
 
 ## Dependencies to Add

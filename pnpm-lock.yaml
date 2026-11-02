@@ -166,9 +166,6 @@ importers:
 
   .:
     dependencies:
-      '@lrkit/weighted':
-        specifier: 0.3.4
-        version: 0.3.4
       '@octokit/graphql':
         specifier: ^9.0.5
         version: 9.0.5
@@ -202,9 +199,6 @@ importers:
       three:
         specifier: ^0.186.1
         version: 0.186.1
-      typed.js:
-        specifier: ^3.0.0
-        version: 3.0.0
     devDependencies:
       '@eslint/compat':
         specifier: ^2.1.1
@@ -640,9 +634,6 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@lrkit/weighted@0.3.4':
-    resolution: {integrity: sha512-h8U8Zk5ybql7jY0Bnodi17aVyrewmBvM+zLFWyjmspeercKWCj68oajsTxofLRkrC+TSzgT8DzknShtLiJu0fA==}
-
   '@next/bundle-analyzer@16.4.0':
     resolution: {integrity: sha512-z4iuh6QGVhPKa+Pq/e6WO1d5jFeVGDtjaVY2PVnguTyGTNY/Tw/ozRAHJoaQUyiKEcREot8iQnvmuIOkD+1wyw==}
 
@@ -888,9 +879,6 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
-
-  '@types/seedrandom@3.0.8':
-    resolution: {integrity: sha512-TY1eezMU2zH2ozQoAFAQFOPpvP15g+ZgSfTZt31AUUH/Rxtnz3H+A/Sv1Snw2/amp//omibc+AEkTaA8KUeOLQ==}
 
   '@types/stats.js@0.17.4':
     resolution: {integrity: sha512-jIBvWWShCvlBqBNIZt0KAshWpvSjhkwkEu4ZUcASoAvhmrgAUI2t1dXrjSL4xXVLB4FznPrIsX3nKXFl/Dt4vA==}
@@ -2321,9 +2309,6 @@ packages:
     resolution: {integrity: sha512-eflK8wEtyOE6+hsaRVPxvUKYCpRgzLqDTb8krvAsRIwOGlHoSgYLgBXoubGgLd2fT41/OUYdb48v4k4WWHQurA==}
     engines: {node: '>= 10.13.0'}
 
-  seedrandom@3.0.5:
-    resolution: {integrity: sha512-8OwmbklUNzwezjGInmZ+2clQmExQPvomqjL7LFqOYqtmuxRgQYqOD3mHaU+MvZn5FLUeVxVfQjwLZW/n/JFuqg==}
-
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
@@ -2514,9 +2499,6 @@ packages:
   typed-array-length@1.0.8:
     resolution: {integrity: sha512-phPGCwqr2+Qo0fwniCE8e4pKnGu/yFb5nD5Y8bf0EEeiI5GklnACYA9GFy/DrAeRrKHXvHn+1SUsOWgJp6RO+g==}
     engines: {node: '>= 0.4'}
-
-  typed.js@3.0.0:
-    resolution: {integrity: sha512-X4pjf0E7riZBo6j3NS21/7cJJ20osSOtD1OxlRoKfFU3GsdPuSpWlFcIKWf0k8uoKwBBrPuHGx+fKeU6GzRcKg==}
 
   typescript-eslint@8.71.2:
     resolution: {integrity: sha512-Rz4effbMy2g9wnvOJZG6SbVavX313Lap1vNEbk1RUochzickvzP8P4HB+bkNg5e50eVz1hQGjh9K1omI1xB4Bw==}
@@ -2995,11 +2977,6 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@lrkit/weighted@0.3.4':
-    dependencies:
-      '@types/seedrandom': 3.0.8
-      seedrandom: 3.0.5
-
   '@next/bundle-analyzer@16.4.0':
     dependencies:
       webpack-bundle-analyzer: 4.10.1
@@ -3200,8 +3177,6 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
-
-  '@types/seedrandom@3.0.8': {}
 
   '@types/stats.js@0.17.4': {}
 
@@ -4717,8 +4692,6 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.20.0)
       ajv-keywords: 5.1.0(ajv@8.20.0)
 
-  seedrandom@3.0.5: {}
-
   semver@6.3.1: {}
 
   semver@7.8.5: {}
@@ -4973,8 +4946,6 @@ snapshots:
       is-typed-array: 1.1.15
       possible-typed-array-names: 1.1.0
       reflect.getprototypeof: 1.0.10
-
-  typed.js@3.0.0: {}
 
   typescript-eslint@8.71.2(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3):
     dependencies:

@@ -4,7 +4,7 @@
 
 Personal portfolio website built with Next.js 16. Showcases GitHub projects and repositories over a procedurally generated neon city (Three.js): parallax skyline layers with flickering windows, neon signs and billboards with real text, a rooftop searchlight, food stalls, fog, a reflective river, toggleable rain, and a CRT post-effect. Inspired by nanodrops.org; the build plan lives in the untracked `.tasks/neon-city-scene.md`.
 
-**Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS v4, Three.js (via @react-three/fiber), Typed.js
+**Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS v4, Three.js (via @react-three/fiber)
 
 ## Directory Structure
 
@@ -20,7 +20,7 @@ src/
 │   │   ├── (home)/                  # Home page (/)
 │   │   │   ├── page.tsx
 │   │   │   └── layout.tsx
-│   │   ├── (sub-routes)/            # Pages with navbar
+│   │   ├── (sub-routes)/            # Data and about pages (max-width layout)
 │   │   │   ├── projects/            # /projects
 │   │   │   │   ├── page.tsx
 │   │   │   │   ├── project-data.tsx
@@ -64,13 +64,6 @@ src/
 │   │   ├── quality/                 # Tiers (full / reduced / static / off), frame-time probe, context, ?debug=1 overlay
 │   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
 │   │   └── PostEffect/              # Screen post-processing
-│   ├── _navbar/                     # Sidebar navigation
-│   │   ├── navbar.tsx
-│   │   ├── navbar-container.tsx
-│   │   ├── headers.ts               # Dynamic route headers
-│   │   └── utils.ts
-│   ├── _icons/
-│   │   └── logo.tsx
 │   ├── _shared/
 │   │   ├── ui/
 │   │   │   ├── card-base.tsx
@@ -152,7 +145,6 @@ src/
 | `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets                                                      |
 | `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)                                                    |
 | `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)                                               |
-| `src/app/_navbar/headers.ts`               | Route headers with rarity system                                                          |
 | `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                                                           |
 | `next.config.ts`                           | Turbopack/Webpack shader loader config                                                    |
 
@@ -229,26 +221,24 @@ Examples: `⬆️ upgrade dependencies`, `🐛 fix several bugs`, `🚨 update e
 
 ## Responsive Breakpoints
 
-| Breakpoint | Width   | Notes                             |
-| ---------- | ------- | --------------------------------- |
-| mobile     | <768px  | No navbar, `reduced` tier (DPR 1) |
-| md         | 768px+  | Navbar visible                    |
-| lg         | 1024px+ | Full layouts                      |
+| Breakpoint | Width   | Notes                  |
+| ---------- | ------- | ---------------------- |
+| mobile     | <768px  | `reduced` tier (DPR 1) |
+| md         | 768px+  | `full` tier (DPR ≤ 2)  |
+| lg         | 1024px+ | Full layouts           |
 
 ## Animation
 
 - **CSS** - List stagger animations via `animate-fade-in` + per-item `animationDelay`
-- **Typed.js** - Navbar header typing effect
 - **Three.js** - City animation is mostly shader-side from `getSceneTime()`: window toggling (hashed periods), beacon blinks, fog scroll, river wobble, rain drops. CPU-side per frame: sign flicker state (`advanceDriver`), ripple spawns, smoke particles, badge bob. All of it is gated by the quality tier
 
 ## Layout Hierarchy
 
 ```
 RootLayout (fonts, 3D background, analytics)
-└── KnownRoutesLayout
-    ├── Navbar (fixed sidebar, md+ only)
-    └── PageLayout (content area)
-        ├── Home (/)
+└── KnownRoutesLayout (content area, rain toggle)
+    ├── Home (/)
+    └── PageLayout (max-width sub-routes)
         ├── Projects (/projects)
         ├── Repositories (/repositories)
         └── About (/about)
@@ -256,7 +246,6 @@ RootLayout (fonts, 3D background, analytics)
 
 ## Special Features
 
-- **Rarity system** in navbar headers (Common/Uncommon/Rare with weighted random); header picking happens in state initializers / click handlers, keyed by pathname
 - **Neon city** is fully procedural and seeded: no assets besides `public/logo.svg` (used for the beacon badge). Text, palette, `GRID` and `ROW_STYLE` are the tuning surface (`signage.ts`, `config.ts`, shader constants)
 - **Legacy scene** (`_3d/legacy/`): `Box`, `Plane`, `Barbelith` are deprecated and unmounted, kept until the city is approved, then removed in an isolated commit. They tree-shake out of the bundle
 - **Post-processing** shader with CRT-style scanlines, noise, vignette; render target sized to CSS size × DPR
