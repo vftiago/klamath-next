@@ -59,7 +59,7 @@ src/
 │   │   │   ├── Stalls/              # Street level: painted stall sprite sheet on instanced quads, pavement, smoke Points
 │   │   │   ├── Fog/                 # One scrolling fog plane per street between rows (CanvasTexture tile)
 │   │   │   ├── River/               # Water plane; mirrored-camera reflection pass (priority 0.5) into a half-res target
-│   │   │   └── Sky/                 # Night sky gradient plane; `.abstract-bg` in globals.css mirrors it as the fallback
+│   │   │   └── Sky/                 # Night sky gradient plane
 │   │   ├── Rain/                    # Rain overlay: shader-driven drops, ripple pool, persisted on/off preference
 │   │   ├── quality/                 # Tiers (full / reduced / static / off), frame-time probe, context, ?debug=1 overlay
 │   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
@@ -132,7 +132,7 @@ src/
 - Additive light (beam, badge) uses `AdditiveBlending` with alpha 1 in the shader: three's additive mode is `src * alpha + dst`, so alpha 0 adds nothing
 - Dynamic `BufferAttribute`s are written through the attribute's own `.array` inside `useFrame`; writing into the memoized source array trips `react-hooks/immutability`
 - Signage text is real words from `City/signage.ts`, or a `LOGO` character from `City/logos.ts` (a Private Use Area char the atlas draws from an SVG path, one cell square); Latin on signs and billboards uses Orbitron (`next/font`, `--font-orbitron`, not preloaded; the badge and stall headers keep the site's condensed face), CJK falls back to system fonts. The atlas is built in an effect after `document.fonts.ready`, so signs and billboards mount a beat after the buildings
-- The post-effect keeps scene alpha; with the sky plane the frame is opaque, and the CSS `.abstract-bg` night-sky gradient is the fallback for loading, fade-in, reduced motion and no-WebGL states
+- The post-effect keeps scene alpha; with the sky plane the frame is opaque; while the scene loads, fades in, or is skipped (reduced motion, no WebGL) the body background (`--background`) shows through
 - The repo's compiler-grade react-hooks lint forbids render-phase impurity (`Math.random`, ref reads, setState-in-effect) — randomness goes in event handlers, frame callbacks, or key-based remounts
 
 ## Important Files
