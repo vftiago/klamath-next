@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
-@theme {
+/* inline: next/font defines its variables on <body>, so utilities must resolve them there, not on :root */
+@theme inline {
   --font-barlow: var(--font-barlow-condensed);
-  --font-electrolize: var(--font-electrolize);
-  --font-roboto-condensed: var(--font-roboto-condensed);
+  --font-electrolize: var(--font-electrolize-face);
+  --font-roboto-condensed: var(--font-roboto-condensed-face);
 
   --animate-fade-in: fade-in 0.3s ease-out forwards;
 
