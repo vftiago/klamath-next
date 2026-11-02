@@ -170,12 +170,12 @@ const ThreeScene = () => {
 
   // the scene is continuously animated decoration — honor reduced motion by not rendering it at all
   if (prefersReducedMotion) {
-    return <div className="abstract-bg fixed -z-10 h-screen w-full" />;
+    return null;
   }
 
   return (
     <QualityProvider value={quality}>
-      <div className="abstract-bg fixed -z-10 h-screen w-full">
+      <div className="fixed -z-10 h-screen w-full">
         <Canvas
           camera={{
             far: CAMERA.far,

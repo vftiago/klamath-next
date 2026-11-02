@@ -19,45 +19,11 @@
 }
 
 :root {
-  --background: #000000;
+  --background: #080808;
   --foreground: #ffffff;
 }
-
-/*
-TODO: make light mode look good first
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #000000;
-    --foreground: #ffffff;
-  }
-} */
 
 body {
   color: var(--foreground);
   background: var(--background);
 }
-
-/*
-Static night sky matching the in-scene sky gradient (src/app/_3d/City/Sky). This is what shows while the
-scene chunk loads, during the post-effect fade-in, under prefers-reduced-motion, and if WebGL is unavailable.
-*/
-.abstract-bg {
-  background: linear-gradient(
-    to bottom,
-    rgb(40, 22, 80) 0%,
-    rgb(96, 40, 128) 36%,
-    rgb(200, 90, 150) 60%,
-    rgb(245, 150, 140) 67%,
-    rgb(80, 28, 90) 75%,
-    rgb(28, 10, 40) 100%
-  );
-}
-
-/*
-TODO: change backgrounds dynamically on pathname change
-.abstract-bg-purple-blue {
-  background: radial-gradient(circle at 20% 10%, rgba(75, 112, 233, 0.3) 50%, transparent 100%),
-    radial-gradient(circle at 70% 50%, rgba(33, 206, 85, 0.3) 10%, transparent 100%),
-    radial-gradient(circle at 90% 80%, rgba(137, 55, 231, 0.3) 10%, transparent 100%);
-  background-blend-mode: screen;
-} */
