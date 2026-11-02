@@ -1008,8 +1008,9 @@ export const generateCity = (aspect: number, seeds: Seeds = SEEDS): CityLayout =
     placeDecorativeSigns(layer, seeds.sign, beacon?.building ?? null);
   }
 
-  // one authored sign gets a permanently dead glyph; from the sign seed, so it holds while browsing city seeds
-  const allSigns = generated.flatMap((layer) => layer.signs);
+  // one authored sign gets a permanently dead glyph; from the sign seed, so it holds while browsing city seeds.
+  // Never a one-glyph sign (a logo): with its only glyph dark the whole sign would read as off
+  const allSigns = generated.flatMap((layer) => layer.signs).filter((sign) => [...sign.text].length > 1);
   const candidates = allSigns.filter((sign) => sign.framed);
   const pool = candidates.length ? candidates : allSigns;
   const victim = pool[Math.floor(mulberry32(seeds.sign + 99)() * pool.length)];
