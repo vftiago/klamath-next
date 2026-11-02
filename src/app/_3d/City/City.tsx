@@ -115,7 +115,7 @@ const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
       <Fog layout={layout} planes={quality.fogPlanes} />
       <River reflectionScale={quality.reflectionScale} shoreZ={layout.shoreZ} />
       {rain && rainDrops > 0 ? <Rain drops={rainDrops} /> : null}
-      {rain && rainDrops > 0 ? <Ripples shoreZ={layout.shoreZ} /> : null}
+      {rain && rainDrops > 0 ? <Ripples drops={rainDrops} shoreZ={layout.shoreZ} /> : null}
     </group>
   );
 };

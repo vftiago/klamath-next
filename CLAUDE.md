@@ -60,7 +60,7 @@ src/
 │   │   │   ├── Fog/                 # One scrolling fog plane per street between rows (CanvasTexture tile)
 │   │   │   ├── River/               # Water plane; mirrored-camera reflection pass (priority 0.5) into a half-res target
 │   │   │   └── Sky/                 # Night sky gradient plane
-│   │   ├── Rain/                    # Rain overlay: shader-driven drops, ripple pool, persisted on/off preference; config.ts: DEFAULT_RAIN (reference) / RAIN (drops, wind)
+│   │   ├── Rain/                    # Rain overlay: shader-driven drops, ripple pool, persisted on/off preference; config.ts: DEFAULT_RAIN (reference) / RAIN (drops, ripples, wind); landings.ts mirrors rain.vert's fall model for the ripple rate
 │   │   ├── quality/                 # Tiers (full / reduced / static / off), frame-time probe, context, ?debug=1 overlay
 │   │   ├── legacy/                  # DEPRECATED original scene (Box, Plane, Barbelith) — unmounted, pending removal
 │   │   └── PostEffect/              # Screen post-processing
@@ -143,7 +143,7 @@ src/
 | `src/app/_3d/City/config.ts`               | `CAMERA`, `DEFAULT_GRID` / `GRID`, `ROW_STYLE`, `STALL`, `SIGN_BASE` / `SIGNAGE`, `SEEDS` |
 | `src/app/_3d/City/signage.ts`              | All sign and billboard text (customize here)                                              |
 | `src/app/_3d/quality/tiers.ts`             | Quality tier knobs and frame budgets                                                      |
-| `src/app/_3d/Rain/config.ts`               | `DEFAULT_RAIN` (reference) / `RAIN` (in use): drop count and wind                         |
+| `src/app/_3d/Rain/config.ts`               | `DEFAULT_RAIN` (reference) / `RAIN` (in use): drop count, ripples per landing, wind       |
 | `src/app/_3d/Rain/use-rain-preference.ts`  | Persisted rain on/off (`klamath:rain`)                                                    |
 | `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)                                               |
 | `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                                                           |

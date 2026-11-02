@@ -5,6 +5,7 @@ import { GLSL3, Vector2, Vector3 } from "three";
 import { CAMERA, GROUND_Y, REF_VIEW_HEIGHT } from "../City/config";
 import { getSceneTime } from "../utils";
 import { RAIN, windSlope } from "./config";
+import { DROP_DEPTH } from "./landings";
 import fragmentShader from "./rain.frag";
 import vertexShader from "./rain.vert";
 
@@ -12,10 +13,6 @@ type RainProps = {
   /** Number of drops: `RAIN.drops` scaled by the quality tier's `rainDensity`. */
   drops?: number;
 };
-
-/** Drops fall between these world depths: from among the mid layers to just in front of the camera. */
-const DEPTH_FAR = -450;
-const DEPTH_NEAR = 940;
 
 /** Deterministic seeds so the pattern is stable across remounts. */
 const buildSeeds = (count: number): Float32Array => {
@@ -45,7 +42,7 @@ const Rain = ({ drops = RAIN.drops }: RainProps) => {
   const seeds = useMemo(() => buildSeeds(drops), [drops]);
   const uniforms = useMemo(
     () => ({
-      uDepthRange: { value: new Vector2(DEPTH_FAR, DEPTH_NEAR) },
+      uDepthRange: { value: new Vector2(DROP_DEPTH.far, DROP_DEPTH.near) },
       uGround: { value: GROUND_Y },
       uTime: { value: 0 },
       uView: { value: new Vector3(aspect * REF_VIEW_HEIGHT, REF_VIEW_HEIGHT, CAMERA.z) },

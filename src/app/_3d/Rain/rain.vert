@@ -1,6 +1,8 @@
 // GLSL ES 3.0 (three prepends `#version 300 es`).
 // Each drop is a thin quad: position.x is the side (-0.5..0.5), position.y runs from the head (0) to the
 // tail (1). Everything about the drop comes from its seeds and the time, so there is no per-frame CPU work.
+// The fall model (speed ramp, fall distance, depth range) is mirrored in landings.ts, which sets the ripple
+// rate from it: keep the two in sync.
 precision highp float;
 
 in vec3 position;
