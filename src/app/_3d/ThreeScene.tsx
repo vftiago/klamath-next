@@ -164,6 +164,8 @@ const ThreeScene = () => {
     forced: readForcedTier(),
     ...readSeedOverrides(),
   }));
+  // the page content covers the fixed canvas, so pointer events are taken from the body (hence client coordinates)
+  const [eventSource] = useState(() => document.body);
   const statsRef = useRef(createStats());
   const tier = useQualityTier({ forced: flags.forced, initial: isMdScreen ? "full" : "reduced" });
   const quality = useMemo(() => qualityFor(tier), [tier]);
@@ -185,6 +187,8 @@ const ThreeScene = () => {
             position: DEFAULT_CAMERA_STATE.position.toArray(),
           }}
           dpr={[1, quality.dprMax]}
+          eventPrefix="client"
+          eventSource={eventSource}
           frameloop={quality.renderOnDemand ? "demand" : "always"}
           gl={{
             antialias: true,

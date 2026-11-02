@@ -1,9 +1,11 @@
-import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
-import type { InstancedBufferAttribute } from "three";
-import { DynamicDrawUsage, GLSL3, Vector2 } from "three";
+import type { ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useRouter } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import type { InstancedBufferAttribute, InstancedMesh } from "three";
+import { DynamicDrawUsage, GLSL3, Matrix4, Vector2 } from "three";
 import { getSceneTime } from "../../utils";
-import type { CityLayout, Sign } from "../generate";
+import type { CityLayout, Sign, SignHover, SignLook } from "../generate";
 import type { TextAtlas } from "../text-atlas";
 import { glyphIndex } from "../text-atlas";
 import fragmentShader from "./sign.frag";
@@ -41,8 +43,12 @@ type SignAttributes = {
   glyphs0: Float32Array;
   glyphs1: Float32Array;
   glyphs2: Float32Array;
+  /** Where each sign links to, per instance; set on the frame signs only. */
+  hrefs: (string | undefined)[];
   /** Sign id per instance, so a pointer hit on `instanceId` maps back to its sign (and route). */
   ids: string[];
+  /** Each sign's resting look and, for the frame signs, the look swapped in while hovered. */
+  looks: { base: SignLook; hover: null | SignHover }[];
   meta: Float32Array;
   offset: Float32Array;
   params: Float32Array;
@@ -63,6 +69,12 @@ const NEON_SLOTS = [
 
 const STEADY_LEVEL = 0.95;
 
+/** Page controls drawn over the scene; the pointer belongs to them, not to a sign behind them. */
+const PAGE_CONTROLS = "a, button, input, label, select, summary, textarea, [role='button'], [role='link']";
+
+const isOverPageControl = (target: EventTarget | null) =>
+  target instanceof Element && target.closest(PAGE_CONTROLS) !== null;
+
 const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes => {
   const entries: { scale: number; sign: Sign; z: number }[] = [];
 
@@ -81,7 +93,9 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     glyphs0: new Float32Array(count * 4),
     glyphs1: new Float32Array(count * 4),
     glyphs2: new Float32Array(count * 4),
+    hrefs: entries.map(({ sign }) => sign.href),
     ids: entries.map(({ sign }) => sign.id),
+    looks: [],
     meta: new Float32Array(count * 4),
     offset: new Float32Array(count * 3),
     params: new Float32Array(count * 4),
@@ -105,6 +119,8 @@ const buildAttributes = (layout: CityLayout, atlas: TextAtlas): SignAttributes =
     const { borderCore, borderHalo, text } = sign.brightness;
     attributes.shine.set([borderCore, borderHalo, text, sign.borderWidth], i * 4);
     attributes.state.set([STEADY_LEVEL, -1], i * 2);
+    const { backing, borderWidth, brightness, dim, radius } = sign;
+    attributes.looks.push({ base: { backing, borderWidth, brightness, dim, radius }, hover: sign.hover });
     attributes.drivers.push({
       flaky: sign.flaky,
       glyphCount: chars.length,
@@ -161,14 +177,133 @@ const advanceDriver = (driver: SignDriver, now: number) => {
   }
 };
 
-/** Neon signs on every layer: one instanced quad draw, characters from the shared text atlas, per-sign flicker. */
+/**
+ * Neon signs on every layer: one instanced quad draw, characters from the shared text atlas, per-sign flicker.
+ * The frame signs react to the pointer: the hovered one swaps to its `hover` look (backing, border, brightness,
+ * radius) and holds steady while the pointer is over it, and a click follows its `href`. Page controls drawn
+ * over a sign take the pointer instead.
+ */
 const Signs = ({ atlas, flicker = true, layout }: SignsProps) => {
+  const meshRef = useRef<InstancedMesh>(null);
   const stateAttributeRef = useRef<InstancedBufferAttribute>(null);
+  const backingAttributeRef = useRef<InstancedBufferAttribute>(null);
+  const metaAttributeRef = useRef<InstancedBufferAttribute>(null);
+  const shineAttributeRef = useRef<InstancedBufferAttribute>(null);
+  /** Instance under the pointer, or -1. */
+  const hoveredRef = useRef(-1);
+  const invalidate = useThree((state) => state.invalidate);
+  const router = useRouter();
   const attributes = useMemo(() => buildAttributes(layout, atlas), [atlas, layout]);
   const uniforms = useMemo(
     () => ({ uAtlas: { value: atlas.texture }, uAtlasGrid: { value: new Vector2(atlas.columns, atlas.rows) } }),
     [atlas],
   );
+
+  // the shader places instances from aOffset / aSize and ignores instanceMatrix; the matrices exist only so the
+  // raycaster sees each sign's box where it is drawn
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+
+    if (!mesh) {
+      return;
+    }
+
+    const matrix = new Matrix4();
+    const { count, offset, size } = attributes;
+
+    for (let i = 0; i < count; i++) {
+      const width = size[i * 2] ?? 0;
+      const height = size[i * 2 + 1] ?? 0;
+      matrix
+        .makeScale(width, height, 1)
+        .setPosition((offset[i * 3] ?? 0) + width / 2, (offset[i * 3 + 1] ?? 0) + height / 2, offset[i * 3 + 2] ?? 0);
+      mesh.setMatrixAt(i, matrix);
+    }
+
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [attributes]);
+
+  // the pointer cursor is set on the body (the event source); put it back if the signs unmount mid-hover
+  useEffect(() => {
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, []);
+
+  /** Writes a look into the hovered-swappable attributes of one instance, through the attributes' own arrays. */
+  const writeLook = (i: number, look: SignLook) => {
+    const backing = backingAttributeRef.current;
+    const meta = metaAttributeRef.current;
+    const shine = shineAttributeRef.current;
+
+    if (!backing || !meta || !shine) {
+      return;
+    }
+
+    backing.array.set(look.backing, i * 3);
+    meta.array[i * 4] = look.dim;
+    meta.array[i * 4 + 3] = look.radius;
+    const { borderCore, borderHalo, text } = look.brightness;
+    shine.array.set([borderCore, borderHalo, text, look.borderWidth], i * 4);
+    backing.needsUpdate = true;
+    meta.needsUpdate = true;
+    shine.needsUpdate = true;
+    invalidate();
+  };
+
+  const setHovered = (next: number) => {
+    const previous = hoveredRef.current;
+
+    if (previous === next) {
+      return;
+    }
+
+    const previousLook = attributes.looks[previous];
+    const nextLook = attributes.looks[next]?.hover;
+
+    if (previousLook) {
+      writeLook(previous, previousLook.base);
+    }
+    if (nextLook) {
+      writeLook(next, nextLook);
+    }
+
+    hoveredRef.current = next;
+    document.body.style.cursor = next >= 0 ? "pointer" : "";
+  };
+
+  /**
+   * The sign instance under the pointer, or -1. The ray runs on through the signs behind a blade, and R3F
+   * delivers an event once per instance crossed (and an out whenever any of them drops away), so handlers
+   * resolve from the nearest of the sorted intersections rather than from the instance they were called for.
+   */
+  const pointedSign = (event: ThreeEvent<MouseEvent>) =>
+    isOverPageControl(event.nativeEvent.target) ? -1 : (event.intersections[0]?.instanceId ?? -1);
+
+  const onPointer = (event: ThreeEvent<PointerEvent>) => {
+    const id = pointedSign(event);
+    setHovered(attributes.looks[id]?.hover ? id : -1);
+  };
+
+  /** Internal routes go through the app router; external links, and modified clicks, open a new tab. */
+  const onClick = (event: ThreeEvent<MouseEvent>) => {
+    // handle the click once, not once per instance the ray crossed
+    event.stopPropagation();
+    const href = attributes.hrefs[pointedSign(event)];
+
+    if (!href) {
+      return;
+    }
+
+    const { ctrlKey, metaKey, shiftKey } = event.nativeEvent;
+
+    if (href.startsWith("/") && !ctrlKey && !metaKey && !shiftKey) {
+      router.push(href);
+    } else {
+      window.open(href, "_blank", "noopener,noreferrer");
+    }
+  };
 
   useFrame(() => {
     const stateAttribute = stateAttributeRef.current;
@@ -178,11 +313,18 @@ const Signs = ({ atlas, flicker = true, layout }: SignsProps) => {
     }
 
     const now = getSceneTime();
-    const { drivers, state } = attributes;
+    const { drivers, looks, state } = attributes;
+    const hovered = hoveredRef.current;
 
     drivers.forEach((driver, i) => {
       if (flicker) {
         advanceDriver(driver, now);
+      }
+
+      if (i === hovered && looks[i]?.hover?.steady) {
+        state[i * 2] = 1;
+        state[i * 2 + 1] = -1;
+      } else if (flicker) {
         state[i * 2] = driver.level;
         state[i * 2 + 1] = now < driver.offUntil ? driver.offGlyph : -1;
       } else {
@@ -199,18 +341,30 @@ const Signs = ({ atlas, flicker = true, layout }: SignsProps) => {
   }
 
   return (
-    <instancedMesh args={[undefined, undefined, attributes.count]} frustumCulled={false}>
+    <instancedMesh
+      args={[undefined, undefined, attributes.count]}
+      frustumCulled={false}
+      ref={meshRef}
+      onClick={onClick}
+      onPointerMove={onPointer}
+      onPointerOut={onPointer}
+      onPointerOver={onPointer}
+    >
       <planeGeometry args={[1, 1]}>
         <instancedBufferAttribute args={[attributes.offset, 3]} attach="attributes-aOffset" />
         <instancedBufferAttribute args={[attributes.size, 2]} attach="attributes-aSize" />
         <instancedBufferAttribute args={[attributes.color, 3]} attach="attributes-aColor" />
-        <instancedBufferAttribute args={[attributes.backing, 3]} attach="attributes-aBacking" />
+        <instancedBufferAttribute
+          args={[attributes.backing, 3]}
+          attach="attributes-aBacking"
+          ref={backingAttributeRef}
+        />
         <instancedBufferAttribute args={[attributes.params, 4]} attach="attributes-aParams" />
         <instancedBufferAttribute args={[attributes.glyphs0, 4]} attach="attributes-aGlyphs0" />
         <instancedBufferAttribute args={[attributes.glyphs1, 4]} attach="attributes-aGlyphs1" />
         <instancedBufferAttribute args={[attributes.glyphs2, 4]} attach="attributes-aGlyphs2" />
-        <instancedBufferAttribute args={[attributes.meta, 4]} attach="attributes-aMeta" />
-        <instancedBufferAttribute args={[attributes.shine, 4]} attach="attributes-aShine" />
+        <instancedBufferAttribute args={[attributes.meta, 4]} attach="attributes-aMeta" ref={metaAttributeRef} />
+        <instancedBufferAttribute args={[attributes.shine, 4]} attach="attributes-aShine" ref={shineAttributeRef} />
         <instancedBufferAttribute
           args={[attributes.state, 2]}
           attach="attributes-aState"

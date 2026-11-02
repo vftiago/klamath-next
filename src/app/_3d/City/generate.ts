@@ -1,5 +1,5 @@
 import { mulberry32 } from "../utils";
-import type { Brightness, Rgb, Seeds, SignStyle } from "./config";
+import type { Brightness, Rgb, Seeds, SignHoverStyle, SignLookStyle, SignStyle } from "./config";
 import {
   GENERATION_ASPECT,
   GRID,
@@ -95,27 +95,38 @@ export type Billboard = {
 export type SignMount = "blade" | "facade";
 
 /** A neon sign. Position is the box's bottom-left corner, ground-relative y. */
-export type Sign = {
+/** What the shader reads per sign besides its text and box, resolved at the sign's depth: swappable while hovered. */
+export type SignLook = {
   /** Box background at the sign's depth, 0-1 RGB. */
   backing: Rgb;
   /** Border tube width, world units. */
   borderWidth: number;
   /** Neon brightness of the border and the text. */
   brightness: Brightness;
+  /** Brightness factor for the sign's depth. */
+  dim: number;
+  /** Corner radius of the box, world units. */
+  radius: number;
+};
+
+/** The look a sign takes while hovered; `steady` holds its flicker at full brightness meanwhile. */
+export type SignHover = SignLook & { steady: boolean };
+
+export type Sign = SignLook & {
   /** Character cell size, world units. */
   cell: number;
   /** Neon color slot (0-4), weighted pink/cyan/lime. */
   colorSlot: number;
   /** Index of a permanently dark character, or -1. */
   dead: number;
-  /** Brightness factor for the sign's depth. */
-  dim: number;
   /** Whether the sign's driver may stutter, drop out or brown out. */
   flaky: boolean;
   /** True for the big blade signs on the edge frame buildings. */
   framed: boolean;
   height: number;
-  /** Route the sign navigates to once signs are clickable; authored signs only. */
+  /** The look swapped in while the pointer is over the sign; the frame signs only. */
+  hover: null | SignHover;
+  /** Where a click on the sign goes (an app route or an external URL); authored signs only. */
   href?: string;
   /** Stable id: the frame record's id, or `layer:buildingSeed:ordinal` for rolled signs. */
   id: string;
@@ -123,8 +134,6 @@ export type Sign = {
   margin: number;
   mount: SignMount;
   phase: number;
-  /** Corner radius of the box, world units. */
-  radius: number;
   text: string;
   vertical: boolean;
   width: number;
@@ -187,10 +196,23 @@ const signStream = (building: Building, layerIndex: number, signSeed: number): (
   mulberry32(mix(building.seed + layerIndex * 10007, signSeed));
 
 /** A sign type's box background at depth `t`, as 0-1 RGB. */
-const backingAt = ({ backing }: SignStyle, t: number): Rgb => {
+const backingAt = ({ backing }: SignLookStyle, t: number): Rgb => {
   const channel = (c: 0 | 1 | 2): number => lerpRow({ far: backing.far[c], near: backing.near[c] }, t) / 255;
   return [channel(0), channel(1), channel(2)];
 };
+
+/** A style's look knobs resolved for a row at depth `t` with world scale `scale`. */
+const lookAt = (style: SignLookStyle, t: number, scale: number): SignLook => ({
+  backing: backingAt(style, t),
+  borderWidth: style.borderWidth * scale,
+  brightness: style.brightness,
+  dim: lerpRow(style.dim, t),
+  radius: style.radius * scale,
+});
+
+/** The hover look of a style, or null for the sign types that don't react to the pointer. */
+const hoverFor = (style: null | SignHoverStyle, t: number, scale: number): null | SignHover =>
+  style ? { ...lookAt(style, t, scale), steady: style.steady } : null;
 
 /** A sign type's letter size in a row at depth `t`: its `cell` at that depth times a factor at `roll` within its `cellScale`. */
 const cellFor = ({ cell, cellScale }: SignStyle, t: number, roll: number): number =>
@@ -279,22 +301,19 @@ const makeSign = (building: Building, placement: SignPlacement, layer: CityLayer
   const box = signBox(cell, text.length, vertical);
 
   return {
-    backing: backingAt(style, layer.config.t),
-    borderWidth: style.borderWidth * scale,
-    brightness: style.brightness,
+    ...lookAt(style, layer.config.t, scale),
     cell: cell * scale,
     colorSlot: Math.floor(rand() * 5),
     dead: -1,
-    dim: lerpRow(style.dim, layer.config.t),
     flaky: rand() < SIGNAGE.flakyChance,
     framed,
     height: box.height * scale,
+    hover: hoverFor(framed ? SIGNAGE.frameHover : null, layer.config.t, scale),
     href,
     id,
     margin: box.margin * scale,
     mount,
     phase: rand() * Math.PI * 2,
-    radius: style.radius * scale,
     text,
     vertical,
     width: box.width * scale,
