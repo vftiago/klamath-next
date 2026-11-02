@@ -13,13 +13,13 @@ const barlowCondensed = Barlow_Condensed({
 
 const electrolize = Electrolize({
   subsets: ["latin"],
-  variable: "--font-electrolize",
+  variable: "--font-electrolize-face",
   weight: ["400"],
 });
 
 const robotoCondensed = Roboto_Condensed({
   subsets: ["latin"],
-  variable: "--font-roboto-condensed",
+  variable: "--font-roboto-condensed-face",
   weight: ["300"],
 });
 
