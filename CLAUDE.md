@@ -72,7 +72,6 @@ src/
 │   │   │   ├── error-boundary-wrapper.tsx
 │   │   │   ├── error-widget.tsx
 │   │   │   ├── glass-panel.tsx
-│   │   │   ├── rain-toggle.tsx      # Fixed top-right rain switch (hidden under reduced motion)
 │   │   │   └── search-input.tsx
 │   │   └── utils/
 │   │       ├── use-breakpoints.ts
@@ -237,7 +236,7 @@ Examples: `⬆️ upgrade dependencies`, `🐛 fix several bugs`, `🚨 update e
 
 ```
 RootLayout (fonts, 3D background, analytics)
-└── KnownRoutesLayout (content area, rain toggle)
+└── KnownRoutesLayout (content area)
     ├── Home (/)
     └── PageLayout (max-width sub-routes)
         ├── Projects (/projects)
@@ -251,7 +250,7 @@ RootLayout (fonts, 3D background, analytics)
 - **Legacy scene** (`_3d/legacy/`): `Box`, `Plane`, `Barbelith` are deprecated and unmounted, kept until the city is approved, then removed in an isolated commit. They tree-shake out of the bundle
 - **Post-processing** shader with CRT-style scanlines, noise, vignette; render target sized to CSS size × DPR
 - **Quality tiers**: `useQuality()` exposes the knobs (`animate`, `signFlicker`, `smoke`, `fogPlanes`, `reflectionScale`, `rainDensity`, `renderOnDemand`); `static` renders on demand (`frameloop="demand"`, invalidated by camera moves, scroll and the fade-in); the verified tier is kept in `sessionStorage` (`klamath:quality`)
-- **Rain toggle**: `useRainPreference` (localStorage `klamath:rain` + a window event) defaults to on unless `prefers-reduced-motion`; `City` mounts `Rain` and `Ripples` only while enabled
+- **Rain**: `useRainPreference` (localStorage `klamath:rain` + a window event) defaults to on unless `prefers-reduced-motion`; `City` mounts `Rain` and `Ripples` only while enabled. There is no on-page switch
 - **Error boundaries** wrap data-fetching components; retry uses `router.refresh()`; `global-error.tsx` covers the root layout
 - **Catch-all route** for custom 404
 - **ISR**: `/projects` and `/repositories` revalidate hourly; per-route `metadata` titles use the root template
