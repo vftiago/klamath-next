@@ -1,9 +1,12 @@
 import { CanvasTexture, LinearFilter } from "three";
+import { resolveSignFont } from "../text-atlas";
 
 /** Texture size in px; the badge is drawn with its glow pad so the ring and halo aren't clipped. */
 export const BADGE_TEXTURE_SIZE = 256;
 /** Fraction of the texture taken by the badge radius (the rest is pad for rings and glow). */
 export const BADGE_RADIUS_FRACTION = 0.36;
+/** Text drawn in the badge instead of the site logo; `null` draws the logo. */
+export const BADGE_TEXT: null | string = "ティ";
 
 const CYAN = "110, 236, 255";
 const PINK = "255, 60, 180";
@@ -66,31 +69,11 @@ export const createBadgeTexture = (): CanvasTexture => {
       ctx.stroke();
     }
 
-    // logo: fit the 1024 viewBox into ~1.3r, centered; pink glow pass then a bright core pass
-    const logoSize = 1.3 * r;
-    const scale = logoSize / 1024;
-    const triangle = new Path2D(LOGO_TRIANGLE);
-    const block = new Path2D(LOGO_BLOCK);
-    const bar = new Path2D(LOGO_BAR);
-
-    const drawLogo = (fill: string, stroke: string, glow: number) => {
-      ctx.save();
-      ctx.translate(c - logoSize / 2, c - logoSize / 2);
-      ctx.scale(scale, scale);
-      ctx.shadowColor = `rgba(${PINK}, 1)`;
-      ctx.shadowBlur = glow / scale;
-      ctx.lineWidth = 100;
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = stroke;
-      ctx.fillStyle = fill;
-      ctx.stroke(triangle);
-      ctx.fill(block);
-      ctx.fill(bar);
-      ctx.restore();
-    };
-
-    drawLogo(`rgba(255, 110, 205, 0.9)`, `rgba(255, 110, 205, 0.9)`, 0.28 * r);
-    drawLogo("rgb(255, 240, 252)", "rgb(255, 240, 252)", 0.07 * r);
+    if (BADGE_TEXT) {
+      drawText(ctx, BADGE_TEXT, c, r);
+    } else {
+      drawLogo(ctx, c, r);
+    }
   }
 
   const texture = new CanvasTexture(canvas);
@@ -99,4 +82,51 @@ export const createBadgeTexture = (): CanvasTexture => {
   texture.generateMipmaps = false;
 
   return texture;
+};
+
+/** The badge text in the signage font, sized so two full-width characters span ~1.4r: pink glow pass, bright core pass. */
+const drawText = (ctx: CanvasRenderingContext2D, text: string, c: number, r: number): void => {
+  const size = (1.4 * r) / Math.max(2, text.length);
+  ctx.save();
+  ctx.font = `700 ${size}px ${resolveSignFont()}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = `rgba(${PINK}, 1)`;
+
+  ctx.shadowBlur = 0.28 * r;
+  ctx.fillStyle = "rgba(255, 110, 205, 0.9)";
+  ctx.fillText(text, c, c);
+
+  ctx.shadowBlur = 0.07 * r;
+  ctx.fillStyle = "rgb(255, 240, 252)";
+  ctx.fillText(text, c, c);
+  ctx.restore();
+};
+
+/** The site logo: fit the 1024 viewBox into ~1.3r, centered; pink glow pass then a bright core pass. */
+const drawLogo = (ctx: CanvasRenderingContext2D, c: number, r: number): void => {
+  const logoSize = 1.3 * r;
+  const scale = logoSize / 1024;
+  const triangle = new Path2D(LOGO_TRIANGLE);
+  const block = new Path2D(LOGO_BLOCK);
+  const bar = new Path2D(LOGO_BAR);
+
+  const pass = (fill: string, stroke: string, glow: number) => {
+    ctx.save();
+    ctx.translate(c - logoSize / 2, c - logoSize / 2);
+    ctx.scale(scale, scale);
+    ctx.shadowColor = `rgba(${PINK}, 1)`;
+    ctx.shadowBlur = glow / scale;
+    ctx.lineWidth = 100;
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = stroke;
+    ctx.fillStyle = fill;
+    ctx.stroke(triangle);
+    ctx.fill(block);
+    ctx.fill(bar);
+    ctx.restore();
+  };
+
+  pass(`rgba(255, 110, 205, 0.9)`, `rgba(255, 110, 205, 0.9)`, 0.28 * r);
+  pass("rgb(255, 240, 252)", "rgb(255, 240, 252)", 0.07 * r);
 };
