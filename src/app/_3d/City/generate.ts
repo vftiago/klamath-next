@@ -17,6 +17,7 @@ import {
   WIDTH_MARGIN,
 } from "./config";
 import type { LayerConfig } from "./config";
+import type { FrameSign } from "./signage";
 import { BILLBOARD_POOL, FRAME_SIGNS, MAX_TEXT_CHARS, SIGN_POOL } from "./signage";
 
 /** Window layout: 0 = grid, 1 = horizontal bands, 2 = tall columns. */
@@ -377,6 +378,12 @@ const pickText = (pool: readonly string[], rand: () => number, fits: (text: stri
 /** Smallest character cell a frame sign shrinks to when its column would otherwise reach the building's foot. */
 const FRAME_MIN_CELL = 12;
 
+/** The `FRAME_SIGNS` records for a frame building's side, top to bottom; the left frame sits at negative x. */
+const frameRecords = (building: Building): FrameSign[] => {
+  const prefix = building.x < 0 ? "left" : "right";
+  return [0, 1, 2].flatMap((n) => FRAME_SIGNS.filter((entry) => entry.slot === `${prefix}-${n}`));
+};
+
 /**
  * The authored blade signs on one frame building: `FRAME_SIGNS` slots for its side, top to bottom, on the
  * inner edge. Cell sizes and spacing come from the building's own sign stream; if the column would reach the
@@ -388,8 +395,7 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
   const { frame } = SIGNAGE;
   // the left frame building sits at negative x and shows its right side
   const side: -1 | 1 = building.x < 0 ? 1 : -1;
-  const prefix = building.x < 0 ? "left" : "right";
-  const records = [0, 1, 2].flatMap((n) => FRAME_SIGNS.filter((entry) => entry.slot === `${prefix}-${n}`));
+  const records = frameRecords(building);
 
   if (records.length === 0) {
     return;
@@ -437,7 +443,8 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
 
 /**
  * Clears the frame building's footprint and the strip inside its inner edge where its blade signs hang
- * (wide enough for the widest possible sign, its gap and breathing room), full height. Walked buildings
+ * (wide enough for the widest possible sign, its gap and breathing room; none when the side has no
+ * `FRAME_SIGNS`), full height. Walked buildings
  * overlapping the zone keep whichever part outside it is wider, or are dropped when too little would remain,
  * so nothing ever stands inside the frame (its front face would z-fight the frame's facade). Independent of
  * the sign seed, so reseeding signs never changes the skeleton. Runs before roof furniture, so nothing floats.
@@ -445,7 +452,8 @@ const placeFrameSigns = (layer: CityLayer, building: Building, signSeed: number)
 const reserveFrameStrip = (layer: CityLayer, frame: Building): void => {
   const { scale } = layer;
   const widest = signBox(cellFor(SIGNAGE.frame, layer.config.t, 1), 1, true).width;
-  const stripWidth = (SIGNAGE.blade.gap.max + widest + SIGNAGE.blade.breathing) * scale;
+  const stripWidth =
+    frameRecords(frame).length > 0 ? (SIGNAGE.blade.gap.max + widest + SIGNAGE.blade.breathing) * scale : 0;
   const keep = SIGNAGE.frame.trimKeep * layer.config.minW * scale;
   const side: -1 | 1 = frame.x < 0 ? 1 : -1;
   const outer = frame.x - (side * frame.width) / 2;

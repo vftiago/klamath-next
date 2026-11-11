@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 // The frame neon signs are the visible navigation; these links mirror them for keyboard, screen-reader
 // and crawler access. Hidden until a link takes keyboard focus, then the whole nav shows, like a skip link.
 const HomePage = () => {
@@ -9,9 +7,6 @@ const HomePage = () => {
       {/* not-sr-only also resets padding, so the panel styles live on an inner element it doesn't touch */}
       <nav aria-label="Site" className="sr-only self-start focus-within:not-sr-only">
         <div className="flex flex-col gap-2 rounded-xl border border-white/20 bg-gray-500/10 px-3 py-2 font-mono text-xs tracking-[0.16em] uppercase backdrop-blur-sm">
-          <Link href="/projects">Projects</Link>
-          <Link href="/repositories">Repositories</Link>
-          <Link href="/about">About</Link>
           <a href="https://dev.to/vftiago" rel="noreferrer" target="_blank">
             Dev.to <span aria-hidden="true">↗</span>
             <span className="sr-only"> (opens in a new tab)</span>

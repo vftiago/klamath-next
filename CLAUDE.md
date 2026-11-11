@@ -2,7 +2,7 @@
 
 ## Overview
 
-Personal portfolio website built with Next.js 16. Showcases GitHub projects and repositories over a procedurally generated neon city (Three.js): parallax skyline layers with flickering windows, neon signs and billboards with real text, a rooftop searchlight, food stalls, fog, a reflective river, toggleable rain, and a CRT post-effect. Inspired by nanodrops.org; the build plan lives in the untracked `.tasks/neon-city-scene.md`.
+Personal portfolio website built with Next.js 16: a single home page over a procedurally generated neon city (Three.js): parallax skyline layers with flickering windows, neon signs and billboards with real text, a rooftop searchlight, food stalls, fog, a reflective river, toggleable rain, and a CRT post-effect. Inspired by nanodrops.org; the build plan lives in the untracked `.tasks/neon-city-scene.md`.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS v4, Three.js (via @react-three/fiber)
 
@@ -10,16 +10,12 @@ Personal portfolio website built with Next.js 16. Showcases GitHub projects and 
 
 ```
 src/
-├── api/                              # GitHub data fetching
-│   ├── octokit-api.ts               # GraphQL client setup + env validation
-│   ├── get-repository-data.ts       # Repo query + types (server-only)
-│   ├── get-project-data.ts          # Projects query + types (server-only)
-│   └── repository-utils.ts          # Client-safe helpers (no octokit import)
 ├── app/
 │   ├── (routes)/                    # Route group
 │   │   ├── (home)/                  # Home page (/)
 │   │   │   ├── page.tsx
 │   │   │   └── layout.tsx
+│   │   └── layout.tsx
 │   │   ├── (sub-routes)/            # Data and about pages (max-width layout)
 │   │   │   ├── projects/            # /projects
 │   │   │   │   ├── page.tsx
@@ -40,7 +36,7 @@ src/
 │   │   │   └── layout.tsx
 │   │   └── layout.tsx
 │   ├── _3d/                         # Three.js scene
-│   │   ├── ThreeScene.tsx           # Main canvas, camera controller, route camera states
+│   │   ├── ThreeScene.tsx           # Main canvas, camera controller, per-route camera states
 │   │   ├── DynamicThreeScene.tsx    # SSR-safe loader
 │   │   ├── utils.ts                 # getSceneTime (wrapped scene clock), mulberry32 seeded PRNG
 │   │   ├── City/                    # Neon city scene (plan: .tasks/neon-city-scene.md, gitignored)
@@ -50,7 +46,7 @@ src/
 │   │   │   ├── Buildings/           # One instanced draw per row; windows and roof boxes in one shader
 │   │   │   ├── Billboards/          # Rooftop neon-framed boards, instanced quads
 │   │   │   ├── Beacons/             # Blinking antenna lights, one Points draw
-│   │   │   ├── signage.ts           # EDIT HERE to change sign/billboard text: FRAME_SIGNS (6 authored blade signs, with routes) + pools
+│   │   │   ├── signage.ts           # EDIT HERE to change sign/billboard text: FRAME_SIGNS (authored blade signs with links, right frame only) + pools
 │   │   │   ├── logos.ts             # LOGO glyphs (PUA chars → SVG paths) drawn into the atlas, so a sign can show a mark instead of a word
 │   │   │   ├── seeds.ts             # `?seed=` (city), `?signSeed=` (signs) and `?stallSeed=` (stalls) URL overrides of SEEDS; integers as is, other text hashed
 │   │   │   ├── text-atlas.ts        # Character atlas (CanvasTexture, 3 variants) built from the layout's texts after fonts load
@@ -66,13 +62,7 @@ src/
 │   │   └── PostEffect/              # Screen post-processing
 │   ├── _shared/
 │   │   ├── ui/
-│   │   │   ├── card-base.tsx
-│   │   │   ├── data-page-layout.tsx # Suspense + error boundary wrapper for data pages
-│   │   │   ├── empty-state.tsx
-│   │   │   ├── error-boundary-wrapper.tsx
-│   │   │   ├── error-widget.tsx
-│   │   │   ├── glass-panel.tsx
-│   │   │   └── search-input.tsx
+│   │   │   └── error-widget.tsx
 │   │   └── utils/
 │   │       ├── use-breakpoints.ts
 │   │       └── use-prefers-reduced-motion.ts
@@ -94,13 +84,6 @@ src/
 - `(group)` - Route groups (no URL segment)
 - Standard `page.tsx` / `layout.tsx` for routes
 
-### Data Fetching
-
-- **Server Components** fetch data (e.g., `project-data.tsx`, `repository-data.tsx`)
-- **Client Components** handle interactivity (filtering, animations)
-- GitHub API calls in `src/api/`; `octokit-api.ts` must never be imported from client components — client-safe helpers live in `repository-utils.ts`
-- Filtering/sorting is computed during render (`useMemo` + `useDeferredValue`) in the `*-data-container` components; list components are memoized
-
 ### Styling
 
 - Tailwind CSS v4 — CSS-first config in `globals.css` (`@theme`), no tailwind.config file
@@ -117,7 +100,7 @@ src/
 - Shader uniforms are declared via a memoized `uniforms` prop and mutated through `materialRef` in `useFrame`
 - City scene: `generate.ts` is pure and seeded (`mulberry32`), so layouts can be built in `useMemo`; the whole city group is remounted by key when the quantized viewport aspect or the seeds change. Rows are walked for a fixed `GENERATION_ASPECT` and culled to the real one, so every width shows a window onto the same city
 - City grid: `GRID` in `config.ts` describes rows of buildings (it spreads `DEFAULT_GRID`, the reference values, and tuning goes in `GRID` as overrides); `buildRows` walks z from the nearest row back (`band` + `street` per row, so rows never overlap) and interpolates `ROW_STYLE` far/near pairs by depth `t` (looks linearly, sizes geometrically). Each building's depth is `width × GRID.depth` clamped to its row's band, stood back from the street edge by a random `setback`; `buildRows` throws at load if a band can't hold the widest building at `depth.min`, so nothing is ever thin or dropped. `perspective` picks reference-px sizing (1, the illustration look) vs world units (0); `crossStreet.aligned` makes the per-row cross streets one shared set (blocks). Stalls and fog anchor to row edges, not building faces
-- Signage has its own seed: the skeleton comes from `seeds.city`, each building's sign from its own PRNG (`building.seed` mixed with `seeds.sign`), so reseeding signs never moves a building. Stalls have a third, `seeds.stall`, that rolls their variants, placement and header words; only `Stalls` is keyed on it, so the street can be rerolled without remounting the city. The six frame signs are authored (`FRAME_SIGNS`); the generator clears a strip beside each frame for them. Rolled blade signs are placed only with `SIGNAGE.blade.breathing` room from every building, roof detail, billboard and sign in their layer's front plane, else they fall back to the other side, a facade sign, or nothing. `SIGN_BASE` holds the knobs every sign type has (`cell` far/near letter size, `cellScale` rolled per sign, `dim` far/near brightness, `backing` far/near box colour, `radius`, `borderWidth`, `brightness` for the border's halo and core and the text, drawn alike); `SIGNAGE` has a block per type (`frame`, `blade`, `facade`, `billboard`) that spreads it, overrides what differs, and adds `width` for the horizontal types (the share of the building width the box must fall in) plus each type's own (frame column spacing, blade gap and brackets, facade-first chance, billboard posts and `grow`). Billboards are built around a one-line slogan chosen among those that fit `width`, then the letters grow to reach `width.max` up to `grow` times the rolled cell; a roof too narrow for every slogan gets other roof furniture instead
+- Signage has its own seed: the skeleton comes from `seeds.city`, each building's sign from its own PRNG (`building.seed` mixed with `seeds.sign`), so reseeding signs never moves a building. Stalls have a third, `seeds.stall`, that rolls their variants, placement and header words; only `Stalls` is keyed on it, so the street can be rerolled without remounting the city. The frame signs are authored (`FRAME_SIGNS`, three slots per side; only the right side is filled); the generator clears a strip beside a frame only when its side has signs. Rolled blade signs are placed only with `SIGNAGE.blade.breathing` room from every building, roof detail, billboard and sign in their layer's front plane, else they fall back to the other side, a facade sign, or nothing. `SIGN_BASE` holds the knobs every sign type has (`cell` far/near letter size, `cellScale` rolled per sign, `dim` far/near brightness, `backing` far/near box colour, `radius`, `borderWidth`, `brightness` for the border's halo and core and the text, drawn alike); `SIGNAGE` has a block per type (`frame`, `blade`, `facade`, `billboard`) that spreads it, overrides what differs, and adds `width` for the horizontal types (the share of the building width the box must fall in) plus each type's own (frame column spacing, blade gap and brackets, facade-first chance, billboard posts and `grow`). Billboards are built around a one-line slogan chosen among those that fit `width`, then the letters grow to reach `width.max` up to `grow` times the rolled cell; a roof too narrow for every slogan gets other roof furniture instead
 - City shaders are GLSL ES 3.0 (`glslVersion={GLSL3}`, `in`/`out`, `flat` per-instance varyings) and box-filter procedural detail against `fwidth` so thin patterns don't alias
 - DOM-backed textures (e.g. the fog tile canvas) are created in `useState` initializers and disposed in effect cleanups
 - Frame order: `useFrame` priorities are 0 (uniform updates), 0.5 (river reflection render), 1 (`PostEffect`, which renders the main scene and the CRT quad); new passes slot in between
@@ -132,10 +115,6 @@ src/
 
 | File                                       | Purpose                                                                                   |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `src/api/octokit-api.ts`                   | GraphQL client with auth + env validation                                                 |
-| `src/api/get-repository-data.ts`           | Repo query, `RepositoryNode` type                                                         |
-| `src/api/get-project-data.ts`              | Projects query, `ProjectNode` type                                                        |
-| `src/api/repository-utils.ts`              | `getLatestCommitTime` (client-safe)                                                       |
 | `src/app/layout.tsx`                       | Root layout, fonts, 3D background                                                         |
 | `src/app/_3d/ThreeScene.tsx`               | Main Three.js scene composition                                                           |
 | `src/app/_3d/City/generate.ts`             | Seeded city layout, `Building` / `CityLayer`                                              |
@@ -147,39 +126,6 @@ src/
 | `src/app/_3d/PostEffect/PostEffect.tsx`    | Screen effects (noise, scanlines, vignette)                                               |
 | `src/app/_shared/utils/use-breakpoints.ts` | `isMdScreen`, `isLgScreen` hook                                                           |
 | `next.config.ts`                           | Turbopack/Webpack shader loader config                                                    |
-
-## Types
-
-### GitHub Data (src/api/)
-
-```typescript
-// get-repository-data.ts — public, owned, non-fork, non-archived repos (filtered server-side, pre-sorted by latest commit desc)
-type RepositoryNode = {
-  name: string;
-  homepageUrl: string | null;
-  url: string;
-  defaultBranchRef: { target: { history: { edges: CommitNode[] } } } | null;
-};
-
-// get-project-data.ts
-type ProjectNode = {
-  id: string;
-  title: string;
-  shortDescription: string | null;
-  closed: boolean;
-  repositories: { nodes: { homepageUrl; url }[] };
-  items: { nodes: ProjectItemNode[] };
-};
-```
-
-## Environment Variables
-
-```env
-GITHUB_AUTH_TOKEN   # GitHub PAT (required, validated at startup)
-OWNER               # GitHub username (required, validated at startup)
-```
-
-Set in `.env.local`.
 
 ## Build Commands
 
@@ -229,7 +175,6 @@ Examples: `⬆️ upgrade dependencies`, `🐛 fix several bugs`, `🚨 update e
 
 ## Animation
 
-- **CSS** - List stagger animations via `animate-fade-in` + per-item `animationDelay`
 - **Three.js** - City animation is mostly shader-side from `getSceneTime()`: window toggling (hashed periods), beacon blinks, fog scroll, river wobble, rain drops. CPU-side per frame: sign flicker state (`advanceDriver`), ripple spawns, smoke particles, badge bob. All of it is gated by the quality tier
 
 ## Layout Hierarchy
@@ -237,11 +182,7 @@ Examples: `⬆️ upgrade dependencies`, `🐛 fix several bugs`, `🚨 update e
 ```
 RootLayout (fonts, 3D background, analytics)
 └── KnownRoutesLayout (content area)
-    ├── Home (/)
-    └── PageLayout (max-width sub-routes)
-        ├── Projects (/projects)
-        ├── Repositories (/repositories)
-        └── About (/about)
+    └── Home (/)
 ```
 
 ## Special Features
@@ -251,6 +192,5 @@ RootLayout (fonts, 3D background, analytics)
 - **Post-processing** shader with CRT-style scanlines, noise, vignette; render target sized to CSS size × DPR
 - **Quality tiers**: `useQuality()` exposes the knobs (`animate`, `signFlicker`, `smoke`, `fogPlanes`, `reflectionScale`, `rainDensity`, `renderOnDemand`); `static` renders on demand (`frameloop="demand"`, invalidated by camera moves, scroll and the fade-in); the verified tier is kept in `sessionStorage` (`klamath:quality`)
 - **Rain**: `useRainPreference` (localStorage `klamath:rain` + a window event) defaults to on unless `prefers-reduced-motion`; `City` mounts `Rain` and `Ripples` only while enabled. There is no on-page switch
-- **Error boundaries** wrap data-fetching components; retry uses `router.refresh()`; `global-error.tsx` covers the root layout
+- **Error pages**: `error.tsx` (retry via `reset`) and `global-error.tsx` (covers the root layout) render `ErrorWidget`
 - **Catch-all route** for custom 404
-- **ISR**: `/projects` and `/repositories` revalidate hourly; per-route `metadata` titles use the root template

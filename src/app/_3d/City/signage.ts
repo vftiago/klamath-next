@@ -14,7 +14,7 @@ export const MAX_TEXT_CHARS = 12;
 export type FrameSlot = "left-0" | "left-1" | "left-2" | "right-0" | "right-1" | "right-2";
 
 export type FrameSign = {
-  /** Route the sign will navigate to once signs are clickable; not used by the renderer yet. */
+  /** Where a click on the sign goes: an app route, or an external URL (opened in a new tab). */
   href?: string;
   /** Stable id, the same at every viewport size and seed. */
   id: string;
@@ -23,13 +23,11 @@ export type FrameSign = {
 };
 
 /**
- * The six big blade signs on the edge buildings. They are authored, not rolled: always placed, in these
- * slots, with these words. An empty slot stays empty. The routes mirror the home page's links for now.
+ * The big blade signs on the edge buildings. They are authored, not rolled: always placed, in these slots,
+ * with these words. An empty slot stays empty, and a frame building with no signs keeps no strip clear for
+ * them. The links mirror the home page's.
  */
 export const FRAME_SIGNS: readonly FrameSign[] = [
-  { href: "/about", id: "frame-left-0", slot: "left-0", text: "ABOUT" },
-  { href: "/projects", id: "frame-left-1", slot: "left-1", text: "居酒屋" }, // izakaya (pub)
-  { href: "/repositories", id: "frame-left-2", slot: "left-2", text: "ラーメン" }, // ramen
   { href: "https://dev.to/vftiago", id: "frame-right-0", slot: "right-0", text: LOGO.devto },
   { href: "https://www.linkedin.com/in/vftiago/", id: "frame-right-1", slot: "right-1", text: LOGO.linkedin },
   { href: "https://github.com/vftiago", id: "frame-right-2", slot: "right-2", text: LOGO.github },
