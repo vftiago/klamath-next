@@ -9,14 +9,24 @@ in float vWorldY;
 
 out vec4 fragColor;
 
+
+// previous palette light dusk palette:
+// const vec3 ZENITH = vec3(40.0, 22.0, 80.0) / 255.0;
+// const vec3 MID = vec3(96.0, 40.0, 128.0) / 255.0;
+// const vec3 HORIZON = vec3(200.0, 90.0, 150.0) / 255.0;
+// const vec3 GLOW = vec3(245.0, 150.0, 140.0) / 255.0;
+
+// // below the horizon line the plane stands in for distant water until the river covers it
+// const vec3 BELOW = vec3(52.0, 18.0, 66.0) / 255.0;
+
 // dusk palette: deep indigo overhead, purple mid-sky, pink-magenta at the horizon with a warm glow on the line
-const vec3 ZENITH = vec3(40.0, 22.0, 80.0) / 255.0;
-const vec3 MID = vec3(96.0, 40.0, 128.0) / 255.0;
-const vec3 HORIZON = vec3(200.0, 90.0, 150.0) / 255.0;
-const vec3 GLOW = vec3(245.0, 150.0, 140.0) / 255.0;
+const vec3 ZENITH = vec3(30.0, 16.0, 62.0) / 255.0;
+const vec3 MID = vec3(76.0, 32.0, 104.0) / 255.0;
+const vec3 HORIZON = vec3(164.0, 72.0, 124.0) / 255.0;
+const vec3 GLOW = vec3(210.0, 124.0, 118.0) / 255.0;
 
 // below the horizon line the plane stands in for distant water until the river covers it
-const vec3 BELOW = vec3(52.0, 18.0, 66.0) / 255.0;
+const vec3 BELOW = vec3(40.0, 14.0, 52.0) / 255.0;
 
 void main(void) {
   float t = clamp((vWorldY - uGround) / uFade, 0.0, 1.0);
