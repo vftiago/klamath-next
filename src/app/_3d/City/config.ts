@@ -136,7 +136,7 @@ export const SIGN_BASE: SignStyle = {
  * Signage: one block per sign type, each `SIGN_BASE` plus overrides and the type's own knobs (the horizontal
  * types, facade and billboard, bound their box by `width`, a fraction of the building width), and the two
  * knobs about rolling signs at all (`chance`, `flakyChance`). Reference px unless noted. Text lives in
- * `signage.ts`. The six frame signs are authored and always placed; every other sign is rolled per building and
+ * `signage.ts`. The frame signs are authored and always placed; every other sign is rolled per building and
  * only placed where it has `blade.breathing` room from any building, roof furniture or other sign in its
  * layer's front plane.
  */
@@ -187,7 +187,7 @@ export const SIGNAGE = {
   /** Chance a sign's driver may stutter, drop out or brown out. */
   flakyChance: 0.55,
   /**
-   * Frame signs: the six authored blade signs on the frame buildings. `top` is the first sign's distance below
+   * Frame signs: the authored blade signs on the frame buildings. `top` is the first sign's distance below
    * the roof (min, extra), `gap` the space between signs (min, extra), `bottomMargin` the space kept above the
    * frame building's foot; a building narrowed to clear the signs' strip is dropped if less than `trimKeep` of
    * the layer's `minW` remains.
@@ -203,7 +203,7 @@ export const SIGNAGE = {
   },
   /**
    * Frame signs while hovered: the look knobs swapped in live for the sign under the pointer (its box and
-   * letters stay put). Brighter and steadier than `frame`, so the six linked blades read as buttons.
+   * letters stay put). Brighter and steadier than `frame`, so the linked blades read as buttons.
    */
   frameHover: {
     ...SIGN_BASE,
