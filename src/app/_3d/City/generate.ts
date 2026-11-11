@@ -3,6 +3,7 @@ import type { Brightness, Rgb, Seeds, SignHoverStyle, SignLookStyle, SignStyle }
 import {
   GENERATION_ASPECT,
   GRID,
+  depthScale,
   GROUND_Y,
   lerpRow,
   lerpRowGeo,
@@ -708,11 +709,32 @@ const fitBillboard = (
   return { cell: grown, text: pick.text };
 };
 
+/** Share of the city's buildings, tallest first by apparent height, that may carry an antenna mast. */
+const MAST_TALLEST = 0.6;
+
+/** How tall a building looks from the home camera: its world height undone by its depth's perspective. */
+const apparentHeight = (building: Building, layer: CityLayer): number =>
+  building.height / depthScale(layer.config.z + building.z);
+
+/**
+ * The apparent height a building must reach to carry a mast: the cut-off of the city's `MAST_TALLEST` share.
+ * Ranked over the whole fixed-aspect walk (frames excluded), so it doesn't depend on the screen width.
+ */
+const mastCutoff = (layers: readonly CityLayer[]): number => {
+  const heights = layers
+    .flatMap((layer) => layer.buildings.filter((b) => !b.frame).map((b) => apparentHeight(b, layer)))
+    .sort((a, b) => a - b);
+
+  return heights[Math.floor((1 - MAST_TALLEST) * heights.length)] ?? Infinity;
+};
+
 /**
  * Roof furniture per the reference's roof-type roll. Sizes are reference px scaled to the layer.
  * Each building's four `rands` drive the variations so the result is stable for a given layout.
+ * Antenna masts go on the city's tallest buildings only (`MAST_TALLEST`); any other building that rolls one gets
+ * the HVAC unit instead.
  */
-const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig): RoofFurniture => {
+const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig, tall: boolean): RoofFurniture => {
   const out: RoofFurniture = { beacons: [], billboards: [], details: [] };
 
   if (building.frame) {
@@ -743,7 +765,7 @@ const generateRoof = (building: Building, { index, scale, side, t }: LayerConfig
       const spikeW = Math.max(1.5 * scale, 0.08 * towerW);
       out.details.push(box(x - spikeW / 2, top + towerH, spikeW, 1.6 * towerH));
     }
-  } else if (roof < 0.48) {
+  } else if (roof < 0.48 && tall) {
     // antenna mast with a blinking beacon
     const mastH = (12 + 40 * r0) * scale;
     const mastX = left + width * (0.3 + 0.4 * r1);
@@ -958,9 +980,9 @@ const generateLayer = (config: LayerConfig, aspect: number, seed: number, shared
 };
 
 /** Roof furniture for every building in the layer; after the frame zone is cleared so nothing floats. */
-const furnish = (layer: CityLayer): void => {
+const furnish = (layer: CityLayer, cutoff: number): void => {
   for (const building of layer.buildings) {
-    const roof = generateRoof(building, layer.config);
+    const roof = generateRoof(building, layer.config, apparentHeight(building, layer) >= cutoff);
     layer.beacons.push(...roof.beacons);
     layer.billboards.push(...roof.billboards);
     layer.details.push(...roof.details);
@@ -1006,8 +1028,10 @@ export const generateCity = (aspect: number, seeds: Seeds = SEEDS): CityLayout =
     }
   }
 
+  const cutoff = mastCutoff(generated);
+
   for (const layer of generated) {
-    furnish(layer);
+    furnish(layer, cutoff);
   }
 
   const beacon = pickSearchlight(generated, aspect);
