@@ -4,7 +4,7 @@ import { useQuality } from "../quality/QualityContext";
 import { RAIN } from "../Rain/config";
 import Rain from "../Rain/Rain";
 import Ripples from "../Rain/Ripples";
-import Beacon from "./Beacon/Beacon";
+// import Beacon from "./Beacon/Beacon";
 import Beacons from "./Beacons/Beacons";
 import Billboards from "./Billboards/Billboards";
 import Buildings from "./Buildings/Buildings";
@@ -109,7 +109,7 @@ const City = ({ rain = true, seeds = SEEDS }: CityProps) => {
       ))}
       {atlas ? <Billboards atlas={atlas} layout={layout} /> : null}
       {atlas ? <Signs atlas={atlas} flicker={quality.signFlicker} layout={layout} /> : null}
-      <Beacon animate={quality.animate} layout={layout} />
+      {/* <Beacon animate={quality.animate} layout={layout} /> */}
       <Beacons blink={quality.animate} layout={layout} />
       <Stalls key={`${STALL_KEY}:${seeds.stall}`} layout={layout} seed={seeds.stall} smoke={quality.smoke} />
       <Fog layout={layout} planes={quality.fogPlanes} />
