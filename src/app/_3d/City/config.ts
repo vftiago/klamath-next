@@ -88,7 +88,7 @@ export type Seeds = {
  * Committed seeds. `?seed=<n>`, `?signSeed=<n>` and `?stallSeed=<n>` override them for a session (see
  * `seeds.ts`).
  */
-export const SEEDS: Seeds = { city: 2024, sign: 2024, stall: 16 };
+export const SEEDS: Seeds = { city: 2024, sign: 2024, stall: 8 };
 
 /** Letter size of a sign type: the row's `cell` times a factor rolled in [min, max] per sign. */
 export type CellScale = { max: number; min: number };
