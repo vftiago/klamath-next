@@ -1,21 +1,18 @@
 precision highp float;
 
 uniform float time;
+// fade-in progress, 0 to 1, computed on the CPU from the unwrapped clock
+uniform float fade;
 uniform vec2 resolution;
 uniform sampler2D texture;
 
 varying vec2 vUv;
-
-const float duration = 0.6;
-const float delay = 0.2;
 
 float random(vec2 c) {
   return fract(sin(dot(c.xy, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 void main() {
-  float now = clamp((time - delay) / duration, 0.0, 1.0);
-
   float whiteNoise = random(vUv.xy * time) * 0.1 - 0.1;
 
   float monitor1 = abs(sin(vUv.y * resolution.y * 2.4 + time * 10.0)) * 0.04;
@@ -32,11 +29,11 @@ void main() {
 
   finalColor = clamp(finalColor, 0.0, 1.0);
 
-  finalColor *= now;
+  finalColor *= fade;
 
   // scene geometry stays opaque; where nothing was drawn only a faint layer of the CRT effects remains so
   // the page background shows through as the sky
-  float opacity = max(tex.a, 0.1) * now;
+  float opacity = max(tex.a, 0.1) * fade;
 
   // the canvas is composited with premultiplied alpha
   gl_FragColor = vec4(finalColor * opacity, opacity);

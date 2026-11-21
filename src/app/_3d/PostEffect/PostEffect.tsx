@@ -1,7 +1,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useRef } from "react";
 import { Mesh, OrthographicCamera, PlaneGeometry, RawShaderMaterial, Scene, Vector2, WebGLRenderTarget } from "three";
-import { getSceneTime } from "../utils";
+import { getFadeIn, getSceneTime } from "../utils";
 import fragmentShader from "./post-effect.frag";
 import vertexShader from "./post-effect.vert";
 
@@ -17,6 +17,7 @@ const createPostScene = (): PostScene => {
   const material = new RawShaderMaterial({
     fragmentShader,
     uniforms: {
+      fade: { value: 0 },
       resolution: { value: new Vector2(1, 1) },
       texture: { value: null },
       time: { value: 0 },
@@ -84,6 +85,7 @@ const PostEffect = () => {
     }
 
     postScene.material.uniforms.time.value = getSceneTime();
+    postScene.material.uniforms.fade.value = getFadeIn();
 
     // Render the main scene to the texture
     gl.setRenderTarget(target);

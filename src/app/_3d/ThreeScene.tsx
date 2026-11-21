@@ -14,7 +14,7 @@ import { createStats, DebugOverlay, StatsProbe } from "./quality/DebugOverlay";
 import { qualityFor, QualityProvider } from "./quality/QualityContext";
 import { readForcedTier, useQualityTier } from "./quality/use-quality-tier";
 import { useRainPreference } from "./Rain/use-rain-preference";
-import { getSceneTime } from "./utils";
+import { getFadeIn } from "./utils";
 
 // The eye sits just above the water. The current route views keep the camera level (look-at height equals
 // eye height, look-at x equals eye x) and push the horizon down with a vertical lens shift (see `LensShift`),
@@ -105,7 +105,7 @@ const CameraController = () => {
 /** Under on-demand rendering, keeps frames coming while the post-effect fades the scene in. */
 const FadeInKeepAlive = () => {
   useFrame((state) => {
-    if (getSceneTime() < 4) {
+    if (getFadeIn() < 1) {
       state.invalidate();
     }
   });
