@@ -195,7 +195,8 @@ export const SIGNAGE = {
   frame: {
     ...SIGN_BASE,
     bottomMargin: 90,
-    cellScale: { max: 1.6, min: 1.6 },
+    brightness: { borderCore: 0.5, borderHalo: 0.5, text: 1 },
+    cellScale: { max: 2, min: 2 },
     gap: { extra: 0, min: 8 },
     radius: 4,
     top: { extra: 30, min: 90 },
