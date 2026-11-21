@@ -6,8 +6,8 @@ uniform sampler2D texture;
 
 varying vec2 vUv;
 
-const float duration = 2.0;
-const float delay = 1.0;
+const float duration = 0.6;
+const float delay = 0.2;
 
 float random(vec2 c) {
   return fract(sin(dot(c.xy, vec2(12.9898, 78.233))) * 43758.5453);
