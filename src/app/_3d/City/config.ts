@@ -315,7 +315,7 @@ export type RowStyle = {
 export const ROW_STYLE: { far: RowStyle; near: RowStyle } = {
   far: {
     fog: 0.5,
-    glow: 0.34,
+    glow: 0.8,
     haze: 0.3,
     lit: 0.18,
     maxW: 44,
@@ -325,7 +325,7 @@ export const ROW_STYLE: { far: RowStyle; near: RowStyle } = {
     top: 0.9,
     win: [2, 2, 2, 3],
   },
-  near: { fog: 0.2, glow: 0.62, haze: 0, lit: 0.2, maxW: 180, minW: 84, px: 36, side: 1, top: 0.46, win: [5, 8, 7, 9] },
+  near: { fog: 0.2, glow: 1.0, haze: 0, lit: 0.2, maxW: 180, minW: 84, px: 36, side: 1, top: 0.46, win: [5, 8, 7, 9] },
 };
 
 /** One row of the grid: its interpolated style plus everything the walk derives. */
