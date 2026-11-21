@@ -19,7 +19,6 @@ uniform float uSkylineH;
 uniform vec4 uCell;
 uniform float uMargin;
 uniform float uBottomReserve;
-uniform float uGlowPad;
 uniform float uEdgeLine;
 uniform float uFloorLines;
 uniform float uSideLines;
@@ -165,7 +164,6 @@ vec4 windows(float u, float v, vec2 fw) {
 
   float inU = cu - col * pitchX;
   float inV = cv - row * pitchY;
-  float pad = uGlowPad;
 
   vec3 id = vec3(vSeed, col, row);
   float rowActive = vPattern < 0.5 ? step(hash(vec3(vSeed, row, 999.0)), rowActiveProbability) : 1.0;
@@ -173,15 +171,14 @@ vec4 windows(float u, float v, vec2 fw) {
   vec3 tint = windowTint(hash(id + 4.0));
   float a = uGlow * (alphaBase + (1.0 - alphaBase) * hash(id + 5.0)) * alphaScale;
 
-  // exact coverage of this cell (and its glow pad) by the pixel footprint
+  // exact coverage of this cell by the pixel footprint
   float covCell = segCoverage(inU, cellW, fw.x) * segCoverage(inV, cellH, fw.y);
-  float covPad = segCoverage(inU + pad, cellW + 2.0 * pad, fw.x) * segCoverage(inV + pad, cellH + 2.0 * pad, fw.y);
 
   vec3 cellColor;
   float cellAlpha;
   if (lit > 0.5) {
     cellColor = tint;
-    cellAlpha = covCell * a + (covPad - covCell) * 0.2 * a;
+    cellAlpha = covCell * a;
   } else {
     cellColor = UNLIT;
     cellAlpha = covCell * UNLIT_ALPHA;

@@ -84,7 +84,6 @@ const Buildings = ({ animate = true, layer, layout }: BuildingsProps) => {
       uEdgeLine: { value: index >= 2 ? 1 : 0 },
       uFloorLines: { value: index >= NEAREST_LAYER - 1 ? 1 : 0 },
       uGlow: { value: config.glow },
-      uGlowPad: { value: index >= NEAREST_LAYER - 1 ? 2 * scale : 0 },
       uGround: { value: layout.groundY },
       uHaze: { value: config.haze },
       uIsNear: { value: isNear ? 1 : 0 },
