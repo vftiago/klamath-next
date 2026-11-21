@@ -84,11 +84,13 @@ float segCoverage(float x, float len, float fw) {
 }
 
 // A window flips state once per hashed period (60-400 s); together with the hashed base state this gives
-// ~0.5% of windows flipping per second, the reference's rate, with no CPU work.
+// ~0.5% of windows flipping per second, the reference's rate, with no CPU work. The phase spans two periods
+// so a window has already flipped (or not) at random when the clock starts: the lit share opens at its
+// steady state instead of climbing from `litProbability` over the first minutes.
 float windowLit(vec3 id, float litProbability) {
   float base = step(hash(id + 1.0), litProbability);
   float period = 60.0 + 340.0 * hash(id + 2.0);
-  float phase = hash(id + 3.0) * period;
+  float phase = hash(id + 3.0) * 2.0 * period;
   float flips = floor((uTime + phase) / period);
   float flipped = mod(flips, 2.0);
   return abs(base - flipped);
